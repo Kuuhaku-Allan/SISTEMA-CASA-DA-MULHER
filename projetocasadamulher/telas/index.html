@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Casa da Mulher</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="app.js" defer></script>
+</head>
+<body>
+    <main class="auth-container">
+        <section class="auth-box">
+            <img src="IMAGENS/logo_oficial.png" alt="Logo Casa da Mulher" class="logo-login">
+            <p class="auth-subtitle">Acolhimento e Qualifica&ccedil;&atilde;o</p>
+
+            <form id="formLogin" class="auth-form" novalidate>
+                <div class="input-group">
+                    <label for="email">E-mail</label>
+                    <input type="email" id="email" name="email" placeholder="seu.email@casamulher.local" autocomplete="email" required>
+                </div>
+
+                <div class="input-group">
+                    <label for="senha">Senha</label>
+                    <input type="password" id="senha" name="senha" placeholder="********" autocomplete="current-password" required>
+                </div>
+
+                <div id="mensagemLogin" class="message" aria-live="polite"></div>
+
+                <button type="submit" class="btn-primary">Entrar no sistema</button>
+            </form>
+
+            <a class="text-link" href="cadastro.html">Primeiro acesso com convite</a>
+        </section>
+    </main>
+</body>
+</html>

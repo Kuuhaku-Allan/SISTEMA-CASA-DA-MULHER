@@ -1,0 +1,29 @@
+@CasaMulher.Api_HostAddress = http://localhost:5001
+
+POST {{CasaMulher.Api_HostAddress}}/api/auth/register-funcionario
+Content-Type: application/json
+
+{
+  "nomeCompleto": "Ana Paula Santos",
+  "email": "recepcao@casamulher.local",
+  "senha": "Senha@123",
+  "confirmarSenha": "Senha@123",
+  "codigoCadastro": "REC-2026"
+}
+
+###
+
+POST {{CasaMulher.Api_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "recepcao@casamulher.local",
+  "senha": "Senha@123"
+}
+
+###
+
+GET {{CasaMulher.Api_HostAddress}}/swagger/
+Accept: application/json
+
+###

@@ -1,0 +1,10 @@
+bin/
+obj/
+.vs/
+
+*.user
+*.log
+*.pid
+
+casamulher.db*
+DataProtectionKeys/

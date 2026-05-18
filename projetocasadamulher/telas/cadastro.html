@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro - Casa da Mulher</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="app.js" defer></script>
+</head>
+<body>
+    <main class="auth-container">
+        <section class="auth-box auth-box-wide">
+            <img src="IMAGENS/logo_oficial.png" alt="Logo Casa da Mulher" class="logo-login">
+            <p class="auth-subtitle">Cadastro restrito a funcion&aacute;rios convidados</p>
+
+            <form id="formCadastroFuncionario" class="auth-form" novalidate>
+                <div class="input-group">
+                    <label for="nomeCompleto">Nome completo</label>
+                    <input type="text" id="nomeCompleto" name="nomeCompleto" placeholder="Ana Paula Santos" autocomplete="name" required>
+                </div>
+
+                <div class="input-group">
+                    <label for="email">E-mail</label>
+                    <input type="email" id="email" name="email" placeholder="recepcao@casamulher.local" autocomplete="email" required>
+                </div>
+
+                <div class="input-grid">
+                    <div class="input-group">
+                        <label for="senha">Senha</label>
+                        <input type="password" id="senha" name="senha" placeholder="********" autocomplete="new-password" required>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="confirmarSenha">Confirmar senha</label>
+                        <input type="password" id="confirmarSenha" name="confirmarSenha" placeholder="********" autocomplete="new-password" required>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label for="codigoCadastro">C&oacute;digo de cadastro</label>
+                    <input type="text" id="codigoCadastro" name="codigoCadastro" placeholder="REC-2026" required>
+                </div>
+
+                <p class="hint">O perfil ser&aacute; definido automaticamente conforme o convite informado.</p>
+
+                <div id="mensagemCadastro" class="message" aria-live="polite"></div>
+
+                <button type="submit" class="btn-primary">Cadastrar funcion&aacute;rio</button>
+            </form>
+
+            <a class="text-link" href="index.html">J&aacute; tenho cadastro</a>
+        </section>
+    </main>
+</body>
+</html>
