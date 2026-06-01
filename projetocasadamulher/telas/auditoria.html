@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Auditoria - Casa da Mulher</title>
     <link rel="stylesheet" href="style.css">
+    <script src="auth.js" defer></script>
     <script src="app.js" defer></script>
 </head>
 <body>
@@ -17,7 +18,10 @@
                     <p>Hist&oacute;rico de a&ccedil;&otilde;es sens&iacute;veis</p>
                 </div>
             </div>
-            <a class="btn-secondary btn-compact button-link" href="painel.html">Voltar</a>
+            <div class="header-actions">
+                <a class="btn-secondary btn-compact button-link" href="painel.html">Voltar</a>
+                <button type="button" id="btnSairAuditoria" class="btn-secondary btn-compact">Sair</button>
+            </div>
         </header>
 
         <section id="auditoriaRestrito" class="admin-alert hidden">

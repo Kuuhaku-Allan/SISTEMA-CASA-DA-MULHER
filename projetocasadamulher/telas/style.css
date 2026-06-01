@@ -249,6 +249,16 @@ body {
     color: #5f6872;
 }
 
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.header-actions .button-link {
+    margin-bottom: 0;
+}
+
 .admin-layout {
     width: min(1120px, 100%);
     margin: 0 auto;
@@ -417,6 +427,16 @@ small {
     .admin-header {
         align-items: flex-start;
         flex-direction: column;
+    }
+
+    .header-actions {
+        width: 100%;
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .header-actions .btn-compact {
+        width: 100%;
     }
 
     .admin-layout {

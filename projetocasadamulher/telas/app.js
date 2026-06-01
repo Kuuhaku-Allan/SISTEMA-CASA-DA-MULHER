@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://localhost:5001";
+const API_BASE_URL = window.API_BASE_URL || "http://localhost:5001";
 const PERFIS_LABEL = {
     adm: "Coordenacao / ADM",
     recepcao: "Recepcao",
@@ -47,37 +47,15 @@ function disableSubmit(form, disabled) {
 }
 
 function getAuthHeaders(includeJson) {
-    const headers = {};
-
-    if (includeJson) {
-        headers["Content-Type"] = "application/json";
-    }
-
-    headers.Authorization = `Bearer ${localStorage.getItem("token")}`;
-    return headers;
+    return CasaMulherAuth.getAuthHeaders(includeJson);
 }
 
 function clearSession() {
-    localStorage.removeItem("token");
-    localStorage.removeItem("perfil");
-    localStorage.removeItem("email");
-    localStorage.removeItem("nomeCompleto");
-    localStorage.removeItem("identificadorFuncionario");
-    localStorage.removeItem("doisFatoresObrigatorio");
-    localStorage.removeItem("doisFatoresAtivado");
-    localStorage.removeItem("deveTrocarSenha");
-    sessionStorage.removeItem("loginTemporario2fa");
+    CasaMulherAuth.limparSessao();
 }
 
 function storeAuthResult(resultado) {
-    localStorage.setItem("token", resultado.token);
-    localStorage.setItem("perfil", resultado.perfil);
-    localStorage.setItem("email", resultado.email);
-    localStorage.setItem("nomeCompleto", resultado.nomeCompleto);
-    localStorage.setItem("identificadorFuncionario", resultado.identificadorFuncionario);
-    localStorage.setItem("doisFatoresObrigatorio", String(resultado.doisFatoresObrigatorio));
-    localStorage.setItem("doisFatoresAtivado", String(resultado.doisFatoresAtivado));
-    localStorage.setItem("deveTrocarSenha", String(resultado.deveTrocarSenha));
+    CasaMulherAuth.salvarSessao(resultado);
 }
 
 function redirectAfterLogin(resultado) {
@@ -87,6 +65,12 @@ function redirectAfterLogin(resultado) {
     }
 
     window.location.href = "painel.html";
+}
+
+function bindLogoutButton(id) {
+    document.getElementById(id)?.addEventListener("click", function () {
+        CasaMulherAuth.logout();
+    });
 }
 
 function formatDate(value) {
@@ -230,6 +214,13 @@ function setupLogin() {
         return;
     }
 
+    const mensagemSessao = sessionStorage.getItem("mensagemLogin");
+
+    if (mensagemSessao) {
+        setMessage(mensagem, mensagemSessao, "info");
+        sessionStorage.removeItem("mensagemLogin");
+    }
+
     const ultimoIdentificador = sessionStorage.getItem("ultimoIdentificadorFuncionario");
 
     if (ultimoIdentificador) {
@@ -334,69 +325,59 @@ function setupLogin() {
     });
 }
 
-function setupPainel() {
+async function setupPainel() {
     const painelNome = document.getElementById("painelNome");
 
     if (!painelNome) {
         return;
     }
 
-    const token = localStorage.getItem("token");
+    const usuario = await CasaMulherAuth.protegerPagina();
 
-    if (!token) {
-        window.location.href = "index.html";
+    if (!usuario) {
         return;
     }
 
-    document.getElementById("painelNome").textContent = localStorage.getItem("nomeCompleto") || "-";
-    document.getElementById("painelIdentificador").textContent = localStorage.getItem("identificadorFuncionario") || "-";
-    document.getElementById("painelEmail").textContent = localStorage.getItem("email") || "-";
-    document.getElementById("painelPerfil").textContent = localStorage.getItem("perfil") || "-";
+    document.getElementById("painelNome").textContent = usuario.nomeCompleto || "-";
+    document.getElementById("painelIdentificador").textContent = usuario.identificadorFuncionario || "-";
+    document.getElementById("painelEmail").textContent = usuario.email || "-";
+    document.getElementById("painelPerfil").textContent = usuario.perfil || "-";
 
     const linkConvites = document.getElementById("linkConvites");
 
-    if (localStorage.getItem("perfil") === "adm") {
+    if (usuario.perfil === "adm") {
         linkConvites?.classList.remove("hidden");
         document.getElementById("linkFuncionarios")?.classList.remove("hidden");
         document.getElementById("linkAuditoria")?.classList.remove("hidden");
     }
 
-    document.getElementById("btnSair").addEventListener("click", function () {
-        clearSession();
-        window.location.href = "index.html";
-    });
+    bindLogoutButton("btnSair");
 }
 
-function setupConvites() {
+async function setupConvites() {
     const page = document.getElementById("convitesPage");
 
     if (!page) {
         return;
     }
 
-    const token = localStorage.getItem("token");
-    const perfil = localStorage.getItem("perfil");
     const conteudo = document.getElementById("convitesConteudo");
     const restrito = document.getElementById("convitesRestrito");
     const mensagem = document.getElementById("mensagemConvite");
 
-    if (!token) {
-        window.location.href = "index.html";
-        return;
-    }
+    bindLogoutButton("btnSairConvites");
 
-    document.getElementById("convitesUsuario").textContent = localStorage.getItem("nomeCompleto") || "Coordenacao";
-
-    document.getElementById("btnSairConvites").addEventListener("click", function () {
-        clearSession();
-        window.location.href = "index.html";
+    const usuario = await CasaMulherAuth.protegerPerfil("adm", {
+        conteudoElement: conteudo,
+        restritoElement: restrito,
+        mensagemElement: mensagem
     });
 
-    if (perfil !== "adm") {
-        conteudo.classList.add("hidden");
-        restrito.classList.remove("hidden");
+    if (!usuario) {
         return;
     }
+
+    document.getElementById("convitesUsuario").textContent = usuario.nomeCompleto || "Coordenacao";
 
     const form = document.getElementById("formConvite");
     const resultPanel = document.getElementById("conviteGerado");
@@ -408,13 +389,11 @@ function setupConvites() {
         lista.innerHTML = "<tr><td colspan=\"6\">Carregando...</td></tr>";
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/convites-funcionarios`, {
-                headers: getAuthHeaders(false)
+            const response = await CasaMulherAuth.apiFetch("/api/convites-funcionarios", {
+                mensagemElement: mensagem
             });
 
             if (response.status === 401) {
-                clearSession();
-                window.location.href = "index.html";
                 return;
             }
 
@@ -476,10 +455,11 @@ function setupConvites() {
         };
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/convites-funcionarios`, {
+            const response = await CasaMulherAuth.apiFetch("/api/convites-funcionarios", {
                 method: "POST",
                 headers: getAuthHeaders(true),
-                body: JSON.stringify(dados)
+                body: JSON.stringify(dados),
+                mensagemElement: mensagem
             });
 
             if (!response.ok) {
@@ -526,9 +506,10 @@ function setupConvites() {
         setMessage(mensagem, "Cancelando convite...", "info");
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/convites-funcionarios/${button.dataset.cancelar}/cancelar`, {
+            const response = await CasaMulherAuth.apiFetch(`/api/convites-funcionarios/${button.dataset.cancelar}/cancelar`, {
                 method: "PATCH",
-                headers: getAuthHeaders(false)
+                headers: getAuthHeaders(false),
+                mensagemElement: mensagem
             });
 
             if (!response.ok) {
@@ -549,44 +530,26 @@ function setupConvites() {
 }
 
 async function carregarUsuarioAtual() {
-    const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
-        headers: getAuthHeaders(false)
-    });
-
-    if (response.status === 401) {
-        clearSession();
-        window.location.href = "index.html";
-        return null;
-    }
-
-    if (!response.ok) {
-        return null;
-    }
-
-    const usuario = await response.json();
-    localStorage.setItem("perfil", usuario.perfil);
-    localStorage.setItem("email", usuario.email);
-    localStorage.setItem("nomeCompleto", usuario.nomeCompleto);
-    localStorage.setItem("identificadorFuncionario", usuario.identificadorFuncionario);
-    localStorage.setItem("doisFatoresObrigatorio", String(usuario.doisFatoresObrigatorio));
-    localStorage.setItem("doisFatoresAtivado", String(usuario.doisFatoresAtivado));
-    localStorage.setItem("deveTrocarSenha", String(usuario.deveTrocarSenha));
-    return usuario;
+    return CasaMulherAuth.carregarUsuarioAtual();
 }
 
-function setupTrocarSenha() {
+async function setupTrocarSenha() {
     const form = document.getElementById("formTrocarSenha");
 
     if (!form) {
         return;
     }
 
-    if (!localStorage.getItem("token")) {
-        window.location.href = "index.html";
+    const usuario = await CasaMulherAuth.protegerPagina({
+        permitirTrocaSenhaPendente: true
+    });
+
+    if (!usuario) {
         return;
     }
 
     const mensagem = document.getElementById("mensagemTrocarSenha");
+    bindLogoutButton("btnSairTrocarSenha");
 
     form.addEventListener("submit", async function (event) {
         event.preventDefault();
@@ -599,14 +562,15 @@ function setupTrocarSenha() {
         disableSubmit(form, true);
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/auth/trocar-senha-obrigatoria`, {
+            const response = await CasaMulherAuth.apiFetch("/api/auth/trocar-senha-obrigatoria", {
                 method: "POST",
                 headers: getAuthHeaders(true),
-                body: JSON.stringify({
+                body: {
                     senhaAtual: document.getElementById("senhaAtual").value,
                     novaSenha: document.getElementById("novaSenha").value,
                     confirmarNovaSenha: document.getElementById("confirmarNovaSenha").value
-                })
+                },
+                mensagemElement: mensagem
             });
 
             if (!response.ok) {
@@ -614,7 +578,9 @@ function setupTrocarSenha() {
                 return;
             }
 
-            localStorage.setItem("deveTrocarSenha", "false");
+            CasaMulherAuth.salvarUsuario(Object.assign(CasaMulherAuth.getUsuario(), {
+                deveTrocarSenha: false
+            }));
             setMessage(mensagem, "Senha alterada com sucesso.", "success");
 
             setTimeout(function () {
@@ -628,15 +594,10 @@ function setupTrocarSenha() {
     });
 }
 
-function setupFuncionarios() {
+async function setupFuncionarios() {
     const page = document.getElementById("funcionariosPage");
 
     if (!page) {
-        return;
-    }
-
-    if (!localStorage.getItem("token")) {
-        window.location.href = "index.html";
         return;
     }
 
@@ -644,10 +605,15 @@ function setupFuncionarios() {
     const restrito = document.getElementById("funcionariosRestrito");
     const mensagem = document.getElementById("mensagemFuncionarios");
     let senhaTemporariaAtual = "";
+    bindLogoutButton("btnSairFuncionarios");
 
-    if (localStorage.getItem("perfil") !== "adm") {
-        conteudo.classList.add("hidden");
-        restrito.classList.remove("hidden");
+    const usuario = await CasaMulherAuth.protegerPerfil("adm", {
+        conteudoElement: conteudo,
+        restritoElement: restrito,
+        mensagemElement: mensagem
+    });
+
+    if (!usuario) {
         return;
     }
 
@@ -656,13 +622,11 @@ function setupFuncionarios() {
         lista.innerHTML = "<tr><td colspan=\"6\">Carregando...</td></tr>";
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/funcionarios`, {
-                headers: getAuthHeaders(false)
+            const response = await CasaMulherAuth.apiFetch("/api/funcionarios", {
+                mensagemElement: mensagem
             });
 
             if (response.status === 401) {
-                clearSession();
-                window.location.href = "index.html";
                 return;
             }
 
@@ -727,11 +691,20 @@ function setupFuncionarios() {
 
         setMessage(mensagem, "Alterando perfil...", "info");
 
-        const response = await fetch(`${API_BASE_URL}/api/funcionarios/${select.dataset.id}/alterar-perfil`, {
-            method: "PATCH",
-            headers: getAuthHeaders(true),
-            body: JSON.stringify({ perfil: select.value })
-        });
+        let response;
+
+        try {
+            response = await CasaMulherAuth.apiFetch(`/api/funcionarios/${select.dataset.id}/alterar-perfil`, {
+                method: "PATCH",
+                headers: getAuthHeaders(true),
+                body: { perfil: select.value },
+                mensagemElement: mensagem
+            });
+        } catch {
+            setMessage(mensagem, "Nao foi possivel conectar a API.", "error");
+            await carregarFuncionarios();
+            return;
+        }
 
         if (!response.ok) {
             setMessage(mensagem, await readApiMessage(response), "error");
@@ -752,7 +725,7 @@ function setupFuncionarios() {
 
         const action = button.dataset.action;
         let method = "PATCH";
-        let url = `${API_BASE_URL}/api/funcionarios/${button.dataset.id}/${action}`;
+        let url = `/api/funcionarios/${button.dataset.id}/${action}`;
 
         if (action === "resetar-senha" || action === "resetar-2fa") {
             method = "POST";
@@ -762,9 +735,10 @@ function setupFuncionarios() {
         button.disabled = true;
 
         try {
-            const response = await fetch(url, {
+            const response = await CasaMulherAuth.apiFetch(url, {
                 method,
-                headers: getAuthHeaders(false)
+                headers: getAuthHeaders(false),
+                mensagemElement: mensagem
             });
 
             if (!response.ok) {
@@ -792,25 +766,25 @@ function setupFuncionarios() {
     carregarFuncionarios();
 }
 
-function setupAuditoria() {
+async function setupAuditoria() {
     const page = document.getElementById("auditoriaPage");
 
     if (!page) {
         return;
     }
 
-    if (!localStorage.getItem("token")) {
-        window.location.href = "index.html";
-        return;
-    }
-
     const conteudo = document.getElementById("auditoriaConteudo");
     const restrito = document.getElementById("auditoriaRestrito");
     const mensagem = document.getElementById("mensagemAuditoria");
+    bindLogoutButton("btnSairAuditoria");
 
-    if (localStorage.getItem("perfil") !== "adm") {
-        conteudo.classList.add("hidden");
-        restrito.classList.remove("hidden");
+    const usuario = await CasaMulherAuth.protegerPerfil("adm", {
+        conteudoElement: conteudo,
+        restritoElement: restrito,
+        mensagemElement: mensagem
+    });
+
+    if (!usuario) {
         return;
     }
 
@@ -819,13 +793,11 @@ function setupAuditoria() {
         lista.innerHTML = "<tr><td colspan=\"5\">Carregando...</td></tr>";
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/auditoria`, {
-                headers: getAuthHeaders(false)
+            const response = await CasaMulherAuth.apiFetch("/api/auditoria", {
+                mensagemElement: mensagem
             });
 
             if (response.status === 401) {
-                clearSession();
-                window.location.href = "index.html";
                 return;
             }
 
@@ -873,21 +845,25 @@ function setupAuditoria() {
     carregarAuditoria();
 }
 
-function setupSeguranca() {
+async function setupSeguranca() {
     const page = document.getElementById("segurancaPage");
 
     if (!page) {
         return;
     }
 
-    if (!localStorage.getItem("token")) {
-        window.location.href = "index.html";
-        return;
-    }
-
     const mensagem = document.getElementById("mensagemSeguranca");
     const panel = document.getElementById("configuracao2fa");
     let authenticatorUri = "";
+    const usuarioInicial = await CasaMulherAuth.protegerPagina({
+        mensagemElement: mensagem
+    });
+
+    if (!usuarioInicial) {
+        return;
+    }
+
+    bindLogoutButton("btnSairSeguranca");
 
     async function atualizarStatus() {
         const usuario = await carregarUsuarioAtual();
@@ -909,9 +885,10 @@ function setupSeguranca() {
         setMessage(mensagem, "Gerando chave...", "info");
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/auth/2fa/iniciar-configuracao`, {
+            const response = await CasaMulherAuth.apiFetch("/api/auth/2fa/iniciar-configuracao", {
                 method: "POST",
-                headers: getAuthHeaders(false)
+                headers: getAuthHeaders(false),
+                mensagemElement: mensagem
             });
 
             if (!response.ok) {
@@ -940,12 +917,13 @@ function setupSeguranca() {
         setMessage(mensagem, "Confirmando codigo...", "info");
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/auth/2fa/confirmar`, {
+            const response = await CasaMulherAuth.apiFetch("/api/auth/2fa/confirmar", {
                 method: "POST",
                 headers: getAuthHeaders(true),
-                body: JSON.stringify({
+                body: {
                     codigo: document.getElementById("codigoConfirmar2fa").value.trim()
-                })
+                },
+                mensagemElement: mensagem
             });
 
             if (!response.ok) {
@@ -965,9 +943,10 @@ function setupSeguranca() {
         setMessage(mensagem, "Desativando dois fatores...", "info");
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/auth/2fa/desativar`, {
+            const response = await CasaMulherAuth.apiFetch("/api/auth/2fa/desativar", {
                 method: "POST",
-                headers: getAuthHeaders(false)
+                headers: getAuthHeaders(false),
+                mensagemElement: mensagem
             });
 
             if (!response.ok) {
