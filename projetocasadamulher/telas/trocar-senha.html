@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trocar Senha - Casa da Mulher</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="app.js" defer></script>
+</head>
+<body>
+    <main class="auth-container">
+        <section class="auth-box">
+            <img src="IMAGENS/logo_oficial.png" alt="Logo Casa da Mulher" class="logo-login">
+            <p class="auth-subtitle">Troca obrigat&oacute;ria de senha</p>
+
+            <form id="formTrocarSenha" class="auth-form" novalidate>
+                <div class="input-group">
+                    <label for="senhaAtual">Senha atual</label>
+                    <input type="password" id="senhaAtual" autocomplete="current-password" required>
+                </div>
+
+                <div class="input-group">
+                    <label for="novaSenha">Nova senha</label>
+                    <input type="password" id="novaSenha" autocomplete="new-password" required>
+                </div>
+
+                <div class="input-group">
+                    <label for="confirmarNovaSenha">Confirmar nova senha</label>
+                    <input type="password" id="confirmarNovaSenha" autocomplete="new-password" required>
+                </div>
+
+                <div id="mensagemTrocarSenha" class="message" aria-live="polite"></div>
+
+                <button type="submit" class="btn-primary">Salvar nova senha</button>
+            </form>
+        </section>
+    </main>
+</body>
+</html>

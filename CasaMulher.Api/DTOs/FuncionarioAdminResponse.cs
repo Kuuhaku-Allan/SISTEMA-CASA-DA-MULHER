@@ -1,8 +1,10 @@
 namespace CasaMulher.Api.DTOs;
 
-public class AuthResponse
+public class FuncionarioAdminResponse
 {
-    public string Token { get; set; } = string.Empty;
+    public string Id { get; set; } = string.Empty;
+
+    public string IdentificadorFuncionario { get; set; } = string.Empty;
 
     public string NomeCompleto { get; set; } = string.Empty;
 
@@ -10,15 +12,13 @@ public class AuthResponse
 
     public string Perfil { get; set; } = string.Empty;
 
-    public string IdentificadorFuncionario { get; set; } = string.Empty;
+    public bool Ativo { get; set; }
 
-    public bool RequerDoisFatores { get; set; }
-
-    public string? LoginTemporario { get; set; }
+    public bool DoisFatoresAtivo { get; set; }
 
     public bool DoisFatoresObrigatorio { get; set; }
 
-    public bool DoisFatoresAtivado { get; set; }
-
     public bool DeveTrocarSenha { get; set; }
+
+    public DateTime CriadoEm { get; set; }
 }

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Funcion&aacute;rios - Casa da Mulher</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="app.js" defer></script>
+</head>
+<body>
+    <main id="funcionariosPage" class="admin-shell">
+        <header class="admin-header">
+            <div>
+                <img src="IMAGENS/logo_oficial.png" alt="Logo Casa da Mulher" class="logo-admin">
+                <div>
+                    <h1>Funcion&aacute;rios</h1>
+                    <p>Administra&ccedil;&atilde;o de acesso</p>
+                </div>
+            </div>
+            <a class="btn-secondary btn-compact button-link" href="painel.html">Voltar</a>
+        </header>
+
+        <section id="funcionariosRestrito" class="admin-alert hidden">
+            <h2>Acesso restrito &agrave; coordena&ccedil;&atilde;o</h2>
+        </section>
+
+        <section id="funcionariosConteudo" class="admin-panel table-panel">
+            <div class="table-heading">
+                <h2>Lista de funcion&aacute;rios</h2>
+                <button type="button" id="btnAtualizarFuncionarios" class="btn-secondary btn-compact">Atualizar</button>
+            </div>
+
+            <div id="mensagemFuncionarios" class="message" aria-live="polite"></div>
+
+            <section id="senhaTemporariaPanel" class="result-panel hidden">
+                <dl class="profile-list compact-list">
+                    <div>
+                        <dt>Senha tempor&aacute;ria</dt>
+                        <dd id="senhaTemporariaValor">-</dd>
+                    </div>
+                </dl>
+                <button type="button" id="btnCopiarSenhaTemporaria" class="btn-secondary">Copiar senha</button>
+            </section>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nome</th>
+                            <th>Perfil</th>
+                            <th>Status</th>
+                            <th>2FA</th>
+                            <th>A&ccedil;&otilde;es</th>
+                        </tr>
+                    </thead>
+                    <tbody id="listaFuncionarios"></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

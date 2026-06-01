@@ -173,6 +173,11 @@ public class AuthController : ControllerBase
 
         if (usuario is null || !usuario.Ativo)
         {
+            if (usuario is not null && !usuario.Ativo)
+            {
+                return Unauthorized(new { mensagem = "Usuario desativado. Procure a coordenacao." });
+            }
+
             return Unauthorized(new { mensagem = "Identificador ou senha invalidos." });
         }
 
@@ -320,8 +325,42 @@ public class AuthController : ControllerBase
             Perfil = usuario.Perfil,
             IdentificadorFuncionario = usuario.IdentificadorFuncionario,
             DoisFatoresObrigatorio = usuario.DoisFatoresObrigatorio,
-            DoisFatoresAtivado = usuario.TwoFactorEnabled
+            DoisFatoresAtivado = usuario.TwoFactorEnabled,
+            DeveTrocarSenha = usuario.DeveTrocarSenha
         });
+    }
+
+    [Authorize]
+    [HttpPost("trocar-senha-obrigatoria")]
+    public async Task<IActionResult> TrocarSenhaObrigatoria(TrocarSenhaObrigatoriaRequest request)
+    {
+        var usuario = await ObterUsuarioAtual();
+
+        if (usuario is null)
+        {
+            return Unauthorized();
+        }
+
+        if (request.NovaSenha != request.ConfirmarNovaSenha)
+        {
+            return BadRequest(new { mensagem = "Nova senha e confirmacao nao conferem." });
+        }
+
+        var result = await _userManager.ChangePasswordAsync(usuario, request.SenhaAtual, request.NovaSenha);
+
+        if (!result.Succeeded)
+        {
+            return BadRequest(new
+            {
+                mensagem = "Nao foi possivel trocar a senha.",
+                erros = result.Errors.Select(error => error.Description)
+            });
+        }
+
+        usuario.DeveTrocarSenha = false;
+        await _userManager.UpdateAsync(usuario);
+
+        return Ok(new { mensagem = "Senha alterada com sucesso." });
     }
 
     private async Task<ApplicationUser?> EncontrarUsuarioParaLogin(LoginRequest request)
@@ -368,7 +407,8 @@ public class AuthController : ControllerBase
             RequerDoisFatores = true,
             LoginTemporario = GerarLoginTemporario(usuario),
             DoisFatoresObrigatorio = usuario.DoisFatoresObrigatorio,
-            DoisFatoresAtivado = usuario.TwoFactorEnabled
+            DoisFatoresAtivado = usuario.TwoFactorEnabled,
+            DeveTrocarSenha = usuario.DeveTrocarSenha
         };
     }
 
@@ -383,7 +423,8 @@ public class AuthController : ControllerBase
             IdentificadorFuncionario = usuario.IdentificadorFuncionario,
             RequerDoisFatores = false,
             DoisFatoresObrigatorio = usuario.DoisFatoresObrigatorio,
-            DoisFatoresAtivado = usuario.TwoFactorEnabled
+            DoisFatoresAtivado = usuario.TwoFactorEnabled,
+            DeveTrocarSenha = usuario.DeveTrocarSenha
         };
     }
 

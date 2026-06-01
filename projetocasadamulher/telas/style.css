@@ -360,6 +360,38 @@ th {
     font-weight: 700;
 }
 
+.btn-link {
+    padding: 0;
+    border: 0;
+    color: #18726b;
+    background: transparent;
+    cursor: pointer;
+    font: inherit;
+    font-weight: 700;
+}
+
+.btn-link:hover {
+    text-decoration: underline;
+}
+
+.actions-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+td select {
+    width: 100%;
+    min-height: 36px;
+    border: 1px solid #cfd7df;
+    border-radius: 6px;
+    background: #ffffff;
+}
+
+small {
+    color: #5f6872;
+}
+
 .btn-link-danger:hover {
     text-decoration: underline;
 }

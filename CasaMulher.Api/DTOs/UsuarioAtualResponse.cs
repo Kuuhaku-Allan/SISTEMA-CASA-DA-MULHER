@@ -13,4 +13,6 @@ public class UsuarioAtualResponse
     public bool DoisFatoresObrigatorio { get; set; }
 
     public bool DoisFatoresAtivado { get; set; }
+
+    public bool DeveTrocarSenha { get; set; }
 }

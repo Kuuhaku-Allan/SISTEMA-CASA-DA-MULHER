@@ -68,6 +68,26 @@ function clearSession() {
     sessionStorage.removeItem("loginTemporario2fa");
 }
 
+function storeAuthResult(resultado) {
+    localStorage.setItem("token", resultado.token);
+    localStorage.setItem("perfil", resultado.perfil);
+    localStorage.setItem("email", resultado.email);
+    localStorage.setItem("nomeCompleto", resultado.nomeCompleto);
+    localStorage.setItem("identificadorFuncionario", resultado.identificadorFuncionario);
+    localStorage.setItem("doisFatoresObrigatorio", String(resultado.doisFatoresObrigatorio));
+    localStorage.setItem("doisFatoresAtivado", String(resultado.doisFatoresAtivado));
+    localStorage.setItem("deveTrocarSenha", String(resultado.deveTrocarSenha));
+}
+
+function redirectAfterLogin(resultado) {
+    if (resultado.deveTrocarSenha) {
+        window.location.href = "trocar-senha.html";
+        return;
+    }
+
+    window.location.href = "painel.html";
+}
+
 function formatDate(value) {
     if (!value) {
         return "-";
@@ -247,18 +267,12 @@ function setupLogin() {
                 return;
             }
 
-            localStorage.setItem("token", resultado.token);
-            localStorage.setItem("perfil", resultado.perfil);
-            localStorage.setItem("email", resultado.email);
-            localStorage.setItem("nomeCompleto", resultado.nomeCompleto);
-            localStorage.setItem("identificadorFuncionario", resultado.identificadorFuncionario);
-            localStorage.setItem("doisFatoresObrigatorio", String(resultado.doisFatoresObrigatorio));
-            localStorage.setItem("doisFatoresAtivado", String(resultado.doisFatoresAtivado));
+            storeAuthResult(resultado);
 
             setMessage(mensagem, "Login realizado com sucesso.", "success");
 
             setTimeout(function () {
-                window.location.href = "painel.html";
+                redirectAfterLogin(resultado);
             }, 600);
         } catch {
             setMessage(mensagem, "Erro ao conectar com a API. Verifique se o servidor esta rodando.", "error");
@@ -296,18 +310,12 @@ function setupLogin() {
 
             const resultado = await response.json();
             sessionStorage.removeItem("loginTemporario2fa");
-            localStorage.setItem("token", resultado.token);
-            localStorage.setItem("perfil", resultado.perfil);
-            localStorage.setItem("email", resultado.email);
-            localStorage.setItem("nomeCompleto", resultado.nomeCompleto);
-            localStorage.setItem("identificadorFuncionario", resultado.identificadorFuncionario);
-            localStorage.setItem("doisFatoresObrigatorio", String(resultado.doisFatoresObrigatorio));
-            localStorage.setItem("doisFatoresAtivado", String(resultado.doisFatoresAtivado));
+            storeAuthResult(resultado);
 
             setMessage(mensagem2fa, "Login realizado com sucesso.", "success");
 
             setTimeout(function () {
-                window.location.href = "painel.html";
+                redirectAfterLogin(resultado);
             }, 600);
         } catch {
             setMessage(mensagem2fa, "Erro ao conectar com a API.", "error");
@@ -340,6 +348,7 @@ function setupPainel() {
 
     if (localStorage.getItem("perfil") === "adm") {
         linkConvites?.classList.remove("hidden");
+        document.getElementById("linkFuncionarios")?.classList.remove("hidden");
     }
 
     document.getElementById("btnSair").addEventListener("click", function () {
@@ -551,7 +560,226 @@ async function carregarUsuarioAtual() {
     localStorage.setItem("identificadorFuncionario", usuario.identificadorFuncionario);
     localStorage.setItem("doisFatoresObrigatorio", String(usuario.doisFatoresObrigatorio));
     localStorage.setItem("doisFatoresAtivado", String(usuario.doisFatoresAtivado));
+    localStorage.setItem("deveTrocarSenha", String(usuario.deveTrocarSenha));
     return usuario;
+}
+
+function setupTrocarSenha() {
+    const form = document.getElementById("formTrocarSenha");
+
+    if (!form) {
+        return;
+    }
+
+    if (!localStorage.getItem("token")) {
+        window.location.href = "index.html";
+        return;
+    }
+
+    const mensagem = document.getElementById("mensagemTrocarSenha");
+
+    form.addEventListener("submit", async function (event) {
+        event.preventDefault();
+
+        if (!form.reportValidity()) {
+            return;
+        }
+
+        setMessage(mensagem, "Alterando senha...", "info");
+        disableSubmit(form, true);
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/auth/trocar-senha-obrigatoria`, {
+                method: "POST",
+                headers: getAuthHeaders(true),
+                body: JSON.stringify({
+                    senhaAtual: document.getElementById("senhaAtual").value,
+                    novaSenha: document.getElementById("novaSenha").value,
+                    confirmarNovaSenha: document.getElementById("confirmarNovaSenha").value
+                })
+            });
+
+            if (!response.ok) {
+                setMessage(mensagem, await readApiMessage(response), "error");
+                return;
+            }
+
+            localStorage.setItem("deveTrocarSenha", "false");
+            setMessage(mensagem, "Senha alterada com sucesso.", "success");
+
+            setTimeout(function () {
+                window.location.href = "painel.html";
+            }, 700);
+        } catch {
+            setMessage(mensagem, "Erro ao conectar com a API.", "error");
+        } finally {
+            disableSubmit(form, false);
+        }
+    });
+}
+
+function setupFuncionarios() {
+    const page = document.getElementById("funcionariosPage");
+
+    if (!page) {
+        return;
+    }
+
+    if (!localStorage.getItem("token")) {
+        window.location.href = "index.html";
+        return;
+    }
+
+    const conteudo = document.getElementById("funcionariosConteudo");
+    const restrito = document.getElementById("funcionariosRestrito");
+    const mensagem = document.getElementById("mensagemFuncionarios");
+    let senhaTemporariaAtual = "";
+
+    if (localStorage.getItem("perfil") !== "adm") {
+        conteudo.classList.add("hidden");
+        restrito.classList.remove("hidden");
+        return;
+    }
+
+    async function carregarFuncionarios() {
+        const lista = document.getElementById("listaFuncionarios");
+        lista.innerHTML = "<tr><td colspan=\"6\">Carregando...</td></tr>";
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/funcionarios`, {
+                headers: getAuthHeaders(false)
+            });
+
+            if (response.status === 401) {
+                clearSession();
+                window.location.href = "index.html";
+                return;
+            }
+
+            if (response.status === 403) {
+                conteudo.classList.add("hidden");
+                restrito.classList.remove("hidden");
+                return;
+            }
+
+            if (!response.ok) {
+                lista.innerHTML = "<tr><td colspan=\"6\">Nao foi possivel carregar funcionarios.</td></tr>";
+                return;
+            }
+
+            const funcionarios = await response.json();
+
+            lista.innerHTML = funcionarios.map(function (funcionario) {
+                const status = funcionario.ativo ? "Ativo" : "Inativo";
+                const doisFatores = funcionario.doisFatoresAtivo ? "Ativo" : funcionario.doisFatoresObrigatorio ? "Obrigatorio" : "Inativo";
+                const ativar = funcionario.ativo
+                    ? `<button type="button" class="btn-link-danger" data-action="desativar" data-id="${funcionario.id}">Desativar</button>`
+                    : `<button type="button" class="btn-link" data-action="reativar" data-id="${funcionario.id}">Reativar</button>`;
+
+                return `
+                    <tr>
+                        <td>${escapeHtml(funcionario.identificadorFuncionario)}</td>
+                        <td>${escapeHtml(funcionario.nomeCompleto)}<br><small>${escapeHtml(funcionario.email)}</small></td>
+                        <td>
+                            <select data-action="perfil" data-id="${funcionario.id}">
+                                ${Object.keys(PERFIS_LABEL).map(function (perfil) {
+                                    return `<option value="${perfil}" ${perfil === funcionario.perfil ? "selected" : ""}>${PERFIS_LABEL[perfil]}</option>`;
+                                }).join("")}
+                            </select>
+                        </td>
+                        <td>${status}${funcionario.deveTrocarSenha ? "<br><small>Trocar senha</small>" : ""}</td>
+                        <td>${doisFatores}</td>
+                        <td class="actions-cell">
+                            ${ativar}
+                            <button type="button" class="btn-link" data-action="resetar-senha" data-id="${funcionario.id}">Resetar senha</button>
+                            <button type="button" class="btn-link" data-action="resetar-2fa" data-id="${funcionario.id}">Resetar 2FA</button>
+                        </td>
+                    </tr>
+                `;
+            }).join("");
+        } catch {
+            lista.innerHTML = "<tr><td colspan=\"6\">Erro ao conectar com a API.</td></tr>";
+        }
+    }
+
+    document.getElementById("btnAtualizarFuncionarios").addEventListener("click", carregarFuncionarios);
+
+    document.getElementById("btnCopiarSenhaTemporaria").addEventListener("click", function () {
+        copyText(senhaTemporariaAtual, mensagem);
+    });
+
+    document.getElementById("listaFuncionarios").addEventListener("change", async function (event) {
+        const select = event.target.closest("[data-action='perfil']");
+
+        if (!select) {
+            return;
+        }
+
+        setMessage(mensagem, "Alterando perfil...", "info");
+
+        const response = await fetch(`${API_BASE_URL}/api/funcionarios/${select.dataset.id}/alterar-perfil`, {
+            method: "PATCH",
+            headers: getAuthHeaders(true),
+            body: JSON.stringify({ perfil: select.value })
+        });
+
+        if (!response.ok) {
+            setMessage(mensagem, await readApiMessage(response), "error");
+            await carregarFuncionarios();
+            return;
+        }
+
+        setMessage(mensagem, "Perfil alterado.", "success");
+        await carregarFuncionarios();
+    });
+
+    document.getElementById("listaFuncionarios").addEventListener("click", async function (event) {
+        const button = event.target.closest("[data-action]");
+
+        if (!button || button.dataset.action === "perfil") {
+            return;
+        }
+
+        const action = button.dataset.action;
+        let method = "PATCH";
+        let url = `${API_BASE_URL}/api/funcionarios/${button.dataset.id}/${action}`;
+
+        if (action === "resetar-senha" || action === "resetar-2fa") {
+            method = "POST";
+        }
+
+        setMessage(mensagem, "Processando...", "info");
+        button.disabled = true;
+
+        try {
+            const response = await fetch(url, {
+                method,
+                headers: getAuthHeaders(false)
+            });
+
+            if (!response.ok) {
+                setMessage(mensagem, await readApiMessage(response), "error");
+                return;
+            }
+
+            const resultado = await response.json();
+
+            if (action === "resetar-senha") {
+                senhaTemporariaAtual = resultado.senhaTemporaria;
+                document.getElementById("senhaTemporariaValor").textContent = senhaTemporariaAtual;
+                document.getElementById("senhaTemporariaPanel").classList.remove("hidden");
+            }
+
+            setMessage(mensagem, resultado.mensagem || "Operacao realizada.", "success");
+            await carregarFuncionarios();
+        } catch {
+            setMessage(mensagem, "Erro ao conectar com a API.", "error");
+        } finally {
+            button.disabled = false;
+        }
+    });
+
+    carregarFuncionarios();
 }
 
 function setupSeguranca() {
@@ -672,3 +900,5 @@ setupLogin();
 setupPainel();
 setupConvites();
 setupSeguranca();
+setupTrocarSenha();
+setupFuncionarios();
