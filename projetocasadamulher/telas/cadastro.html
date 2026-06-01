@@ -12,7 +12,11 @@
     <main class="auth-container">
         <section class="auth-box auth-box-wide">
             <img src="IMAGENS/logo_oficial.png" alt="Logo Casa da Mulher" class="logo-login">
-            <p class="auth-subtitle">Cadastro restrito a funcion&aacute;rios convidados</p>
+            <h1 class="auth-title">Criar acesso</h1>
+            <p class="auth-subtitle">Use o convite recebido para criar sua senha de entrada.</p>
+            <div id="avisoConviteReconhecido" class="notice notice-success hidden">
+                Convite reconhecido. Agora crie sua senha de acesso.
+            </div>
 
             <form id="formCadastroFuncionario" class="auth-form" novalidate>
                 <div class="input-group">
@@ -42,7 +46,8 @@
                     <input type="text" id="codigoCadastro" name="codigoCadastro" placeholder="REC-2026" required>
                 </div>
 
-                <p class="hint">O perfil ser&aacute; definido automaticamente conforme o convite informado.</p>
+                <p id="ajudaConviteAutomatico" class="hint hidden">E-mail e c&oacute;digo preenchidos automaticamente pelo convite.</p>
+                <p class="hint">O perfil de acesso ser&aacute; definido pela coordena&ccedil;&atilde;o conforme o convite informado.</p>
 
                 <div id="mensagemCadastro" class="message" aria-live="polite"></div>
 

@@ -12,6 +12,12 @@ body {
         #f5f7f8;
 }
 
+button,
+input,
+select {
+    letter-spacing: 0;
+}
+
 .auth-container {
     width: 100%;
     min-height: 100vh;
@@ -41,6 +47,13 @@ body {
     width: 190px;
     height: auto;
     margin: 0 auto 16px;
+}
+
+.auth-title {
+    margin: 0 0 8px;
+    color: #1f2933;
+    font-size: 1.55rem;
+    line-height: 1.18;
 }
 
 .auth-subtitle {
@@ -73,6 +86,13 @@ body {
     font-weight: 650;
 }
 
+.field-help {
+    margin: 6px 0 0;
+    color: #6d7681;
+    font-size: 0.84rem;
+    line-height: 1.35;
+}
+
 .input-group input,
 .input-group select {
     width: 100%;
@@ -99,6 +119,31 @@ body {
     text-align: left;
 }
 
+.section-intro {
+    margin: 0;
+    color: #5f6872;
+    font-size: 0.92rem;
+    line-height: 1.45;
+}
+
+.notice {
+    margin: 0 0 18px;
+    padding: 12px 14px;
+    border: 1px solid #dbe5ea;
+    border-radius: 8px;
+    color: #24313d;
+    background: #f6faf9;
+    font-size: 0.92rem;
+    line-height: 1.4;
+    text-align: left;
+}
+
+.notice-success {
+    border-color: #cce9d8;
+    color: #176a3a;
+    background: #effaf3;
+}
+
 .message {
     min-height: 22px;
     color: #5f6872;
@@ -120,7 +165,8 @@ body {
 }
 
 .btn-primary,
-.btn-secondary {
+.btn-secondary,
+.btn-danger {
     width: 100%;
     min-height: 46px;
     padding: 12px 16px;
@@ -169,8 +215,18 @@ body {
     background: #d9e1e7;
 }
 
+.btn-danger {
+    color: #ffffff;
+    background: #b3261e;
+}
+
+.btn-danger:hover {
+    background: #8f1e18;
+}
+
 .btn-primary:disabled,
-.btn-secondary:disabled {
+.btn-secondary:disabled,
+.btn-danger:disabled {
     cursor: wait;
     opacity: 0.7;
 }
@@ -211,6 +267,11 @@ body {
     overflow-wrap: anywhere;
 }
 
+.auth-box > .btn-secondary,
+.auth-box > .btn-danger {
+    margin-top: 14px;
+}
+
 .admin-shell {
     width: 100%;
     min-height: 100vh;
@@ -242,6 +303,7 @@ body {
 .admin-alert h2 {
     margin: 0;
     color: #24313d;
+    line-height: 1.2;
 }
 
 .admin-header p {
@@ -314,6 +376,7 @@ table {
     width: 100%;
     border-collapse: collapse;
     font-size: 0.92rem;
+    background: #ffffff;
 }
 
 th,
@@ -327,6 +390,7 @@ td {
 th {
     color: #5f6872;
     font-size: 0.78rem;
+    letter-spacing: 0;
     text-transform: uppercase;
 }
 
@@ -380,7 +444,8 @@ th {
     font-weight: 700;
 }
 
-.btn-link:hover {
+.btn-link:hover,
+.btn-link-danger:hover {
     text-decoration: underline;
 }
 
@@ -398,12 +463,9 @@ td select {
     background: #ffffff;
 }
 
-small {
+small,
+.muted {
     color: #5f6872;
-}
-
-.btn-link-danger:hover {
-    text-decoration: underline;
 }
 
 @media (max-width: 560px) {
@@ -414,6 +476,10 @@ small {
 
     .auth-box {
         padding: 24px;
+    }
+
+    .auth-title {
+        font-size: 1.35rem;
     }
 
     .input-grid {

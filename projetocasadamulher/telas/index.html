@@ -12,12 +12,14 @@
     <main class="auth-container">
         <section class="auth-box">
             <img src="IMAGENS/logo_oficial.png" alt="Logo Casa da Mulher" class="logo-login">
-            <p class="auth-subtitle">Acolhimento e Qualifica&ccedil;&atilde;o</p>
+            <h1 class="auth-title">Acesso de funcion&aacute;rios</h1>
+            <p class="auth-subtitle">Entre com o ID fornecido pela coordena&ccedil;&atilde;o.</p>
 
             <form id="formLogin" class="auth-form" novalidate>
                 <div class="input-group">
                     <label for="identificador">ID do funcion&aacute;rio</label>
                     <input type="text" id="identificador" name="identificador" placeholder="CM-000001" autocomplete="username" required>
+                    <p class="field-help">Seu ID aparece ap&oacute;s o cadastro ou pode ser informado pela coordena&ccedil;&atilde;o.</p>
                 </div>
 
                 <div class="input-group">
@@ -32,8 +34,9 @@
 
             <form id="formLogin2fa" class="auth-form hidden" novalidate>
                 <div class="input-group">
-                    <label for="codigo2fa">C&oacute;digo do Authenticator</label>
+                    <label for="codigo2fa">C&oacute;digo de seguran&ccedil;a</label>
                     <input type="text" id="codigo2fa" name="codigo" inputmode="numeric" placeholder="123456" autocomplete="one-time-code" required>
+                    <p class="field-help">Abra seu aplicativo autenticador e informe o c&oacute;digo de 6 n&uacute;meros.</p>
                 </div>
 
                 <div id="mensagemLogin2fa" class="message" aria-live="polite"></div>

@@ -12,11 +12,13 @@
     <main class="auth-container">
         <section id="segurancaPage" class="auth-box auth-box-wide">
             <img src="IMAGENS/logo_oficial.png" alt="Logo Casa da Mulher" class="logo-login">
-            <p class="auth-subtitle">Authenticator</p>
+            <h1 class="auth-title">C&oacute;digo de seguran&ccedil;a</h1>
+            <p class="auth-subtitle">Use um aplicativo autenticador para gerar c&oacute;digos de acesso.</p>
+            <p class="hint">Voc&ecirc; pode usar Google Authenticator, Microsoft Authenticator, 2FAS ou outro aplicativo compat&iacute;vel.</p>
 
             <dl class="profile-list compact-list">
                 <div>
-                    <dt>ID</dt>
+                        <dt>ID</dt>
                     <dd id="segurancaIdentificador">-</dd>
                 </div>
                 <div>
@@ -27,7 +29,7 @@
 
             <div id="mensagemSeguranca" class="message" aria-live="polite"></div>
 
-            <button type="button" id="btnIniciar2fa" class="btn-primary">Iniciar configura&ccedil;&atilde;o</button>
+            <button type="button" id="btnIniciar2fa" class="btn-primary">Configurar aplicativo</button>
 
             <section id="configuracao2fa" class="result-panel hidden">
                 <dl class="profile-list compact-list">
@@ -36,22 +38,22 @@
                         <dd id="chaveManual2fa">-</dd>
                     </div>
                     <div>
-                        <dt>URI</dt>
+                        <dt>Texto para copiar no app</dt>
                         <dd id="uri2fa">-</dd>
                     </div>
                 </dl>
 
                 <form id="formConfirmar2fa" class="auth-form" novalidate>
                     <div class="input-group">
-                        <label for="codigoConfirmar2fa">C&oacute;digo do app</label>
+                        <label for="codigoConfirmar2fa">C&oacute;digo do aplicativo</label>
                         <input type="text" id="codigoConfirmar2fa" inputmode="numeric" placeholder="123456" autocomplete="one-time-code" required>
                     </div>
 
-                    <button type="submit" class="btn-primary">Ativar dois fatores</button>
+                    <button type="submit" class="btn-primary">Ativar c&oacute;digo de seguran&ccedil;a</button>
                 </form>
             </section>
 
-            <button type="button" id="btnDesativar2fa" class="btn-secondary">Desativar dois fatores</button>
+            <button type="button" id="btnDesativar2fa" class="btn-secondary">Desativar c&oacute;digo de seguran&ccedil;a</button>
             <button type="button" id="btnSairSeguranca" class="btn-secondary">Sair</button>
             <a class="text-link" href="painel.html">Voltar ao painel</a>
         </section>
