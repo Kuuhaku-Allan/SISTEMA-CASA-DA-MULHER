@@ -899,6 +899,7 @@ async function setupSeguranca() {
 
     const mensagem = document.getElementById("mensagemSeguranca");
     const panel = document.getElementById("configuracao2fa");
+    let chaveManualAtual = "";
     const usuarioInicial = await CasaMulherAuth.protegerPagina({
         mensagemElement: mensagem
     });
@@ -941,13 +942,29 @@ async function setupSeguranca() {
             }
 
             const resultado = await response.json();
-            document.getElementById("chaveManual2fa").textContent = resultado.chaveManual;
-            document.getElementById("uri2fa").textContent = resultado.qrCodeData;
+            const authenticatorUri = resultado.authenticatorUri || resultado.qrCodeData;
+            chaveManualAtual = resultado.chaveManual || "";
+
+            document.getElementById("chaveManual2fa").textContent = chaveManualAtual || "-";
+            document.getElementById("qrCodeAutenticador").innerHTML = "";
+
+            if (authenticatorUri && window.QRCode) {
+                new QRCode(document.getElementById("qrCodeAutenticador"), {
+                    text: authenticatorUri,
+                    width: 196,
+                    height: 196
+                });
+            }
+
             panel.classList.remove("hidden");
-            setMessage(mensagem, "Chave gerada. Cadastre no aplicativo autenticador e confirme o codigo.", "success");
+            setMessage(mensagem, resultado.mensagem || "Configuracao iniciada. Escaneie o QR Code e confirme o codigo gerado pelo aplicativo.", "success");
         } catch {
             setMessage(mensagem, "Nao foi possivel conectar a API.", "error");
         }
+    });
+
+    document.getElementById("btnCopiarChaveManual").addEventListener("click", function () {
+        copyText(chaveManualAtual, mensagem);
     });
 
     document.getElementById("formConfirmar2fa").addEventListener("submit", async function (event) {

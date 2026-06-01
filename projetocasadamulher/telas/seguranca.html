@@ -6,6 +6,7 @@
     <title>Seguran&ccedil;a - Casa da Mulher</title>
     <link rel="stylesheet" href="style.css">
     <script src="auth.js" defer></script>
+    <script src="libs/qrcode.min.js" defer></script>
     <script src="app.js" defer></script>
 </head>
 <body>
@@ -14,7 +15,7 @@
             <img src="IMAGENS/logo_oficial.png" alt="Logo Casa da Mulher" class="logo-login">
             <h1 class="auth-title">C&oacute;digo de seguran&ccedil;a</h1>
             <p class="auth-subtitle">Use um aplicativo autenticador para gerar c&oacute;digos de acesso.</p>
-            <p class="hint">Voc&ecirc; pode usar Google Authenticator, Microsoft Authenticator, 2FAS ou outro aplicativo compat&iacute;vel.</p>
+            <p class="hint">Exemplos: Google Authenticator, Microsoft Authenticator, 2FAS, Authy, Proton Authenticator ou outro aplicativo compat&iacute;vel.</p>
 
             <dl class="profile-list compact-list">
                 <div>
@@ -32,20 +33,29 @@
             <button type="button" id="btnIniciar2fa" class="btn-primary">Configurar aplicativo</button>
 
             <section id="configuracao2fa" class="result-panel hidden">
+                <ol class="steps-list">
+                    <li>Abra o aplicativo autenticador no celular.</li>
+                    <li>Toque em adicionar conta.</li>
+                    <li>Escaneie o QR Code abaixo.</li>
+                    <li>Digite o c&oacute;digo de 6 n&uacute;meros gerado pelo aplicativo.</li>
+                </ol>
+
+                <div class="qr-card">
+                    <div id="qrCodeAutenticador" class="qr-code" aria-label="QR Code para configurar aplicativo autenticador"></div>
+                </div>
+
                 <dl class="profile-list compact-list">
                     <div>
-                        <dt>Chave manual</dt>
+                        <dt>N&atilde;o conseguiu escanear?</dt>
                         <dd id="chaveManual2fa">-</dd>
                     </div>
-                    <div>
-                        <dt>Texto para copiar no app</dt>
-                        <dd id="uri2fa">-</dd>
-                    </div>
                 </dl>
+                <p class="hint">Digite o c&oacute;digo acima manualmente no aplicativo autenticador.</p>
+                <button type="button" id="btnCopiarChaveManual" class="btn-secondary">Copiar c&oacute;digo manual</button>
 
                 <form id="formConfirmar2fa" class="auth-form" novalidate>
                     <div class="input-group">
-                        <label for="codigoConfirmar2fa">C&oacute;digo do aplicativo</label>
+                        <label for="codigoConfirmar2fa">C&oacute;digo de 6 n&uacute;meros gerado pelo aplicativo</label>
                         <input type="text" id="codigoConfirmar2fa" inputmode="numeric" placeholder="123456" autocomplete="one-time-code" required>
                     </div>
 

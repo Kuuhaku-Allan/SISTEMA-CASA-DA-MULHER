@@ -220,7 +220,7 @@ public class AuthController : ControllerBase
 
         if (!valido)
         {
-            return Unauthorized(new { mensagem = "Codigo do autenticador invalido." });
+            return Unauthorized(new { mensagem = "Codigo de seguranca invalido." });
         }
 
         var roles = await _userManager.GetRolesAsync(usuario);
@@ -240,7 +240,7 @@ public class AuthController : ControllerBase
 
         if (usuario.TwoFactorEnabled)
         {
-            return BadRequest(new { mensagem = "Dois fatores ja esta ativo para este usuario." });
+            return BadRequest(new { mensagem = "O codigo de seguranca ja esta ativo para este usuario." });
         }
 
         await _userManager.ResetAuthenticatorKeyAsync(usuario);
@@ -248,13 +248,14 @@ public class AuthController : ControllerBase
 
         if (string.IsNullOrWhiteSpace(chave))
         {
-            return BadRequest(new { mensagem = "Nao foi possivel gerar chave do autenticador." });
+            return BadRequest(new { mensagem = "Nao foi possivel iniciar a configuracao do aplicativo autenticador." });
         }
 
         var uri = GerarAuthenticatorUri(usuario, chave);
 
         return Ok(new DoisFatoresConfiguracaoResponse
         {
+            Mensagem = "Configuracao iniciada com sucesso.",
             ChaveManual = FormatarChaveManual(chave),
             AuthenticatorUri = uri,
             QrCodeData = uri
@@ -280,12 +281,12 @@ public class AuthController : ControllerBase
 
         if (!valido)
         {
-            return BadRequest(new { mensagem = "Codigo do autenticador invalido." });
+            return BadRequest(new { mensagem = "Codigo de seguranca invalido." });
         }
 
         await _userManager.SetTwoFactorEnabledAsync(usuario, true);
 
-        return Ok(new { mensagem = "Dois fatores ativado com sucesso." });
+        return Ok(new { mensagem = "Codigo de seguranca ativado com sucesso." });
     }
 
     [Authorize]
@@ -301,13 +302,13 @@ public class AuthController : ControllerBase
 
         if (usuario.DoisFatoresObrigatorio)
         {
-            return BadRequest(new { mensagem = "Dois fatores e obrigatorio para este perfil." });
+            return BadRequest(new { mensagem = "O codigo de seguranca e obrigatorio para este perfil." });
         }
 
         await _userManager.SetTwoFactorEnabledAsync(usuario, false);
         await _userManager.ResetAuthenticatorKeyAsync(usuario);
 
-        return Ok(new { mensagem = "Dois fatores desativado." });
+        return Ok(new { mensagem = "Codigo de seguranca desativado." });
     }
 
     [Authorize]
@@ -538,7 +539,8 @@ public class AuthController : ControllerBase
             + $"{Uri.EscapeDataString(AuthenticatorIssuer)}:{Uri.EscapeDataString(conta)}"
             + $"?secret={Uri.EscapeDataString(chave)}"
             + $"&issuer={Uri.EscapeDataString(AuthenticatorIssuer)}"
-            + "&digits=6";
+            + "&digits=6"
+            + "&period=30";
     }
 
     private static string FormatarChaveManual(string chave)
