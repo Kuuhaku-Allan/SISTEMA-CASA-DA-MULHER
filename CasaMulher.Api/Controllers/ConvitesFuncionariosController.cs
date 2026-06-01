@@ -18,15 +18,18 @@ public class ConvitesFuncionariosController : ControllerBase
     private readonly AppDbContext _dbContext;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IConviteCodigoService _codigoService;
+    private readonly IAuditoriaService _auditoriaService;
 
     public ConvitesFuncionariosController(
         AppDbContext dbContext,
         UserManager<ApplicationUser> userManager,
-        IConviteCodigoService codigoService)
+        IConviteCodigoService codigoService,
+        IAuditoriaService auditoriaService)
     {
         _dbContext = dbContext;
         _userManager = userManager;
         _codigoService = codigoService;
+        _auditoriaService = auditoriaService;
     }
 
     [HttpGet]
@@ -88,6 +91,11 @@ public class ConvitesFuncionariosController : ControllerBase
 
         _dbContext.FuncionariosConvites.Add(convite);
         await _dbContext.SaveChangesAsync();
+        await _auditoriaService.RegistrarAsync(
+            "CONVITE_CRIADO",
+            "FuncionarioConvite",
+            convite.Id.ToString(),
+            $"Criou convite para {convite.Email} com perfil {convite.Perfil}.");
 
         var response = new CriarFuncionarioConviteResponse
         {
@@ -127,6 +135,11 @@ public class ConvitesFuncionariosController : ControllerBase
         convite.CanceladoEm = DateTime.UtcNow;
 
         await _dbContext.SaveChangesAsync();
+        await _auditoriaService.RegistrarAsync(
+            "CONVITE_CANCELADO",
+            "FuncionarioConvite",
+            convite.Id.ToString(),
+            $"Cancelou convite para {convite.Email} com perfil {convite.Perfil}.");
 
         return Ok(MapearConvite(convite, DateTime.UtcNow));
     }

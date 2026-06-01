@@ -19,17 +19,20 @@ public class FuncionariosController : ControllerBase
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly RoleManager<IdentityRole> _roleManager;
     private readonly ISenhaTemporariaService _senhaTemporariaService;
+    private readonly IAuditoriaService _auditoriaService;
 
     public FuncionariosController(
         AppDbContext dbContext,
         UserManager<ApplicationUser> userManager,
         RoleManager<IdentityRole> roleManager,
-        ISenhaTemporariaService senhaTemporariaService)
+        ISenhaTemporariaService senhaTemporariaService,
+        IAuditoriaService auditoriaService)
     {
         _dbContext = dbContext;
         _userManager = userManager;
         _roleManager = roleManager;
         _senhaTemporariaService = senhaTemporariaService;
+        _auditoriaService = auditoriaService;
     }
 
     [HttpGet]
@@ -67,6 +70,11 @@ public class FuncionariosController : ControllerBase
 
         funcionario.Ativo = false;
         await _userManager.UpdateAsync(funcionario);
+        await _auditoriaService.RegistrarAsync(
+            "FUNCIONARIO_DESATIVADO",
+            "ApplicationUser",
+            funcionario.Id,
+            $"Desativou o funcionario {funcionario.IdentificadorFuncionario} ({funcionario.Email}).");
 
         return Ok(MapearFuncionario(funcionario));
     }
@@ -83,6 +91,11 @@ public class FuncionariosController : ControllerBase
 
         funcionario.Ativo = true;
         await _userManager.UpdateAsync(funcionario);
+        await _auditoriaService.RegistrarAsync(
+            "FUNCIONARIO_REATIVADO",
+            "ApplicationUser",
+            funcionario.Id,
+            $"Reativou o funcionario {funcionario.IdentificadorFuncionario} ({funcionario.Email}).");
 
         return Ok(MapearFuncionario(funcionario));
     }
@@ -109,6 +122,7 @@ public class FuncionariosController : ControllerBase
             await _roleManager.CreateAsync(new IdentityRole(novoPerfil));
         }
 
+        var perfilAnterior = funcionario.Perfil;
         var rolesAtuais = await _userManager.GetRolesAsync(funcionario);
 
         if (rolesAtuais.Count > 0)
@@ -121,6 +135,11 @@ public class FuncionariosController : ControllerBase
         funcionario.Perfil = novoPerfil;
         funcionario.DoisFatoresObrigatorio = PerfilExigeDoisFatores(novoPerfil);
         await _userManager.UpdateAsync(funcionario);
+        await _auditoriaService.RegistrarAsync(
+            "PERFIL_ALTERADO",
+            "ApplicationUser",
+            funcionario.Id,
+            $"Alterou perfil de {funcionario.IdentificadorFuncionario} de {perfilAnterior} para {novoPerfil}.");
 
         return Ok(MapearFuncionario(funcionario));
     }
@@ -150,6 +169,11 @@ public class FuncionariosController : ControllerBase
 
         funcionario.DeveTrocarSenha = true;
         await _userManager.UpdateAsync(funcionario);
+        await _auditoriaService.RegistrarAsync(
+            "SENHA_RESETADA",
+            "ApplicationUser",
+            funcionario.Id,
+            $"Resetou a senha do funcionario {funcionario.IdentificadorFuncionario} ({funcionario.Email}).");
 
         return Ok(new ResetarSenhaFuncionarioResponse
         {
@@ -171,6 +195,11 @@ public class FuncionariosController : ControllerBase
 
         await _userManager.SetTwoFactorEnabledAsync(funcionario, false);
         await _userManager.ResetAuthenticatorKeyAsync(funcionario);
+        await _auditoriaService.RegistrarAsync(
+            "DOIS_FATORES_RESETADO",
+            "ApplicationUser",
+            funcionario.Id,
+            $"Resetou o autenticador 2FA do funcionario {funcionario.IdentificadorFuncionario} ({funcionario.Email}).");
 
         return Ok(new { mensagem = "Authenticator resetado com sucesso." });
     }

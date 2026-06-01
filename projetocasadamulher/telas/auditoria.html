@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auditoria - Casa da Mulher</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="app.js" defer></script>
+</head>
+<body>
+    <main id="auditoriaPage" class="admin-shell">
+        <header class="admin-header">
+            <div>
+                <img src="IMAGENS/logo_oficial.png" alt="Logo Casa da Mulher" class="logo-admin">
+                <div>
+                    <h1>Auditoria</h1>
+                    <p>Hist&oacute;rico de a&ccedil;&otilde;es sens&iacute;veis</p>
+                </div>
+            </div>
+            <a class="btn-secondary btn-compact button-link" href="painel.html">Voltar</a>
+        </header>
+
+        <section id="auditoriaRestrito" class="admin-alert hidden">
+            <h2>Acesso restrito &agrave; coordena&ccedil;&atilde;o</h2>
+        </section>
+
+        <section id="auditoriaConteudo" class="admin-panel table-panel">
+            <div class="table-heading">
+                <h2>Eventos registrados</h2>
+                <button type="button" id="btnAtualizarAuditoria" class="btn-secondary btn-compact">Atualizar</button>
+            </div>
+
+            <div id="mensagemAuditoria" class="message" aria-live="polite"></div>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Data/Hora</th>
+                            <th>Funcion&aacute;rio</th>
+                            <th>A&ccedil;&atilde;o</th>
+                            <th>Descri&ccedil;&atilde;o</th>
+                            <th>IP</th>
+                        </tr>
+                    </thead>
+                    <tbody id="listaAuditoria"></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

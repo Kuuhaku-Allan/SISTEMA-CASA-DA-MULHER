@@ -28,6 +28,7 @@ public class AuthController : ControllerBase
     private readonly RoleManager<IdentityRole> _roleManager;
     private readonly IConviteCodigoService _codigoService;
     private readonly IFuncionarioIdentificadorService _identificadorService;
+    private readonly IAuditoriaService _auditoriaService;
     private readonly IConfiguration _configuration;
     private readonly IDataProtector _loginDoisFatoresProtector;
 
@@ -37,6 +38,7 @@ public class AuthController : ControllerBase
         RoleManager<IdentityRole> roleManager,
         IConviteCodigoService codigoService,
         IFuncionarioIdentificadorService identificadorService,
+        IAuditoriaService auditoriaService,
         IConfiguration configuration,
         IDataProtectionProvider dataProtectionProvider)
     {
@@ -45,6 +47,7 @@ public class AuthController : ControllerBase
         _roleManager = roleManager;
         _codigoService = codigoService;
         _identificadorService = identificadorService;
+        _auditoriaService = auditoriaService;
         _configuration = configuration;
         _loginDoisFatoresProtector = dataProtectionProvider.CreateProtector("CasaMulher.LoginDoisFatores");
     }
@@ -359,6 +362,11 @@ public class AuthController : ControllerBase
 
         usuario.DeveTrocarSenha = false;
         await _userManager.UpdateAsync(usuario);
+        await _auditoriaService.RegistrarAsync(
+            "SENHA_TROCADA",
+            "ApplicationUser",
+            usuario.Id,
+            $"Funcionario {usuario.IdentificadorFuncionario} concluiu a troca obrigatoria de senha.");
 
         return Ok(new { mensagem = "Senha alterada com sucesso." });
     }

@@ -12,6 +12,8 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
 
     public DbSet<FuncionarioConvite> FuncionariosConvites => Set<FuncionarioConvite>();
 
+    public DbSet<AuditoriaEvento> AuditoriaEventos => Set<AuditoriaEvento>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -58,6 +60,26 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             entity.Property(convite => convite.CodigoHash)
                 .HasMaxLength(128)
                 .IsRequired();
+        });
+
+        builder.Entity<AuditoriaEvento>(entity =>
+        {
+            entity.ToTable("AuditoriaEventos");
+
+            entity.HasIndex(evento => evento.CriadoEm);
+            entity.HasIndex(evento => evento.UsuarioId);
+            entity.HasIndex(evento => evento.EntidadeId);
+
+            entity.Property(evento => evento.UsuarioId).HasMaxLength(80);
+            entity.Property(evento => evento.IdentificadorFuncionario).HasMaxLength(20);
+            entity.Property(evento => evento.NomeFuncionario).HasMaxLength(160);
+            entity.Property(evento => evento.PerfilFuncionario).HasMaxLength(40);
+            entity.Property(evento => evento.Acao).HasMaxLength(80).IsRequired();
+            entity.Property(evento => evento.Entidade).HasMaxLength(80).IsRequired();
+            entity.Property(evento => evento.EntidadeId).HasMaxLength(80);
+            entity.Property(evento => evento.Descricao).HasMaxLength(500).IsRequired();
+            entity.Property(evento => evento.IpOrigem).HasMaxLength(80);
+            entity.Property(evento => evento.UserAgent).HasMaxLength(500);
         });
     }
 }

@@ -83,9 +83,11 @@ builder.Services.AddCors(options =>
             .AllowAnyMethod();
     });
 });
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IConviteCodigoService, ConviteCodigoService>();
 builder.Services.AddScoped<IFuncionarioIdentificadorService, GeradorIdentificadorFuncionarioService>();
 builder.Services.AddScoped<ISenhaTemporariaService, SenhaTemporariaService>();
+builder.Services.AddScoped<IAuditoriaService, AuditoriaService>();
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();

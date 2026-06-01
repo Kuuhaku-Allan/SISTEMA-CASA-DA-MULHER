@@ -65,6 +65,7 @@ function clearSession() {
     localStorage.removeItem("identificadorFuncionario");
     localStorage.removeItem("doisFatoresObrigatorio");
     localStorage.removeItem("doisFatoresAtivado");
+    localStorage.removeItem("deveTrocarSenha");
     sessionStorage.removeItem("loginTemporario2fa");
 }
 
@@ -94,6 +95,14 @@ function formatDate(value) {
     }
 
     return new Date(value).toLocaleDateString("pt-BR");
+}
+
+function formatDateTime(value) {
+    if (!value) {
+        return "-";
+    }
+
+    return new Date(value).toLocaleString("pt-BR");
 }
 
 function formatPerfil(perfil) {
@@ -349,6 +358,7 @@ function setupPainel() {
     if (localStorage.getItem("perfil") === "adm") {
         linkConvites?.classList.remove("hidden");
         document.getElementById("linkFuncionarios")?.classList.remove("hidden");
+        document.getElementById("linkAuditoria")?.classList.remove("hidden");
     }
 
     document.getElementById("btnSair").addEventListener("click", function () {
@@ -782,6 +792,87 @@ function setupFuncionarios() {
     carregarFuncionarios();
 }
 
+function setupAuditoria() {
+    const page = document.getElementById("auditoriaPage");
+
+    if (!page) {
+        return;
+    }
+
+    if (!localStorage.getItem("token")) {
+        window.location.href = "index.html";
+        return;
+    }
+
+    const conteudo = document.getElementById("auditoriaConteudo");
+    const restrito = document.getElementById("auditoriaRestrito");
+    const mensagem = document.getElementById("mensagemAuditoria");
+
+    if (localStorage.getItem("perfil") !== "adm") {
+        conteudo.classList.add("hidden");
+        restrito.classList.remove("hidden");
+        return;
+    }
+
+    async function carregarAuditoria() {
+        const lista = document.getElementById("listaAuditoria");
+        lista.innerHTML = "<tr><td colspan=\"5\">Carregando...</td></tr>";
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/auditoria`, {
+                headers: getAuthHeaders(false)
+            });
+
+            if (response.status === 401) {
+                clearSession();
+                window.location.href = "index.html";
+                return;
+            }
+
+            if (response.status === 403) {
+                conteudo.classList.add("hidden");
+                restrito.classList.remove("hidden");
+                return;
+            }
+
+            if (!response.ok) {
+                lista.innerHTML = "<tr><td colspan=\"5\">Nao foi possivel carregar auditoria.</td></tr>";
+                return;
+            }
+
+            const eventos = await response.json();
+
+            if (eventos.length === 0) {
+                lista.innerHTML = "<tr><td colspan=\"5\">Nenhum evento registrado.</td></tr>";
+                return;
+            }
+
+            lista.innerHTML = eventos.map(function (evento) {
+                const funcionario = evento.identificadorFuncionario
+                    ? `${escapeHtml(evento.identificadorFuncionario)}<br><small>${escapeHtml(evento.nomeFuncionario)}</small>`
+                    : "-";
+
+                return `
+                    <tr>
+                        <td>${formatDateTime(evento.criadoEm)}</td>
+                        <td>${funcionario}</td>
+                        <td>${escapeHtml(evento.acao)}</td>
+                        <td>${escapeHtml(evento.descricao)}</td>
+                        <td>${escapeHtml(evento.ipOrigem || "-")}</td>
+                    </tr>
+                `;
+            }).join("");
+
+            setMessage(mensagem, "Auditoria atualizada.", "success");
+        } catch {
+            lista.innerHTML = "<tr><td colspan=\"5\">Erro ao conectar com a API.</td></tr>";
+        }
+    }
+
+    document.getElementById("btnAtualizarAuditoria").addEventListener("click", carregarAuditoria);
+    carregarAuditoria();
+}
+
 function setupSeguranca() {
     const page = document.getElementById("segurancaPage");
 
@@ -902,3 +993,4 @@ setupConvites();
 setupSeguranca();
 setupTrocarSenha();
 setupFuncionarios();
+setupAuditoria();
