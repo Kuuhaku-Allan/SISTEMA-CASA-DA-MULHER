@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore;
 namespace CasaMulher.Api.Controllers;
 
 [ApiController]
-[Authorize(Roles = PerfisAcesso.Adm)]
+[Authorize(Policy = PoliticasAcesso.SomenteAdm)]
 [Route("api/convites-funcionarios")]
 public class ConvitesFuncionariosController : ControllerBase
 {

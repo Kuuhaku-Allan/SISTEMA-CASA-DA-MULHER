@@ -12,6 +12,17 @@
         "deveTrocarSenha"
     ];
 
+    const PERMISSOES_POR_AREA = {
+        convites: ["adm"],
+        funcionarios: ["adm"],
+        auditoria: ["adm"],
+        recepcao: ["adm", "recepcao"],
+        cursos: ["adm", "professor"],
+        social: ["adm", "as_social"],
+        juridico: ["adm", "juridico"],
+        relatorios: ["adm", "as_social", "juridico"]
+    };
+
     function getToken() {
         return localStorage.getItem("token");
     }
@@ -35,6 +46,17 @@
 
     function estaLogado() {
         return Boolean(getToken());
+    }
+
+    function podeAcessar(area) {
+        const perfil = getPerfil();
+        const perfisPermitidos = PERMISSOES_POR_AREA[area];
+
+        if (!perfil || !perfisPermitidos) {
+            return false;
+        }
+
+        return perfisPermitidos.includes(perfil);
     }
 
     function mostrarMensagem(element, text, type) {
@@ -228,6 +250,7 @@
         getUsuario,
         limparSessao,
         logout,
+        podeAcessar,
         protegerPagina,
         protegerPerfil,
         salvarSessao,

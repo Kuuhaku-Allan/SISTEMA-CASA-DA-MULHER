@@ -1,6 +1,7 @@
 using System.Text;
 using CasaMulher.Api.Data;
 using CasaMulher.Api.Models;
+using CasaMulher.Api.Security;
 using CasaMulher.Api.Services;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -72,7 +73,26 @@ builder.Services
         };
     });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(PoliticasAcesso.SomenteAdm, policy =>
+        policy.RequireRole(PerfisAcesso.Adm));
+
+    options.AddPolicy(PoliticasAcesso.AcessoRecepcao, policy =>
+        policy.RequireRole(PerfisAcesso.Adm, PerfisAcesso.Recepcao));
+
+    options.AddPolicy(PoliticasAcesso.AcessoCursos, policy =>
+        policy.RequireRole(PerfisAcesso.Adm, PerfisAcesso.Professor));
+
+    options.AddPolicy(PoliticasAcesso.AcessoProntuarioSocial, policy =>
+        policy.RequireRole(PerfisAcesso.Adm, PerfisAcesso.AssistenteSocial));
+
+    options.AddPolicy(PoliticasAcesso.AcessoJuridico, policy =>
+        policy.RequireRole(PerfisAcesso.Adm, PerfisAcesso.Juridico));
+
+    options.AddPolicy(PoliticasAcesso.AcessoRelatorios, policy =>
+        policy.RequireRole(PerfisAcesso.Adm, PerfisAcesso.AssistenteSocial, PerfisAcesso.Juridico));
+});
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("FrontendLocal", policy =>

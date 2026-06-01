@@ -370,11 +370,17 @@ async function setupPainel() {
     document.getElementById("painelEmail").textContent = usuario.email || "-";
     document.getElementById("painelPerfil").textContent = formatPerfil(usuario.perfil);
 
-    const linkConvites = document.getElementById("linkConvites");
+    CasaMulherAuth.salvarUsuario(usuario);
 
-    if (usuario.perfil === "adm") {
-        linkConvites?.classList.remove("hidden");
+    if (CasaMulherAuth.podeAcessar("convites")) {
+        document.getElementById("linkConvites")?.classList.remove("hidden");
+    }
+
+    if (CasaMulherAuth.podeAcessar("funcionarios")) {
         document.getElementById("linkFuncionarios")?.classList.remove("hidden");
+    }
+
+    if (CasaMulherAuth.podeAcessar("auditoria")) {
         document.getElementById("linkAuditoria")?.classList.remove("hidden");
     }
 
