@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seguran&ccedil;a - Casa da Mulher</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="app.js" defer></script>
+</head>
+<body>
+    <main class="auth-container">
+        <section id="segurancaPage" class="auth-box auth-box-wide">
+            <img src="IMAGENS/logo_oficial.png" alt="Logo Casa da Mulher" class="logo-login">
+            <p class="auth-subtitle">Authenticator</p>
+
+            <dl class="profile-list compact-list">
+                <div>
+                    <dt>ID</dt>
+                    <dd id="segurancaIdentificador">-</dd>
+                </div>
+                <div>
+                    <dt>Status</dt>
+                    <dd id="segurancaStatus">-</dd>
+                </div>
+            </dl>
+
+            <div id="mensagemSeguranca" class="message" aria-live="polite"></div>
+
+            <button type="button" id="btnIniciar2fa" class="btn-primary">Iniciar configura&ccedil;&atilde;o</button>
+
+            <section id="configuracao2fa" class="result-panel hidden">
+                <dl class="profile-list compact-list">
+                    <div>
+                        <dt>Chave manual</dt>
+                        <dd id="chaveManual2fa">-</dd>
+                    </div>
+                    <div>
+                        <dt>URI</dt>
+                        <dd id="uri2fa">-</dd>
+                    </div>
+                </dl>
+
+                <form id="formConfirmar2fa" class="auth-form" novalidate>
+                    <div class="input-group">
+                        <label for="codigoConfirmar2fa">C&oacute;digo do app</label>
+                        <input type="text" id="codigoConfirmar2fa" inputmode="numeric" placeholder="123456" autocomplete="one-time-code" required>
+                    </div>
+
+                    <button type="submit" class="btn-primary">Ativar dois fatores</button>
+                </form>
+            </section>
+
+            <button type="button" id="btnDesativar2fa" class="btn-secondary">Desativar dois fatores</button>
+            <a class="text-link" href="painel.html">Voltar ao painel</a>
+        </section>
+    </main>
+</body>
+</html>

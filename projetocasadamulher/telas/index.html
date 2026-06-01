@@ -15,8 +15,8 @@
 
             <form id="formLogin" class="auth-form" novalidate>
                 <div class="input-group">
-                    <label for="email">E-mail</label>
-                    <input type="email" id="email" name="email" placeholder="seu.email@casamulher.local" autocomplete="email" required>
+                    <label for="identificador">ID do funcion&aacute;rio</label>
+                    <input type="text" id="identificador" name="identificador" placeholder="CM-000001" autocomplete="username" required>
                 </div>
 
                 <div class="input-group">
@@ -27,6 +27,17 @@
                 <div id="mensagemLogin" class="message" aria-live="polite"></div>
 
                 <button type="submit" class="btn-primary">Entrar no sistema</button>
+            </form>
+
+            <form id="formLogin2fa" class="auth-form hidden" novalidate>
+                <div class="input-group">
+                    <label for="codigo2fa">C&oacute;digo do Authenticator</label>
+                    <input type="text" id="codigo2fa" name="codigo" inputmode="numeric" placeholder="123456" autocomplete="one-time-code" required>
+                </div>
+
+                <div id="mensagemLogin2fa" class="message" aria-live="polite"></div>
+
+                <button type="submit" class="btn-primary">Confirmar c&oacute;digo</button>
             </form>
 
             <a class="text-link" href="cadastro.html">Primeiro acesso com convite</a>

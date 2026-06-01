@@ -36,6 +36,18 @@ O cadastro de funcionário é restrito por convite. A tela envia apenas:
 
 O perfil vem do convite registrado no banco.
 
+Depois do cadastro, o funcionário recebe um ID para login diário. O ID usa prefixo por perfil original de cadastro:
+
+```text
+ADM-000001
+REC-000001
+PRO-000001
+SOC-000001
+JUR-000001
+```
+
+Esse prefixo é apenas uma identificação amigável. As permissões continuam vindo das roles do ASP.NET Identity.
+
 ## Convites demo
 
 ```text

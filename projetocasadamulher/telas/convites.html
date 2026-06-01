@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Convites - Casa da Mulher</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="app.js" defer></script>
+</head>
+<body>
+    <main id="convitesPage" class="admin-shell">
+        <header class="admin-header">
+            <div>
+                <img src="IMAGENS/logo_oficial.png" alt="Logo Casa da Mulher" class="logo-admin">
+                <div>
+                    <h1>Convites de funcion&aacute;rios</h1>
+                    <p id="convitesUsuario">Coordena&ccedil;&atilde;o</p>
+                </div>
+            </div>
+            <button type="button" id="btnSairConvites" class="btn-secondary btn-compact">Sair</button>
+        </header>
+
+        <section id="convitesRestrito" class="admin-alert hidden">
+            <h2>Acesso restrito &agrave; coordena&ccedil;&atilde;o</h2>
+        </section>
+
+        <section id="convitesConteudo" class="admin-layout">
+            <form id="formConvite" class="admin-panel" novalidate>
+                <h2>Novo convite</h2>
+
+                <div class="input-group">
+                    <label for="conviteNome">Nome do funcion&aacute;rio</label>
+                    <input type="text" id="conviteNome" name="nomeCompleto" required>
+                </div>
+
+                <div class="input-group">
+                    <label for="conviteEmail">E-mail</label>
+                    <input type="email" id="conviteEmail" name="email" required>
+                </div>
+
+                <div class="input-grid">
+                    <div class="input-group">
+                        <label for="convitePerfil">Perfil</label>
+                        <select id="convitePerfil" name="perfil" required>
+                            <option value="" disabled selected>Selecione</option>
+                            <option value="adm">Coordena&ccedil;&atilde;o / ADM</option>
+                            <option value="recepcao">Recep&ccedil;&atilde;o</option>
+                            <option value="professor">Professor</option>
+                            <option value="as_social">Assistente Social</option>
+                            <option value="juridico">Jur&iacute;dico</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="conviteDias">Dias para expirar</label>
+                        <input type="number" id="conviteDias" name="diasParaExpirar" min="1" max="90" value="7" required>
+                    </div>
+                </div>
+
+                <div id="mensagemConvite" class="message" aria-live="polite"></div>
+
+                <button type="submit" class="btn-primary">Gerar convite</button>
+            </form>
+
+            <section id="conviteGerado" class="admin-panel result-panel hidden">
+                <h2>Convite criado</h2>
+
+                <dl class="profile-list compact-list">
+                    <div>
+                        <dt>C&oacute;digo</dt>
+                        <dd id="codigoGerado">-</dd>
+                    </div>
+                    <div>
+                        <dt>Link</dt>
+                        <dd id="linkGerado">-</dd>
+                    </div>
+                </dl>
+
+                <div class="action-row">
+                    <button type="button" id="btnCopiarCodigo" class="btn-secondary">Copiar c&oacute;digo</button>
+                    <button type="button" id="btnCopiarLink" class="btn-secondary">Copiar link</button>
+                </div>
+            </section>
+
+            <section class="admin-panel table-panel">
+                <div class="table-heading">
+                    <h2>Convites</h2>
+                    <button type="button" id="btnAtualizarConvites" class="btn-secondary btn-compact">Atualizar</button>
+                </div>
+
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>E-mail</th>
+                                <th>Perfil</th>
+                                <th>Status</th>
+                                <th>Expira</th>
+                                <th>A&ccedil;&otilde;es</th>
+                            </tr>
+                        </thead>
+                        <tbody id="listaConvites"></tbody>
+                    </table>
+                </div>
+            </section>
+        </section>
+    </main>
+</body>
+</html>

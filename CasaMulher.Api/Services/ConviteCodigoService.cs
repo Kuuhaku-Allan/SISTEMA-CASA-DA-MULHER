@@ -5,6 +5,7 @@ namespace CasaMulher.Api.Services;
 
 public class ConviteCodigoService : IConviteCodigoService
 {
+    private const string CodigoCaracteres = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     private readonly byte[] _hashSecret;
 
     public ConviteCodigoService(IConfiguration configuration)
@@ -17,6 +18,19 @@ public class ConviteCodigoService : IConviteCodigoService
         }
 
         _hashSecret = Encoding.UTF8.GetBytes(secret);
+    }
+
+    public string GerarCodigoCadastro()
+    {
+        Span<char> bloco = stackalloc char[4];
+
+        for (var index = 0; index < bloco.Length; index++)
+        {
+            var caractereIndex = RandomNumberGenerator.GetInt32(CodigoCaracteres.Length);
+            bloco[index] = CodigoCaracteres[caractereIndex];
+        }
+
+        return $"CM-{new string(bloco)}-{DateTime.UtcNow.Year}";
     }
 
     public string GerarHash(string codigo)

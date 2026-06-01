@@ -4,8 +4,9 @@ namespace CasaMulher.Api.DTOs;
 
 public class LoginRequest
 {
-    [Required]
-    [EmailAddress]
+    [MaxLength(256)]
+    public string Identificador { get; set; } = string.Empty;
+
     [MaxLength(256)]
     public string Email { get; set; } = string.Empty;
 

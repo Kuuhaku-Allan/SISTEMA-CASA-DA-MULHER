@@ -18,12 +18,19 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
 
         builder.Entity<ApplicationUser>(entity =>
         {
+            entity.HasIndex(user => user.IdentificadorFuncionario)
+                .IsUnique();
+
             entity.Property(user => user.NomeCompleto)
                 .HasMaxLength(160)
                 .IsRequired();
 
             entity.Property(user => user.Perfil)
                 .HasMaxLength(40)
+                .IsRequired();
+
+            entity.Property(user => user.IdentificadorFuncionario)
+                .HasMaxLength(20)
                 .IsRequired();
         });
 
