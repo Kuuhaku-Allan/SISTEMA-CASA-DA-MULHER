@@ -108,6 +108,15 @@ function formatAcaoAuditoria(acao) {
     return acoes[acao] || acao || "-";
 }
 
+function formatTipoEmail(tipo) {
+    const tipos = {
+        ConviteFuncionario: "Convite de funcionario",
+        TesteSmoke: "Teste de e-mail"
+    };
+
+    return tipos[tipo] || tipo || "-";
+}
+
 function formatDescricaoAuditoria(descricao) {
     return String(descricao || "-")
         .replaceAll("2FA", "autenticador");
@@ -120,6 +129,26 @@ function escapeHtml(value) {
         .replaceAll(">", "&gt;")
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#039;");
+}
+
+function formatResultadoEmailConvite(resultado) {
+    if (!resultado.statusEmail) {
+        return "Envio por e-mail nao solicitado.";
+    }
+
+    if (resultado.statusEmail === "Simulado") {
+        return "E-mail simulado em Development.";
+    }
+
+    if (resultado.statusEmail === "Enviado") {
+        return "E-mail enviado.";
+    }
+
+    if (resultado.statusEmail === "Falhou") {
+        return resultado.avisoEmail || "Convite criado, mas o e-mail falhou.";
+    }
+
+    return `Status do e-mail: ${resultado.statusEmail}.`;
 }
 
 async function copyText(text, messageElement) {
@@ -486,7 +515,8 @@ async function setupConvites() {
             nomeCompleto: document.getElementById("conviteNome").value.trim(),
             email: document.getElementById("conviteEmail").value.trim(),
             perfil: document.getElementById("convitePerfil").value,
-            diasParaExpirar: Number(document.getElementById("conviteDias").value)
+            diasParaExpirar: Number(document.getElementById("conviteDias").value),
+            enviarEmail: document.getElementById("conviteEnviarEmail").checked
         };
 
         try {
@@ -508,10 +538,18 @@ async function setupConvites() {
 
             document.getElementById("codigoGerado").textContent = ultimoCodigo;
             document.getElementById("linkGerado").textContent = ultimoLink;
+            document.getElementById("emailConviteStatus").textContent = formatResultadoEmailConvite(resultado);
             resultPanel.classList.remove("hidden");
-            setMessage(mensagem, "Convite criado com sucesso. Envie o link para o funcionario criar a conta.", "success");
+
+            const mensagemSucesso = resultado.statusEmail
+                ? `Convite criado com sucesso. ${formatResultadoEmailConvite(resultado)}`
+                : "Convite criado com sucesso. Envie o link para o funcionario criar a conta.";
+            const tipoMensagem = resultado.statusEmail === "Falhou" ? "info" : "success";
+
+            setMessage(mensagem, mensagemSucesso, tipoMensagem);
             form.reset();
             document.getElementById("conviteDias").value = "7";
+            document.getElementById("conviteEnviarEmail").checked = true;
             await carregarConvites();
         } catch {
             setMessage(mensagem, "Nao foi possivel conectar a API.", "error");
@@ -954,7 +992,7 @@ async function setupEmails() {
                     <tr>
                         <td>${formatDateTime(evento.criadoEm)}</td>
                         <td>${escapeHtml(evento.destinatario)}</td>
-                        <td>${escapeHtml(evento.tipo)}</td>
+                        <td>${escapeHtml(formatTipoEmail(evento.tipo))}</td>
                         <td>${escapeHtml(evento.assunto)}</td>
                         <td><span class="status-badge status-${escapeHtml(statusClass)}">${escapeHtml(evento.status)}</span></td>
                         <td>${escapeHtml(evento.erro || "-")}</td>

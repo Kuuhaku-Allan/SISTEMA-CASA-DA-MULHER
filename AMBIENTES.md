@@ -60,6 +60,7 @@ $env:Email__Smtp__Password="SENHA"
 $env:Email__Smtp__FromName="Casa da Mulher"
 $env:Email__Smtp__FromEmail="nao-responda@seudominio.org"
 $env:Email__Smtp__EnableSsl="true"
+$env:Frontend__BaseUrl="https://sistema-casa-da-mulher.exemplo"
 ```
 
 Aplicar migrations no banco de homologacao:
@@ -106,5 +107,7 @@ Use isso apenas em banco descartavel de teste. Nao habilite seed demo em produca
 Em `Development`, `Email:Provider` fica como `Fake`. O sistema grava um evento com status `Simulado`, mas nao envia e-mail real.
 
 Em `Staging`, use `Email:Provider=Smtp` apenas quando `Email:Smtp:Host`, `Email:Smtp:FromEmail` e demais dados do provedor estiverem configurados por variaveis de ambiente ou pelo painel da hospedagem.
+
+Configure `Frontend:BaseUrl` em homologacao/producao para que convites enviados por e-mail usem um link absoluto para a tela de cadastro.
 
 Os logs de e-mail guardam destinatario, assunto, tipo, status, erro e data. Nao grave corpo HTML, senhas, tokens, codigos de convite puros ou chaves de autenticador nos logs.

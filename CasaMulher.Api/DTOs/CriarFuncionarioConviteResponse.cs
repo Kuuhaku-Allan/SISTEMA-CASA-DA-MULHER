@@ -15,4 +15,10 @@ public class CriarFuncionarioConviteResponse
     public string LinkCadastro { get; set; } = string.Empty;
 
     public DateTime ExpiraEm { get; set; }
+
+    public bool EmailEnviado { get; set; }
+
+    public string? StatusEmail { get; set; }
+
+    public string? AvisoEmail { get; set; }
 }

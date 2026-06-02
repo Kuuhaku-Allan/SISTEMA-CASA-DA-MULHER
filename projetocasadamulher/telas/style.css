@@ -119,6 +119,23 @@ select {
     text-align: left;
 }
 
+.checkbox-field {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #27313b;
+    font-size: 0.92rem;
+    font-weight: 650;
+    text-align: left;
+}
+
+.checkbox-field input {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    accent-color: #18726b;
+}
+
 .section-intro {
     margin: 0;
     color: #5f6872;

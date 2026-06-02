@@ -19,4 +19,6 @@ public class CriarFuncionarioConviteRequest
 
     [Range(1, 90)]
     public int DiasParaExpirar { get; set; } = 7;
+
+    public bool EnviarEmail { get; set; }
 }
