@@ -15,6 +15,7 @@ O ambiente local usa:
 - banco SQLite em `CasaMulher.Api/casamulher.db`
 - seed demo habilitado
 - servico de e-mail em modo fake, sem envio real
+- telas servidas em `http://localhost:5500` para gerar links absolutos de convite
 
 Rodar API local:
 
@@ -22,6 +23,21 @@ Rodar API local:
 cd "C:\Users\Defal\Documents\Projetos\SISTEMA CASA DA MULHER\CasaMulher.Api"
 dotnet run --environment Development --urls http://localhost:5001
 ```
+
+Rodar telas HTML por HTTP local:
+
+```powershell
+cd "C:\Users\Defal\Documents\Projetos\SISTEMA CASA DA MULHER\projetocasadamulher\telas"
+python -m http.server 5500
+```
+
+Acesse as telas por:
+
+```text
+http://localhost:5500
+```
+
+Evite abrir as telas por `file:///C:/...` quando estiver testando convites por e-mail. Links de e-mail precisam de endereco HTTP absoluto, e `localhost` so funciona no proprio computador. Para enviar para outra pessoa, use uma hospedagem, tunel temporario ou servidor na rede local.
 
 Aplicar migrations no SQLite local:
 
@@ -108,6 +124,6 @@ Em `Development`, `Email:Provider` fica como `Fake`. O sistema grava um evento c
 
 Em `Staging`, use `Email:Provider=Smtp` apenas quando `Email:Smtp:Host`, `Email:Smtp:FromEmail` e demais dados do provedor estiverem configurados por variaveis de ambiente ou pelo painel da hospedagem.
 
-Configure `Frontend:BaseUrl` em homologacao/producao para que convites enviados por e-mail usem um link absoluto para a tela de cadastro.
+Configure `Frontend:BaseUrl` em homologacao/producao para que convites enviados por e-mail usem um link absoluto para a tela de cadastro. Se `enviarEmail=true` e `Frontend:BaseUrl` estiver vazio, o convite ainda sera criado, mas o envio por e-mail sera recusado com aviso de configuracao.
 
 Os logs de e-mail guardam destinatario, assunto, tipo, status, erro e data. Nao grave corpo HTML, senhas, tokens, codigos de convite puros ou chaves de autenticador nos logs.

@@ -99,9 +99,11 @@ public class ConvitesFuncionariosController : ControllerBase
         _dbContext.FuncionariosConvites.Add(convite);
         await _dbContext.SaveChangesAsync();
 
-        var linkCadastro = GerarLinkCadastro(convite.Email, codigoCadastro);
+        var linkCadastroRelativo = GerarLinkCadastroRelativo(convite.Email, codigoCadastro);
+        var linkCadastroAbsoluto = GerarLinkCadastroAbsoluto(linkCadastroRelativo);
+        var linkCadastro = linkCadastroAbsoluto ?? linkCadastroRelativo;
         var resultadoEmail = request.EnviarEmail
-            ? await EnviarEmailConviteAsync(convite, linkCadastro, request.DiasParaExpirar)
+            ? await EnviarEmailConviteAsync(convite, linkCadastroAbsoluto, request.DiasParaExpirar)
             : ResultadoEmailConvite.NaoSolicitado();
 
         var response = new CriarFuncionarioConviteResponse
@@ -229,19 +231,23 @@ public class ConvitesFuncionariosController : ControllerBase
         return "Pendente";
     }
 
-    private static string GerarLinkCadastro(string email, string codigoCadastro)
+    private static string GerarLinkCadastroRelativo(string email, string codigoCadastro)
     {
         return $"cadastro.html?email={Uri.EscapeDataString(email)}&codigo={Uri.EscapeDataString(codigoCadastro)}";
     }
 
     private async Task<ResultadoEmailConvite> EnviarEmailConviteAsync(
         FuncionarioConvite convite,
-        string linkCadastro,
+        string? linkCadastroAbsoluto,
         int diasParaExpirar)
     {
+        if (string.IsNullOrWhiteSpace(linkCadastroAbsoluto))
+        {
+            return ResultadoEmailConvite.SemBaseUrl();
+        }
+
         const string assunto = "Convite de acesso - Sistema Casa da Mulher";
-        var linkEmail = GerarLinkCadastroParaEmail(linkCadastro);
-        var corpoHtml = MontarCorpoEmailConvite(convite.NomeCompleto, linkEmail, diasParaExpirar);
+        var corpoHtml = MontarCorpoEmailConvite(convite.NomeCompleto, linkCadastroAbsoluto, diasParaExpirar);
 
         try
         {
@@ -273,26 +279,16 @@ public class ConvitesFuncionariosController : ControllerBase
             .FirstOrDefaultAsync();
     }
 
-    private string GerarLinkCadastroParaEmail(string linkCadastro)
+    private string? GerarLinkCadastroAbsoluto(string linkCadastroRelativo)
     {
         var frontendBaseUrl = _configuration["Frontend:BaseUrl"];
 
         if (string.IsNullOrWhiteSpace(frontendBaseUrl))
         {
-            var origin = Request.Headers.Origin.ToString();
-
-            if (!string.IsNullOrWhiteSpace(origin) && !string.Equals(origin, "null", StringComparison.OrdinalIgnoreCase))
-            {
-                frontendBaseUrl = origin;
-            }
+            return null;
         }
 
-        if (string.IsNullOrWhiteSpace(frontendBaseUrl))
-        {
-            return linkCadastro;
-        }
-
-        return $"{frontendBaseUrl.TrimEnd('/')}/{linkCadastro}";
+        return $"{frontendBaseUrl.TrimEnd('/')}/{linkCadastroRelativo}";
     }
 
     private static string MontarCorpoEmailConvite(string nomeCompleto, string linkCadastro, int diasParaExpirar)
@@ -314,6 +310,14 @@ public class ConvitesFuncionariosController : ControllerBase
         public static ResultadoEmailConvite NaoSolicitado()
         {
             return new ResultadoEmailConvite(false, null, null);
+        }
+
+        public static ResultadoEmailConvite SemBaseUrl()
+        {
+            return new ResultadoEmailConvite(
+                false,
+                "NaoConfigurado",
+                "Para enviar convite por e-mail, configure Frontend:BaseUrl.");
         }
     }
 }

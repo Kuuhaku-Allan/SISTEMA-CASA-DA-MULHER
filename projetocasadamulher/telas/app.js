@@ -137,11 +137,15 @@ function formatResultadoEmailConvite(resultado) {
     }
 
     if (resultado.statusEmail === "Simulado") {
-        return "E-mail simulado em Development.";
+        return "E-mail simulado em ambiente de desenvolvimento. Nenhuma mensagem foi enviada de verdade.";
     }
 
     if (resultado.statusEmail === "Enviado") {
         return "E-mail enviado.";
+    }
+
+    if (resultado.statusEmail === "NaoConfigurado") {
+        return resultado.avisoEmail || "Para enviar convite por e-mail, configure Frontend:BaseUrl.";
     }
 
     if (resultado.statusEmail === "Falhou") {
@@ -149,6 +153,25 @@ function formatResultadoEmailConvite(resultado) {
     }
 
     return `Status do e-mail: ${resultado.statusEmail}.`;
+}
+
+function getAvisoLinkLocal(link) {
+    if (!link) {
+        return "";
+    }
+
+    try {
+        const url = new URL(link, window.location.href);
+        const hostname = url.hostname.toLowerCase();
+
+        if (hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1") {
+            return " Este link funciona apenas neste computador. Para enviar para outra pessoa, use um endereco hospedado ou servidor na rede.";
+        }
+    } catch {
+        return "";
+    }
+
+    return "";
 }
 
 async function copyText(text, messageElement) {
@@ -535,16 +558,19 @@ async function setupConvites() {
             const resultado = await response.json();
             ultimoCodigo = resultado.codigoCadastro;
             ultimoLink = resultado.linkCadastro;
+            const avisoLinkLocal = getAvisoLinkLocal(ultimoLink);
 
             document.getElementById("codigoGerado").textContent = ultimoCodigo;
             document.getElementById("linkGerado").textContent = ultimoLink;
-            document.getElementById("emailConviteStatus").textContent = formatResultadoEmailConvite(resultado);
+            document.getElementById("emailConviteStatus").textContent = `${formatResultadoEmailConvite(resultado)}${avisoLinkLocal}`;
             resultPanel.classList.remove("hidden");
 
             const mensagemSucesso = resultado.statusEmail
-                ? `Convite criado com sucesso. ${formatResultadoEmailConvite(resultado)}`
+                ? `Convite criado com sucesso. ${formatResultadoEmailConvite(resultado)}${avisoLinkLocal}`
                 : "Convite criado com sucesso. Envie o link para o funcionario criar a conta.";
-            const tipoMensagem = resultado.statusEmail === "Falhou" ? "info" : "success";
+            const tipoMensagem = resultado.statusEmail === "Falhou" || resultado.statusEmail === "NaoConfigurado"
+                ? "info"
+                : "success";
 
             setMessage(mensagem, mensagemSucesso, tipoMensagem);
             form.reset();
