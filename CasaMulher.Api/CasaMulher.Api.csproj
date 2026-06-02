@@ -4,6 +4,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>CasaMulher.Api-Development-Email-2026</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

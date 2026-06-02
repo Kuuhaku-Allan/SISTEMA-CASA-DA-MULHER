@@ -127,3 +127,5 @@ Em `Staging`, use `Email:Provider=Smtp` apenas quando `Email:Smtp:Host`, `Email:
 Configure `Frontend:BaseUrl` em homologacao/producao para que convites enviados por e-mail usem um link absoluto para a tela de cadastro. Se `enviarEmail=true` e `Frontend:BaseUrl` estiver vazio, o convite ainda sera criado, mas o envio por e-mail sera recusado com aviso de configuracao.
 
 Os logs de e-mail guardam destinatario, assunto, tipo, status, erro e data. Nao grave corpo HTML, senhas, tokens, codigos de convite puros ou chaves de autenticador nos logs.
+
+Para configurar envio real local com Brevo SMTP ou outro provedor, veja `EMAIL_REAL.md`. Nao coloque chaves SMTP em arquivos commitados.
