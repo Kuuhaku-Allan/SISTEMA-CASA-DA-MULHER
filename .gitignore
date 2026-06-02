@@ -15,3 +15,9 @@ CasaMulher.Api/DataProtectionKeys/
 appsettings.Local.json
 CasaMulher.Api/appsettings.Local.json
 CasaMulher.Api/appsettings.*.Local.json
+
+backups/
+*.dump
+*.backup
+*.sql.gz
+*.sql.zip

@@ -1,0 +1,63 @@
+name: Backup PostgreSQL
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 03:30 America/Sao_Paulo = 06:30 UTC
+    - cron: "30 6 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    name: Gerar backup logico
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+
+    steps:
+      - name: Validar secret
+        shell: bash
+        run: |
+          if [ -z "${STAGING_DATABASE_URL}" ]; then
+            echo "::error::Configure o secret STAGING_DATABASE_URL antes de rodar o backup."
+            exit 1
+          fi
+
+      - name: Instalar cliente PostgreSQL
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client gzip
+
+      - name: Gerar pg_dump
+        id: dump
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p backups
+          TIMESTAMP="$(date -u +'%Y%m%d-%H%M%S')"
+          SQL_FILE="backups/casamulher-postgres-${TIMESTAMP}.sql"
+          BACKUP_FILE="${SQL_FILE}.gz"
+
+          pg_dump \
+            --dbname="${STAGING_DATABASE_URL}" \
+            --format=plain \
+            --no-owner \
+            --no-privileges \
+            --file="${SQL_FILE}"
+
+          gzip -9 "${SQL_FILE}"
+
+          echo "timestamp=${TIMESTAMP}" >> "${GITHUB_OUTPUT}"
+          echo "backup_file=${BACKUP_FILE}" >> "${GITHUB_OUTPUT}"
+
+      - name: Enviar artifact de backup
+        uses: actions/upload-artifact@v4
+        with:
+          name: casa-mulher-postgres-backup-${{ steps.dump.outputs.timestamp }}
+          path: ${{ steps.dump.outputs.backup_file }}
+          retention-days: 7
+          if-no-files-found: error

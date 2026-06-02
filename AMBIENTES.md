@@ -39,6 +39,8 @@ O ambiente de homologacao usa:
 - seed demo desativado por padrao
 - connection string e segredos vindos de variaveis de ambiente
 
+Para banco remoto gratuito, backup e restore, veja tambem `BANCO_E_BACKUP.md`.
+
 Variaveis recomendadas:
 
 ```powershell
@@ -80,12 +82,12 @@ dotnet run --urls http://localhost:5001
 
 ## Provedores sugeridos para PostgreSQL
 
-- Supabase
 - Neon
+- Supabase
 - Railway
 - Render
 
-Use sempre o painel do provedor para guardar a connection string e segredos. O repositorio deve manter somente exemplos e configuracoes sem senha.
+Use sempre o painel do provedor para guardar a connection string e segredos. O repositorio deve manter somente exemplos e configuracoes sem senha. Para homologacao gratuita inicial, a recomendacao atual do projeto e Neon PostgreSQL Free com backups logicos via `pg_dump`.
 
 ## Seed demo
 
