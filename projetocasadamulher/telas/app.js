@@ -384,6 +384,10 @@ async function setupPainel() {
         document.getElementById("linkAuditoria")?.classList.remove("hidden");
     }
 
+    if (CasaMulherAuth.podeAcessar("emails")) {
+        document.getElementById("linkEmails")?.classList.remove("hidden");
+    }
+
     bindLogoutButton("btnSair");
 }
 
@@ -890,6 +894,84 @@ async function setupAuditoria() {
     carregarAuditoria();
 }
 
+async function setupEmails() {
+    const page = document.getElementById("emailsPage");
+
+    if (!page) {
+        return;
+    }
+
+    const conteudo = document.getElementById("emailsConteudo");
+    const restrito = document.getElementById("emailsRestrito");
+    const mensagem = document.getElementById("mensagemEmails");
+    bindLogoutButton("btnSairEmails");
+
+    const usuario = await CasaMulherAuth.protegerPerfil("adm", {
+        conteudoElement: conteudo,
+        restritoElement: restrito,
+        mensagemElement: mensagem
+    });
+
+    if (!usuario) {
+        return;
+    }
+
+    async function carregarEmails() {
+        const lista = document.getElementById("listaEmails");
+        lista.innerHTML = "<tr><td colspan=\"6\">Carregando...</td></tr>";
+
+        try {
+            const response = await CasaMulherAuth.apiFetch("/api/emails", {
+                mensagemElement: mensagem
+            });
+
+            if (response.status === 401) {
+                return;
+            }
+
+            if (response.status === 403) {
+                conteudo.classList.add("hidden");
+                restrito.classList.remove("hidden");
+                return;
+            }
+
+            if (!response.ok) {
+                lista.innerHTML = "<tr><td colspan=\"6\">Nao foi possivel carregar os e-mails.</td></tr>";
+                return;
+            }
+
+            const eventos = await response.json();
+
+            if (eventos.length === 0) {
+                lista.innerHTML = "<tr><td colspan=\"6\">Nenhum envio registrado.</td></tr>";
+                return;
+            }
+
+            lista.innerHTML = eventos.map(function (evento) {
+                const statusClass = String(evento.status || "").toLowerCase();
+
+                return `
+                    <tr>
+                        <td>${formatDateTime(evento.criadoEm)}</td>
+                        <td>${escapeHtml(evento.destinatario)}</td>
+                        <td>${escapeHtml(evento.tipo)}</td>
+                        <td>${escapeHtml(evento.assunto)}</td>
+                        <td><span class="status-badge status-${escapeHtml(statusClass)}">${escapeHtml(evento.status)}</span></td>
+                        <td>${escapeHtml(evento.erro || "-")}</td>
+                    </tr>
+                `;
+            }).join("");
+
+            setMessage(mensagem, "Logs de e-mail atualizados.", "success");
+        } catch {
+            lista.innerHTML = "<tr><td colspan=\"6\">Nao foi possivel conectar a API.</td></tr>";
+        }
+    }
+
+    document.getElementById("btnAtualizarEmails").addEventListener("click", carregarEmails);
+    carregarEmails();
+}
+
 async function setupSeguranca() {
     const page = document.getElementById("segurancaPage");
 
@@ -1032,3 +1114,4 @@ setupSeguranca();
 setupTrocarSenha();
 setupFuncionarios();
 setupAuditoria();
+setupEmails();

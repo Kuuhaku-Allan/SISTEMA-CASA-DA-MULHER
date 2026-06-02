@@ -14,6 +14,7 @@ O ambiente local usa:
 - `CasaMulher.Api/appsettings.Development.json`
 - banco SQLite em `CasaMulher.Api/casamulher.db`
 - seed demo habilitado
+- servico de e-mail em modo fake, sem envio real
 
 Rodar API local:
 
@@ -49,6 +50,14 @@ $env:Jwt__Issuer="CasaMulher.Api"
 $env:Jwt__Audience="CasaMulher.Api"
 $env:Convites__HashSecret="CHAVE_FORTE_PARA_HASH_DE_CONVITES"
 $env:Seed__RunDemoData="false"
+$env:Email__Provider="Smtp"
+$env:Email__Smtp__Host="smtp.seu-provedor.com"
+$env:Email__Smtp__Port="587"
+$env:Email__Smtp__User="USUARIO"
+$env:Email__Smtp__Password="SENHA"
+$env:Email__Smtp__FromName="Casa da Mulher"
+$env:Email__Smtp__FromEmail="nao-responda@seudominio.org"
+$env:Email__Smtp__EnableSsl="true"
 ```
 
 Aplicar migrations no banco de homologacao:
@@ -89,3 +98,11 @@ $env:Seed__RunDemoData="true"
 ```
 
 Use isso apenas em banco descartavel de teste. Nao habilite seed demo em producao.
+
+## E-mails
+
+Em `Development`, `Email:Provider` fica como `Fake`. O sistema grava um evento com status `Simulado`, mas nao envia e-mail real.
+
+Em `Staging`, use `Email:Provider=Smtp` apenas quando `Email:Smtp:Host`, `Email:Smtp:FromEmail` e demais dados do provedor estiverem configurados por variaveis de ambiente ou pelo painel da hospedagem.
+
+Os logs de e-mail guardam destinatario, assunto, tipo, status, erro e data. Nao grave corpo HTML, senhas, tokens, codigos de convite puros ou chaves de autenticador nos logs.

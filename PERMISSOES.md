@@ -21,6 +21,7 @@ Importante: esconder botoes no front-end melhora a usabilidade, mas nao e a segu
 | Criar convites de funcionarios | Sim | Nao | Nao | Nao | Nao |
 | Gerenciar funcionarios | Sim | Nao | Nao | Nao | Nao |
 | Ver historico de acoes | Sim | Nao | Nao | Nao | Nao |
+| Ver logs de e-mail | Sim | Nao | Nao | Nao | Nao |
 | Cadastrar usuaria/atendimento inicial | Sim | Sim | Nao | Sim | Sim |
 | Ver dados basicos | Sim | Sim | Sim | Sim | Sim |
 | Ver prontuario social | Sim | Nao | Nao | Sim | Nao |
@@ -48,6 +49,7 @@ O helper `CasaMulherAuth.podeAcessar(area)` usa as mesmas areas conceituais:
 | `convites` | `adm` |
 | `funcionarios` | `adm` |
 | `auditoria` | `adm` |
+| `emails` | `adm` |
 | `recepcao` | `adm`, `recepcao` |
 | `cursos` | `adm`, `professor` |
 | `social` | `adm`, `as_social` |

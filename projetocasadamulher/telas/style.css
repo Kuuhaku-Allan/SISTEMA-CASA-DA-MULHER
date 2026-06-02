@@ -457,6 +457,21 @@ th {
     background: #fde2df;
 }
 
+.status-simulado {
+    color: #315b84;
+    background: #e1eef9;
+}
+
+.status-enviado {
+    color: #176a3a;
+    background: #dff5e8;
+}
+
+.status-falhou {
+    color: #9b1c16;
+    background: #fde2df;
+}
+
 .btn-link-danger {
     padding: 0;
     border: 0;

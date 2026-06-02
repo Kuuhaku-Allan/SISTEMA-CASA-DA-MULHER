@@ -16,6 +16,7 @@
         convites: ["adm"],
         funcionarios: ["adm"],
         auditoria: ["adm"],
+        emails: ["adm"],
         recepcao: ["adm", "recepcao"],
         cursos: ["adm", "professor"],
         social: ["adm", "as_social"],

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-mails - Casa da Mulher</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="auth.js" defer></script>
+    <script src="app.js" defer></script>
+</head>
+<body>
+    <main id="emailsPage" class="admin-shell">
+        <header class="admin-header">
+            <div>
+                <img src="IMAGENS/logo_oficial.png" alt="Logo Casa da Mulher" class="logo-admin">
+                <div>
+                    <h1>Logs de e-mail</h1>
+                    <p>Consulta administrativa de tentativas de envio</p>
+                </div>
+            </div>
+            <div class="header-actions">
+                <a class="btn-secondary btn-compact button-link" href="painel.html">Voltar</a>
+                <button type="button" id="btnSairEmails" class="btn-secondary btn-compact">Sair</button>
+            </div>
+        </header>
+
+        <section id="emailsRestrito" class="admin-alert hidden">
+            <h2>Acesso restrito &agrave; coordena&ccedil;&atilde;o</h2>
+        </section>
+
+        <section id="emailsConteudo" class="admin-panel table-panel">
+            <div class="table-heading">
+                <h2>Eventos registrados</h2>
+                <button type="button" id="btnAtualizarEmails" class="btn-secondary btn-compact">Atualizar</button>
+            </div>
+            <p class="section-intro">O sistema registra somente metadados do envio. O corpo do e-mail, codigos e tokens nao ficam salvos aqui.</p>
+
+            <div id="mensagemEmails" class="message" aria-live="polite"></div>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Destinat&aacute;rio</th>
+                            <th>Tipo</th>
+                            <th>Assunto</th>
+                            <th>Status</th>
+                            <th>Erro</th>
+                        </tr>
+                    </thead>
+                    <tbody id="listaEmails"></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

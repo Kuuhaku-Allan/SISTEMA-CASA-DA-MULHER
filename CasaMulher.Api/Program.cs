@@ -132,6 +132,22 @@ builder.Services.AddScoped<IConviteCodigoService, ConviteCodigoService>();
 builder.Services.AddScoped<IFuncionarioIdentificadorService, GeradorIdentificadorFuncionarioService>();
 builder.Services.AddScoped<ISenhaTemporariaService, SenhaTemporariaService>();
 builder.Services.AddScoped<IAuditoriaService, AuditoriaService>();
+
+var emailProvider = builder.Configuration.GetValue("Email:Provider", builder.Environment.IsDevelopment() ? "Fake" : "Smtp");
+
+if (string.Equals(emailProvider, "Fake", StringComparison.OrdinalIgnoreCase))
+{
+    builder.Services.AddScoped<IEmailService, FakeEmailService>();
+}
+else if (string.Equals(emailProvider, "Smtp", StringComparison.OrdinalIgnoreCase))
+{
+    builder.Services.AddScoped<IEmailService, SmtpEmailService>();
+}
+else
+{
+    throw new InvalidOperationException($"Email:Provider invalido: {emailProvider}.");
+}
+
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();

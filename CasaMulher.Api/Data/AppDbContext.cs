@@ -14,6 +14,8 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
 
     public DbSet<AuditoriaEvento> AuditoriaEventos => Set<AuditoriaEvento>();
 
+    public DbSet<EmailEvento> EmailEventos => Set<EmailEvento>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -80,6 +82,22 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             entity.Property(evento => evento.Descricao).HasMaxLength(500).IsRequired();
             entity.Property(evento => evento.IpOrigem).HasMaxLength(80);
             entity.Property(evento => evento.UserAgent).HasMaxLength(500);
+        });
+
+        builder.Entity<EmailEvento>(entity =>
+        {
+            entity.ToTable("EmailEventos");
+
+            entity.HasIndex(evento => evento.CriadoEm);
+            entity.HasIndex(evento => evento.Destinatario);
+            entity.HasIndex(evento => evento.Tipo);
+            entity.HasIndex(evento => evento.Status);
+
+            entity.Property(evento => evento.Destinatario).HasMaxLength(256).IsRequired();
+            entity.Property(evento => evento.Assunto).HasMaxLength(200).IsRequired();
+            entity.Property(evento => evento.Tipo).HasMaxLength(80).IsRequired();
+            entity.Property(evento => evento.Status).HasMaxLength(40).IsRequired();
+            entity.Property(evento => evento.Erro).HasMaxLength(500);
         });
     }
 }
