@@ -8,3 +8,10 @@ obj/
 
 CasaMulher.Api/casamulher.db*
 CasaMulher.Api/DataProtectionKeys/
+
+.env
+.env.*
+!/.env.example
+appsettings.Local.json
+CasaMulher.Api/appsettings.Local.json
+CasaMulher.Api/appsettings.*.Local.json

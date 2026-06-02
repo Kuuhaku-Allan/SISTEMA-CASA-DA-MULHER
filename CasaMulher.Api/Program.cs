@@ -18,8 +18,32 @@ builder.Logging.AddDebug();
 
 // Add services to the container.
 
+var databaseProvider = builder.Configuration.GetValue("Database:Provider", "Sqlite");
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
+if (string.IsNullOrWhiteSpace(connectionString))
+{
+    throw new InvalidOperationException("Configure ConnectionStrings:DefaultConnection para o ambiente atual.");
+}
+
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+{
+    if (string.Equals(databaseProvider, "PostgreSQL", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(databaseProvider, "Postgres", StringComparison.OrdinalIgnoreCase))
+    {
+        options.UseNpgsql(connectionString);
+        return;
+    }
+
+    if (string.Equals(databaseProvider, "Sqlite", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(databaseProvider, "SQLite", StringComparison.OrdinalIgnoreCase))
+    {
+        options.UseSqlite(connectionString);
+        return;
+    }
+
+    throw new InvalidOperationException($"Database:Provider invalido: {databaseProvider}.");
+});
 
 builder.Services
     .AddDataProtection()
@@ -150,10 +174,15 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    await AuthDbSeeder.SeedAsync(app.Services);
-
     app.UseSwagger();
     app.UseSwaggerUI();
+}
+
+var runDemoSeed = app.Configuration.GetValue("Seed:RunDemoData", app.Environment.IsDevelopment());
+
+if (runDemoSeed)
+{
+    await AuthDbSeeder.SeedAsync(app.Services);
 }
 
 app.UseHttpsRedirection();
