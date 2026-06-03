@@ -101,6 +101,9 @@ function formatAcaoAuditoria(acao) {
         FUNCIONARIO_REATIVADO: "Acesso reativado",
         PERFIL_ALTERADO: "Perfil alterado",
         SENHA_RESETADA: "Senha redefinida",
+        REDEFINICAO_SENHA_SOLICITADA: "Redefinição de senha solicitada",
+        REDEFINICAO_SENHA_AUTO_SOLICITADA: "Redefinição de senha solicitada",
+        REDEFINICAO_SENHA_CONCLUIDA: "Redefinição de senha concluída",
         DOIS_FATORES_RESETADO: "Autenticador redefinido",
         SENHA_TROCADA: "Senha trocada"
     };
@@ -111,6 +114,7 @@ function formatAcaoAuditoria(acao) {
 function formatTipoEmail(tipo) {
     const tipos = {
         ConviteFuncionario: "Convite de funcionário",
+        RedefinicaoSenha: "Redefinição de senha",
         TesteSmoke: "Teste de e-mail"
     };
 
@@ -145,11 +149,11 @@ function formatResultadoEmailConvite(resultado) {
     }
 
     if (resultado.statusEmail === "NaoConfigurado") {
-        return resultado.avisoEmail || "Para enviar convite por e-mail, configure Frontend:BaseUrl.";
+        return resultado.avisoEmail || "Configuração de e-mail pendente.";
     }
 
     if (resultado.statusEmail === "Falhou") {
-        return resultado.avisoEmail || "Convite criado, mas o e-mail falhou.";
+        return resultado.avisoEmail || "Não foi possível enviar o e-mail.";
     }
 
     return `Status do e-mail: ${resultado.statusEmail}.`;
@@ -763,6 +767,128 @@ async function setupTrocarSenha() {
     });
 }
 
+function setupRedefinirSenha() {
+    const form = document.getElementById("formRedefinirSenha");
+
+    if (!form) {
+        return;
+    }
+
+    const mensagem = document.getElementById("mensagemRedefinirSenha");
+    const aviso = document.getElementById("avisoRedefinirSenha");
+    const emailInput = document.getElementById("emailRedefinir");
+    const tokenInput = document.getElementById("tokenRedefinir");
+    const params = new URLSearchParams(window.location.search);
+    const email = params.get("email");
+    const token = params.get("token");
+
+    if (!email || !token) {
+        aviso.textContent = "Abra o link de redefinição enviado por e-mail para criar uma nova senha.";
+        aviso.className = "notice notice-error";
+        form.classList.add("hidden");
+        return;
+    }
+
+    emailInput.value = email;
+    tokenInput.value = token;
+
+    form.addEventListener("submit", async function (event) {
+        event.preventDefault();
+
+        if (!form.reportValidity()) {
+            return;
+        }
+
+        const novaSenha = document.getElementById("novaSenhaRedefinir").value;
+        const confirmarNovaSenha = document.getElementById("confirmarNovaSenhaRedefinir").value;
+
+        if (novaSenha !== confirmarNovaSenha) {
+            setMessage(mensagem, "Nova senha e confirmação não conferem.", "error");
+            return;
+        }
+
+        setMessage(mensagem, "Salvando nova senha...", "info");
+        disableSubmit(form, true);
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/auth/redefinir-senha`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    email: emailInput.value.trim(),
+                    token: tokenInput.value,
+                    novaSenha,
+                    confirmarNovaSenha
+                })
+            });
+
+            if (!response.ok) {
+                setMessage(mensagem, await readApiMessage(response), "error");
+                return;
+            }
+
+            const resultado = await response.json();
+            sessionStorage.setItem("mensagemLogin", resultado.mensagem || "Senha redefinida com sucesso. Entre com a nova senha.");
+            setMessage(mensagem, resultado.mensagem || "Senha redefinida com sucesso.", "success");
+
+            setTimeout(function () {
+                window.location.href = "index.html";
+            }, 1000);
+        } catch {
+            setMessage(mensagem, "Não foi possível conectar à API.", "error");
+        } finally {
+            disableSubmit(form, false);
+        }
+    });
+}
+
+function setupSolicitarRedefinicaoSenha() {
+    const form = document.getElementById("formSolicitarRedefinicao");
+
+    if (!form) {
+        return;
+    }
+
+    const mensagem = document.getElementById("mensagemSolicitarRedefinicao");
+
+    form.addEventListener("submit", async function (event) {
+        event.preventDefault();
+
+        if (!form.reportValidity()) {
+            return;
+        }
+
+        setMessage(mensagem, "Enviando instruções...", "info");
+        disableSubmit(form, true);
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/auth/solicitar-redefinicao-senha`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    identificadorFuncionario: document.getElementById("identificadorRedefinicao").value.trim()
+                })
+            });
+
+            if (!response.ok) {
+                setMessage(mensagem, await readApiMessage(response), "error");
+                return;
+            }
+
+            const resultado = await response.json();
+            setMessage(mensagem, resultado.mensagem || "Se os dados estiverem corretos, enviaremos as instruções para o e-mail cadastrado.", "success");
+        } catch {
+            setMessage(mensagem, "Não foi possível conectar à API.", "error");
+        } finally {
+            disableSubmit(form, false);
+        }
+    });
+}
+
 async function setupFuncionarios() {
     const page = document.getElementById("funcionariosPage");
 
@@ -773,7 +899,6 @@ async function setupFuncionarios() {
     const conteudo = document.getElementById("funcionariosConteudo");
     const restrito = document.getElementById("funcionariosRestrito");
     const mensagem = document.getElementById("mensagemFuncionarios");
-    let senhaTemporariaAtual = "";
     bindLogoutButton("btnSairFuncionarios");
 
     const usuario = await CasaMulherAuth.protegerPerfil("adm", {
@@ -817,7 +942,7 @@ async function setupFuncionarios() {
                 const codigoSeguranca = funcionario.doisFatoresAtivo
                     ? "Ativo"
                     : funcionario.doisFatoresObrigatorio
-                        ? "Obrigatorio, pendente"
+                        ? "Obrigatório, pendente"
                         : "Opcional";
                 const ativar = funcionario.ativo
                     ? `<button type="button" class="btn-link-danger" data-action="desativar" data-id="${funcionario.id}">Desativar acesso</button>`
@@ -850,10 +975,6 @@ async function setupFuncionarios() {
     }
 
     document.getElementById("btnAtualizarFuncionarios").addEventListener("click", carregarFuncionarios);
-
-    document.getElementById("btnCopiarSenhaTemporaria").addEventListener("click", function () {
-        copyText(senhaTemporariaAtual, mensagem);
-    });
 
     document.getElementById("listaFuncionarios").addEventListener("change", async function (event) {
         const select = event.target.closest("[data-action='perfil']");
@@ -904,7 +1025,17 @@ async function setupFuncionarios() {
             method = "POST";
         }
 
-        setMessage(mensagem, "Processando solicitacao...", "info");
+        if (action === "resetar-senha") {
+            const confirmado = window.confirm("Deseja enviar um link de redefinição de senha para o e-mail cadastrado deste funcionário?");
+
+            if (!confirmado) {
+                return;
+            }
+
+            url = `/api/funcionarios/${button.dataset.id}/enviar-redefinicao-senha`;
+        }
+
+        setMessage(mensagem, action === "resetar-senha" ? "Enviando link de redefinição..." : "Processando solicitação...", "info");
         button.disabled = true;
 
         try {
@@ -921,23 +1052,22 @@ async function setupFuncionarios() {
 
             const resultado = await response.json();
 
-            if (action === "resetar-senha") {
-                senhaTemporariaAtual = resultado.senhaTemporaria;
-                document.getElementById("senhaTemporariaValor").textContent = senhaTemporariaAtual;
-                document.getElementById("senhaTemporariaPanel").classList.remove("hidden");
-            }
-
             let mensagemSucesso = "Ação realizada com sucesso.";
 
             if (action === "resetar-senha") {
-                mensagemSucesso = "Senha temporária gerada. Entregue ao funcionário e oriente a troca no próximo acesso.";
+                mensagemSucesso = `${resultado.mensagem || "Solicitação de redefinição processada."} ${formatResultadoEmailConvite(resultado)}`;
             }
 
             if (action === "resetar-2fa") {
                 mensagemSucesso = "Aplicativo autenticador redefinido com sucesso.";
             }
 
-            setMessage(mensagem, mensagemSucesso, "success");
+            const tipoMensagem = action === "resetar-senha"
+                && (resultado.statusEmail === "Falhou" || resultado.statusEmail === "NaoConfigurado")
+                ? "info"
+                : "success";
+
+            setMessage(mensagem, mensagemSucesso, tipoMensagem);
             await carregarFuncionarios();
         } catch {
             setMessage(mensagem, "Não foi possível conectar à API.", "error");
@@ -1246,6 +1376,8 @@ setupPainel();
 setupConvites();
 setupSeguranca();
 setupTrocarSenha();
+setupRedefinirSenha();
+setupSolicitarRedefinicaoSenha();
 setupFuncionarios();
 setupAuditoria();
 setupEmails();

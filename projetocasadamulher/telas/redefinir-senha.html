@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redefinir senha - Casa da Mulher</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="auth.js" defer></script>
+    <script src="app.js" defer></script>
+</head>
+<body>
+    <main class="auth-container">
+        <section class="auth-box">
+            <img src="IMAGENS/logo_oficial.png" alt="Logo Casa da Mulher" class="logo-login">
+            <h1 class="auth-title">Redefinir senha</h1>
+            <p class="auth-subtitle">Crie uma nova senha de acesso.</p>
+
+            <div id="avisoRedefinirSenha" class="notice hidden"></div>
+
+            <form id="formRedefinirSenha" class="auth-form" novalidate>
+                <div class="input-group">
+                    <label for="emailRedefinir">E-mail</label>
+                    <input type="email" id="emailRedefinir" name="email" autocomplete="username" readonly required>
+                </div>
+
+                <input type="hidden" id="tokenRedefinir" name="token">
+
+                <div class="input-group">
+                    <label for="novaSenhaRedefinir">Nova senha</label>
+                    <input type="password" id="novaSenhaRedefinir" name="novaSenha" placeholder="********" autocomplete="new-password" required>
+                    <p class="field-help">Use pelo menos 8 caracteres, com mai&uacute;scula, min&uacute;scula, n&uacute;mero e s&iacute;mbolo.</p>
+                </div>
+
+                <div class="input-group">
+                    <label for="confirmarNovaSenhaRedefinir">Confirmar nova senha</label>
+                    <input type="password" id="confirmarNovaSenhaRedefinir" name="confirmarNovaSenha" placeholder="********" autocomplete="new-password" required>
+                </div>
+
+                <div id="mensagemRedefinirSenha" class="message" aria-live="polite"></div>
+
+                <button type="submit" class="btn-primary">Salvar nova senha</button>
+                <a class="text-link" href="index.html">Voltar para login</a>
+            </form>
+        </section>
+    </main>
+</body>
+</html>

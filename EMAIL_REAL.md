@@ -40,7 +40,7 @@ dotnet user-secrets set "Email:Smtp:FromName" "Casa da Mulher"
 dotnet user-secrets set "Frontend:BaseUrl" "http://localhost:5500"
 ```
 
-Use em `Email:Smtp:User` o login SMTP exibido pelo Brevo. Use em `Email:Smtp:Password` a chave SMTP gerada pelo Brevo. O valor de `Email:Smtp:FromEmail` deve ser um remetente verificado no Brevo, nao necessariamente o login SMTP.
+Use em `Email:Smtp:User` o login SMTP exibido pelo Brevo. Use em `Email:Smtp:Password` a chave SMTP gerada pelo Brevo. O valor de `Email:Smtp:FromEmail` deve ser um remetente verificado no Brevo, não necessariamente o login SMTP.
 
 Para conferir sem exibir senha:
 
@@ -48,7 +48,7 @@ Para conferir sem exibir senha:
 dotnet user-secrets list
 ```
 
-Se precisar remover a configuracao real e voltar ao fake:
+Se precisar remover a configuração real e voltar ao fake:
 
 ```powershell
 dotnet user-secrets remove "Email:Provider"
@@ -83,16 +83,16 @@ Acesse:
 http://localhost:5500/convites.html
 ```
 
-Crie um convite com a opcao `Enviar convite por e-mail` marcada.
+Crie um convite com a opção `Enviar convite por e-mail` marcada.
 
 Resultado esperado com Brevo SMTP configurado:
 
 - a resposta da tela mostra `E-mail enviado`;
-- a tabela de e-mails mostra `Tipo = Convite de funcionario`;
+- a tabela de e-mails mostra `Tipo = Convite de funcionário`;
 - o status do evento fica `Enviado`;
-- o e-mail chega na caixa do destinatario.
+- o e-mail chega na caixa do destinatário.
 
-Se a configuracao SMTP estiver incorreta:
+Se a configuração SMTP estiver incorreta:
 
 - o convite continua criado;
 - o status do evento fica `Falhou`;

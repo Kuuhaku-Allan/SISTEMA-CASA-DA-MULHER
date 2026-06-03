@@ -28,6 +28,7 @@ public class AuthController : ControllerBase
     private readonly RoleManager<IdentityRole> _roleManager;
     private readonly IConviteCodigoService _codigoService;
     private readonly IAuditoriaService _auditoriaService;
+    private readonly IRedefinicaoSenhaEmailService _redefinicaoSenhaEmailService;
     private readonly IConfiguration _configuration;
     private readonly IDataProtector _loginDoisFatoresProtector;
 
@@ -37,6 +38,7 @@ public class AuthController : ControllerBase
         RoleManager<IdentityRole> roleManager,
         IConviteCodigoService codigoService,
         IAuditoriaService auditoriaService,
+        IRedefinicaoSenhaEmailService redefinicaoSenhaEmailService,
         IConfiguration configuration,
         IDataProtectionProvider dataProtectionProvider)
     {
@@ -45,6 +47,7 @@ public class AuthController : ControllerBase
         _roleManager = roleManager;
         _codigoService = codigoService;
         _auditoriaService = auditoriaService;
+        _redefinicaoSenhaEmailService = redefinicaoSenhaEmailService;
         _configuration = configuration;
         _loginDoisFatoresProtector = dataProtectionProvider.CreateProtector("CasaMulher.LoginDoisFatores");
     }
@@ -206,6 +209,77 @@ public class AuthController : ControllerBase
         }
 
         return Ok(GerarAuthResponse(usuario, roles));
+    }
+
+    [AllowAnonymous]
+    [HttpPost("redefinir-senha")]
+    public async Task<IActionResult> RedefinirSenha(RedefinirSenhaRequest request)
+    {
+        if (request.NovaSenha != request.ConfirmarNovaSenha)
+        {
+            return BadRequest(new { mensagem = "Nova senha e confirmação não conferem." });
+        }
+
+        var email = request.Email.Trim();
+        var usuario = await _userManager.FindByEmailAsync(email);
+
+        if (usuario is null || !usuario.Ativo)
+        {
+            return BadRequest(new { mensagem = "Solicitação de redefinição inválida." });
+        }
+
+        var result = await _userManager.ResetPasswordAsync(usuario, request.Token, request.NovaSenha);
+
+        if (!result.Succeeded)
+        {
+            return BadRequest(new
+            {
+                mensagem = "Não foi possível redefinir a senha.",
+                erros = result.Errors.Select(error => error.Description)
+            });
+        }
+
+        usuario.DeveTrocarSenha = false;
+        await _userManager.UpdateAsync(usuario);
+        await _auditoriaService.RegistrarAsync(
+            "REDEFINICAO_SENHA_CONCLUIDA",
+            "ApplicationUser",
+            usuario.Id,
+            $"Funcionário {usuario.IdentificadorFuncionario} concluiu redefinição de senha.");
+
+        return Ok(new { mensagem = "Senha redefinida com sucesso." });
+    }
+
+    [AllowAnonymous]
+    [HttpPost("solicitar-redefinicao-senha")]
+    public async Task<IActionResult> SolicitarRedefinicaoSenha(SolicitarRedefinicaoSenhaRequest request)
+    {
+        const string mensagemGenerica = "Se os dados estiverem corretos, enviaremos as instruções para o e-mail cadastrado.";
+        var identificador = request.IdentificadorFuncionario.Trim();
+
+        if (string.IsNullOrWhiteSpace(identificador))
+        {
+            return Ok(new { mensagem = mensagemGenerica });
+        }
+
+        var identificadorNormalizado = identificador.ToUpperInvariant();
+        var usuario = await _dbContext.Users.SingleOrDefaultAsync(item =>
+            item.NormalizedUserName == identificadorNormalizado
+            || item.IdentificadorFuncionario.ToUpper() == identificadorNormalizado);
+
+        if (usuario is null || !usuario.Ativo || string.IsNullOrWhiteSpace(usuario.Email))
+        {
+            return Ok(new { mensagem = mensagemGenerica });
+        }
+
+        var resultadoEmail = await _redefinicaoSenhaEmailService.EnviarAsync(usuario);
+        await _auditoriaService.RegistrarAsync(
+            "REDEFINICAO_SENHA_AUTO_SOLICITADA",
+            "ApplicationUser",
+            usuario.Id,
+            $"Solicitação pública de redefinição de senha para {usuario.IdentificadorFuncionario}. Status do e-mail: {resultadoEmail.StatusEmail ?? "Não informado"}.");
+
+        return Ok(new { mensagem = mensagemGenerica });
     }
 
     [AllowAnonymous]

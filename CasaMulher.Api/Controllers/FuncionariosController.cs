@@ -18,21 +18,21 @@ public class FuncionariosController : ControllerBase
     private readonly AppDbContext _dbContext;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly RoleManager<IdentityRole> _roleManager;
-    private readonly ISenhaTemporariaService _senhaTemporariaService;
     private readonly IAuditoriaService _auditoriaService;
+    private readonly IRedefinicaoSenhaEmailService _redefinicaoSenhaEmailService;
 
     public FuncionariosController(
         AppDbContext dbContext,
         UserManager<ApplicationUser> userManager,
         RoleManager<IdentityRole> roleManager,
-        ISenhaTemporariaService senhaTemporariaService,
-        IAuditoriaService auditoriaService)
+        IAuditoriaService auditoriaService,
+        IRedefinicaoSenhaEmailService redefinicaoSenhaEmailService)
     {
         _dbContext = dbContext;
         _userManager = userManager;
         _roleManager = roleManager;
-        _senhaTemporariaService = senhaTemporariaService;
         _auditoriaService = auditoriaService;
+        _redefinicaoSenhaEmailService = redefinicaoSenhaEmailService;
     }
 
     [HttpGet]
@@ -147,6 +147,17 @@ public class FuncionariosController : ControllerBase
     [HttpPost("{id}/resetar-senha")]
     public async Task<ActionResult<ResetarSenhaFuncionarioResponse>> ResetarSenha(string id)
     {
+        return await EnviarRedefinicaoSenhaPorEmail(id);
+    }
+
+    [HttpPost("{id}/enviar-redefinicao-senha")]
+    public async Task<ActionResult<ResetarSenhaFuncionarioResponse>> EnviarRedefinicaoSenha(string id)
+    {
+        return await EnviarRedefinicaoSenhaPorEmail(id);
+    }
+
+    private async Task<ActionResult<ResetarSenhaFuncionarioResponse>> EnviarRedefinicaoSenhaPorEmail(string id)
+    {
         var funcionario = await _userManager.FindByIdAsync(id);
 
         if (funcionario is null)
@@ -154,32 +165,21 @@ public class FuncionariosController : ControllerBase
             return NotFound(new { mensagem = "Funcionário não encontrado." });
         }
 
-        var senhaTemporaria = _senhaTemporariaService.Gerar();
-        var token = await _userManager.GeneratePasswordResetTokenAsync(funcionario);
-        var result = await _userManager.ResetPasswordAsync(funcionario, token, senhaTemporaria);
-
-        if (!result.Succeeded)
-        {
-            return BadRequest(new
-            {
-                mensagem = "Não foi possível redefinir a senha.",
-                erros = result.Errors.Select(error => error.Description)
-            });
-        }
-
-        funcionario.DeveTrocarSenha = true;
-        await _userManager.UpdateAsync(funcionario);
+        var resultadoEmail = await _redefinicaoSenhaEmailService.EnviarAsync(funcionario);
         await _auditoriaService.RegistrarAsync(
-            "SENHA_RESETADA",
+            "REDEFINICAO_SENHA_SOLICITADA",
             "ApplicationUser",
             funcionario.Id,
-            $"Redefiniu a senha do funcionário {funcionario.IdentificadorFuncionario} ({funcionario.Email}).");
+            $"Solicitou redefinição de senha para {funcionario.IdentificadorFuncionario} ({funcionario.Email}). Status do e-mail: {resultadoEmail.StatusEmail ?? "Não informado"}.");
 
         return Ok(new ResetarSenhaFuncionarioResponse
         {
-            Mensagem = "Senha temporária gerada com sucesso.",
-            SenhaTemporaria = senhaTemporaria,
-            DeveTrocarSenha = true
+            Mensagem = resultadoEmail.EmailEnviado
+                ? "Link de redefinição enviado para o e-mail do funcionário."
+                : resultadoEmail.AvisoEmail ?? "Não foi possível enviar o link de redefinição de senha.",
+            EmailEnviado = resultadoEmail.EmailEnviado,
+            StatusEmail = resultadoEmail.StatusEmail,
+            AvisoEmail = resultadoEmail.AvisoEmail
         });
     }
 

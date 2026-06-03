@@ -500,6 +500,11 @@ th {
     background: #fde2df;
 }
 
+.status-naoconfigurado {
+    color: #6a4a00;
+    background: #fff2bf;
+}
+
 .btn-link-danger {
     padding: 0;
     border: 0;
