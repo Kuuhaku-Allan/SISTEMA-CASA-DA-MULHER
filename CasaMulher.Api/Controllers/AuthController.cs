@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
@@ -29,6 +30,7 @@ public class AuthController : ControllerBase
     private readonly IConviteCodigoService _codigoService;
     private readonly IAuditoriaService _auditoriaService;
     private readonly IRedefinicaoSenhaEmailService _redefinicaoSenhaEmailService;
+    private readonly IRedefinicaoSenhaThrottleService _redefinicaoSenhaThrottleService;
     private readonly IConfiguration _configuration;
     private readonly IDataProtector _loginDoisFatoresProtector;
 
@@ -39,6 +41,7 @@ public class AuthController : ControllerBase
         IConviteCodigoService codigoService,
         IAuditoriaService auditoriaService,
         IRedefinicaoSenhaEmailService redefinicaoSenhaEmailService,
+        IRedefinicaoSenhaThrottleService redefinicaoSenhaThrottleService,
         IConfiguration configuration,
         IDataProtectionProvider dataProtectionProvider)
     {
@@ -48,16 +51,19 @@ public class AuthController : ControllerBase
         _codigoService = codigoService;
         _auditoriaService = auditoriaService;
         _redefinicaoSenhaEmailService = redefinicaoSenhaEmailService;
+        _redefinicaoSenhaThrottleService = redefinicaoSenhaThrottleService;
         _configuration = configuration;
         _loginDoisFatoresProtector = dataProtectionProvider.CreateProtector("CasaMulher.LoginDoisFatores");
     }
 
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.ConvitePublico)]
     [HttpGet("convite-publico")]
     public async Task<ActionResult<ConvitePublicoResponse>> ObterConvitePublico([FromQuery] string email, [FromQuery] string codigo)
     {
         if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(codigo))
         {
+            await RegistrarConvitePublicoInvalidoAsync("Consulta pública de convite sem dados obrigatórios.");
             return BadRequest(new { mensagem = "Informe o e-mail e o código do convite." });
         }
 
@@ -66,6 +72,7 @@ public class AuthController : ControllerBase
 
         if (erroConvite is not null)
         {
+            await RegistrarConvitePublicoInvalidoAsync("Consulta pública de convite inválida. Nenhum código de convite foi registrado.");
             return erroConvite;
         }
 
@@ -179,6 +186,7 @@ public class AuthController : ControllerBase
     }
 
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.Login)]
     [HttpPost("login")]
     public async Task<ActionResult<AuthResponse>> Login(LoginRequest request)
     {
@@ -188,17 +196,64 @@ public class AuthController : ControllerBase
         {
             if (usuario is not null && !usuario.Ativo)
             {
+                await _auditoriaService.RegistrarAsync(
+                    "LOGIN_BLOQUEADO",
+                    "ApplicationUser",
+                    usuario.Id,
+                    $"Tentativa de login bloqueada para usuário inativo {usuario.IdentificadorFuncionario}.");
+
                 return Unauthorized(new { mensagem = "Usuário desativado. Procure a coordenação." });
             }
 
+            await _auditoriaService.RegistrarAsync(
+                "LOGIN_FALHA",
+                "ApplicationUser",
+                null,
+                "Tentativa de login falhou para identificador não encontrado ou inválido.");
+
             return Unauthorized(new { mensagem = "Identificador ou senha inválidos." });
+        }
+
+        if (await _userManager.IsLockedOutAsync(usuario))
+        {
+            await _auditoriaService.RegistrarAsync(
+                "LOGIN_BLOQUEADO",
+                "ApplicationUser",
+                usuario.Id,
+                $"Tentativa de login bloqueada temporariamente para {usuario.IdentificadorFuncionario}.");
+
+            return Unauthorized(new { mensagem = "Acesso temporariamente bloqueado. Aguarde alguns minutos e tente novamente." });
         }
 
         var senhaValida = await _userManager.CheckPasswordAsync(usuario, request.Senha);
 
         if (!senhaValida)
         {
+            await _userManager.AccessFailedAsync(usuario);
+
+            if (await _userManager.IsLockedOutAsync(usuario))
+            {
+                await _auditoriaService.RegistrarAsync(
+                    "LOGIN_BLOQUEADO",
+                    "ApplicationUser",
+                    usuario.Id,
+                    $"Login bloqueado temporariamente após tentativas inválidas para {usuario.IdentificadorFuncionario}.");
+
+                return Unauthorized(new { mensagem = "Acesso temporariamente bloqueado. Aguarde alguns minutos e tente novamente." });
+            }
+
+            await _auditoriaService.RegistrarAsync(
+                "LOGIN_FALHA",
+                "ApplicationUser",
+                usuario.Id,
+                $"Tentativa de login falhou para {usuario.IdentificadorFuncionario}.");
+
             return Unauthorized(new { mensagem = "Identificador ou senha inválidos." });
+        }
+
+        if (await _userManager.GetAccessFailedCountAsync(usuario) > 0)
+        {
+            await _userManager.ResetAccessFailedCountAsync(usuario);
         }
 
         var roles = await _userManager.GetRolesAsync(usuario);
@@ -212,11 +267,18 @@ public class AuthController : ControllerBase
     }
 
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.RedefinirSenha)]
     [HttpPost("redefinir-senha")]
     public async Task<IActionResult> RedefinirSenha(RedefinirSenhaRequest request)
     {
         if (request.NovaSenha != request.ConfirmarNovaSenha)
         {
+            await _auditoriaService.RegistrarAsync(
+                "REDEFINICAO_SENHA_FALHA",
+                "ApplicationUser",
+                null,
+                "Tentativa de redefinição de senha falhou por confirmação divergente.");
+
             return BadRequest(new { mensagem = "Nova senha e confirmação não conferem." });
         }
 
@@ -225,6 +287,12 @@ public class AuthController : ControllerBase
 
         if (usuario is null || !usuario.Ativo)
         {
+            await _auditoriaService.RegistrarAsync(
+                "REDEFINICAO_SENHA_FALHA",
+                "ApplicationUser",
+                usuario?.Id,
+                "Tentativa de redefinição de senha inválida para e-mail informado.");
+
             return BadRequest(new { mensagem = "Solicitação de redefinição inválida." });
         }
 
@@ -232,6 +300,12 @@ public class AuthController : ControllerBase
 
         if (!result.Succeeded)
         {
+            await _auditoriaService.RegistrarAsync(
+                "REDEFINICAO_SENHA_FALHA",
+                "ApplicationUser",
+                usuario.Id,
+                $"Tentativa de redefinição de senha falhou para {usuario.IdentificadorFuncionario}.");
+
             return BadRequest(new
             {
                 mensagem = "Não foi possível redefinir a senha.",
@@ -251,6 +325,7 @@ public class AuthController : ControllerBase
     }
 
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.SolicitarRedefinicaoSenha)]
     [HttpPost("solicitar-redefinicao-senha")]
     public async Task<IActionResult> SolicitarRedefinicaoSenha(SolicitarRedefinicaoSenhaRequest request)
     {
@@ -272,6 +347,21 @@ public class AuthController : ControllerBase
             return Ok(new { mensagem = mensagemGenerica });
         }
 
+        if (!_redefinicaoSenhaThrottleService.PermitirSolicitacao(
+            usuario.Id,
+            ObterIpOrigem(),
+            out var motivoBloqueio,
+            out var bloqueadoAte))
+        {
+            await _auditoriaService.RegistrarAsync(
+                "REDEFINICAO_SENHA_ABUSO_BLOQUEADO",
+                "ApplicationUser",
+                usuario.Id,
+                $"Solicitação pública de redefinição bloqueada para {usuario.IdentificadorFuncionario}. Motivo: {motivoBloqueio}. Bloqueado até {bloqueadoAte:O}.");
+
+            return Ok(new { mensagem = mensagemGenerica });
+        }
+
         var resultadoEmail = await _redefinicaoSenhaEmailService.EnviarAsync(usuario);
         await _auditoriaService.RegistrarAsync(
             "REDEFINICAO_SENHA_AUTO_SOLICITADA",
@@ -283,6 +373,7 @@ public class AuthController : ControllerBase
     }
 
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.LoginDoisFatores)]
     [HttpPost("login-2fa")]
     public async Task<ActionResult<AuthResponse>> LoginDoisFatores(LoginDoisFatoresRequest request)
     {
@@ -290,7 +381,24 @@ public class AuthController : ControllerBase
 
         if (usuario is null || !usuario.Ativo || !usuario.TwoFactorEnabled)
         {
+            await _auditoriaService.RegistrarAsync(
+                "LOGIN_2FA_FALHA",
+                "ApplicationUser",
+                usuario?.Id,
+                "Tentativa de login com código de segurança falhou por login temporário inválido, expirado ou indisponível.");
+
             return Unauthorized(new { mensagem = "Login temporário inválido ou expirado." });
+        }
+
+        if (await _userManager.IsLockedOutAsync(usuario))
+        {
+            await _auditoriaService.RegistrarAsync(
+                "LOGIN_BLOQUEADO",
+                "ApplicationUser",
+                usuario.Id,
+                $"Tentativa de 2FA bloqueada temporariamente para {usuario.IdentificadorFuncionario}.");
+
+            return Unauthorized(new { mensagem = "Acesso temporariamente bloqueado. Aguarde alguns minutos e tente novamente." });
         }
 
         var codigo = NormalizarCodigoDoisFatores(request.Codigo);
@@ -301,7 +409,31 @@ public class AuthController : ControllerBase
 
         if (!valido)
         {
+            await _userManager.AccessFailedAsync(usuario);
+
+            if (await _userManager.IsLockedOutAsync(usuario))
+            {
+                await _auditoriaService.RegistrarAsync(
+                    "LOGIN_BLOQUEADO",
+                    "ApplicationUser",
+                    usuario.Id,
+                    $"Login bloqueado temporariamente após falhas de 2FA para {usuario.IdentificadorFuncionario}.");
+
+                return Unauthorized(new { mensagem = "Acesso temporariamente bloqueado. Aguarde alguns minutos e tente novamente." });
+            }
+
+            await _auditoriaService.RegistrarAsync(
+                "LOGIN_2FA_FALHA",
+                "ApplicationUser",
+                usuario.Id,
+                $"Tentativa de login com código de segurança falhou para {usuario.IdentificadorFuncionario}.");
+
             return Unauthorized(new { mensagem = "Código de segurança inválido." });
+        }
+
+        if (await _userManager.GetAccessFailedCountAsync(usuario) > 0)
+        {
+            await _userManager.ResetAccessFailedCountAsync(usuario);
         }
 
         var roles = await _userManager.GetRolesAsync(usuario);
@@ -451,6 +583,20 @@ public class AuthController : ControllerBase
             $"Funcionário {usuario.IdentificadorFuncionario} concluiu a troca obrigatória de senha.");
 
         return Ok(new { mensagem = "Senha alterada com sucesso." });
+    }
+
+    private Task RegistrarConvitePublicoInvalidoAsync(string descricao)
+    {
+        return _auditoriaService.RegistrarAsync(
+            "CONVITE_PUBLICO_INVALIDO",
+            "FuncionarioConvite",
+            null,
+            descricao);
+    }
+
+    private string ObterIpOrigem()
+    {
+        return HttpContext.Connection.RemoteIpAddress?.ToString() ?? "ip-desconhecido";
     }
 
     private async Task<ApplicationUser?> EncontrarUsuarioParaLogin(LoginRequest request)

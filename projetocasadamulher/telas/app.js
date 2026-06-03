@@ -97,13 +97,19 @@ function formatAcaoAuditoria(acao) {
     const acoes = {
         CONVITE_CRIADO: "Convite criado",
         CONVITE_CANCELADO: "Convite cancelado",
+        CONVITE_PUBLICO_INVALIDO: "Convite público inválido",
         FUNCIONARIO_DESATIVADO: "Acesso desativado",
         FUNCIONARIO_REATIVADO: "Acesso reativado",
+        LOGIN_FALHA: "Falha de login",
+        LOGIN_BLOQUEADO: "Login bloqueado",
+        LOGIN_2FA_FALHA: "Falha no código de segurança",
         PERFIL_ALTERADO: "Perfil alterado",
         SENHA_RESETADA: "Senha redefinida",
         REDEFINICAO_SENHA_SOLICITADA: "Redefinição de senha solicitada",
         REDEFINICAO_SENHA_AUTO_SOLICITADA: "Redefinição de senha solicitada",
+        REDEFINICAO_SENHA_ABUSO_BLOQUEADO: "Redefinição bloqueada",
         REDEFINICAO_SENHA_CONCLUIDA: "Redefinição de senha concluída",
+        REDEFINICAO_SENHA_FALHA: "Falha na redefinição",
         DOIS_FATORES_RESETADO: "Autenticador redefinido",
         SENHA_TROCADA: "Senha trocada"
     };

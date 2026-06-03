@@ -1,8 +1,10 @@
 using System.Text;
+using System.Threading.RateLimiting;
 using CasaMulher.Api.Data;
 using CasaMulher.Api.Models;
 using CasaMulher.Api.Security;
 using CasaMulher.Api.Services;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -117,6 +119,32 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy(PoliticasAcesso.AcessoRelatorios, policy =>
         policy.RequireRole(PerfisAcesso.Adm, PerfisAcesso.AssistenteSocial, PerfisAcesso.Juridico));
 });
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        context.HttpContext.Response.ContentType = "application/json; charset=utf-8";
+        await context.HttpContext.Response.WriteAsync(
+            "{\"mensagem\":\"Muitas tentativas. Aguarde alguns minutos e tente novamente.\"}",
+            cancellationToken);
+    };
+
+    options.AddPolicy(RateLimitPolicies.Login, context =>
+        CriarLimitadorPorIp(context, permitLimit: 5, TimeSpan.FromMinutes(1)));
+
+    options.AddPolicy(RateLimitPolicies.LoginDoisFatores, context =>
+        CriarLimitadorPorIp(context, permitLimit: 5, TimeSpan.FromMinutes(1)));
+
+    options.AddPolicy(RateLimitPolicies.ConvitePublico, context =>
+        CriarLimitadorPorIp(context, permitLimit: 10, TimeSpan.FromMinutes(1)));
+
+    options.AddPolicy(RateLimitPolicies.SolicitarRedefinicaoSenha, context =>
+        CriarLimitadorPorIp(context, permitLimit: 3, TimeSpan.FromMinutes(15)));
+
+    options.AddPolicy(RateLimitPolicies.RedefinirSenha, context =>
+        CriarLimitadorPorIp(context, permitLimit: 5, TimeSpan.FromMinutes(15)));
+});
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("FrontendLocal", policy =>
@@ -132,6 +160,7 @@ builder.Services.AddScoped<IConviteCodigoService, ConviteCodigoService>();
 builder.Services.AddScoped<IFuncionarioIdentificadorService, GeradorIdentificadorFuncionarioService>();
 builder.Services.AddScoped<IAuditoriaService, AuditoriaService>();
 builder.Services.AddScoped<IRedefinicaoSenhaEmailService, RedefinicaoSenhaEmailService>();
+builder.Services.AddSingleton<IRedefinicaoSenhaThrottleService, InMemoryRedefinicaoSenhaThrottleService>();
 
 var emailProvider = builder.Configuration.GetValue("Email:Provider", builder.Environment.IsDevelopment() ? "Fake" : "Smtp");
 
@@ -203,10 +232,27 @@ if (runDemoSeed)
 
 app.UseHttpsRedirection();
 
+app.UseRouting();
 app.UseCors("FrontendLocal");
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 
 app.Run();
+
+static RateLimitPartition<string> CriarLimitadorPorIp(HttpContext context, int permitLimit, TimeSpan window)
+{
+    var ip = context.Connection.RemoteIpAddress?.ToString() ?? "ip-desconhecido";
+
+    return RateLimitPartition.GetFixedWindowLimiter(
+        partitionKey: ip,
+        factory: _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = permitLimit,
+            Window = window,
+            QueueLimit = 0,
+            AutoReplenishment = true
+        });
+}
