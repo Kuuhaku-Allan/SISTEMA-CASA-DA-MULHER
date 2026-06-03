@@ -17,4 +17,12 @@ public class ApplicationUser : IdentityUser
     public bool DoisFatoresObrigatorio { get; set; }
 
     public DateTime CriadoEm { get; set; } = DateTime.UtcNow;
+
+    /// <summary>
+    /// Data da última reconfirmação de credenciais para login por passkey.
+    /// Nulo ou com mais de 7 dias exige nova reconfirmação (ID + senha + 2FA se ativo).
+    /// </summary>
+    public DateTime? PasskeyReconfirmadoEm { get; set; }
+
+    public ICollection<PasskeyCredential> PasskeyCredentials { get; set; } = new List<PasskeyCredential>();
 }

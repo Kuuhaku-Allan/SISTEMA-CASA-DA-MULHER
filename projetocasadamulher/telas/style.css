@@ -2,6 +2,16 @@
     box-sizing: border-box;
 }
 
+:root {
+    --color-accent: #18726b;
+    --color-accent-dark: #115c56;
+    --color-border: #e4e8ec;
+    --color-surface: #ffffff;
+    --color-text: #24313d;
+    --color-text-light: #5f6872;
+    --border-radius: 6px;
+}
+
 body {
     min-height: 100vh;
     margin: 0;
@@ -620,4 +630,12 @@ small,
 .btn-passkey-login:hover { background: #f8fafc; border-color: var(--color-accent); }
 .btn-passkey-login:active { transform: translateY(1px); }
 .btn-passkey-login:disabled { opacity: 0.7; cursor: not-allowed; }
+.btn-passkey-register {
+    margin-top: 0.25rem;
+    color: #ffffff;
+    background: var(--color-accent);
+}
+.btn-passkey-register:hover {
+    background: var(--color-accent-dark);
+}
 .text-center { text-align: center; }

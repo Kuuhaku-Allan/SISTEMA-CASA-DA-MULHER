@@ -7,4 +7,7 @@ public static class RateLimitPolicies
     public const string ConvitePublico = "rate-convite-publico";
     public const string SolicitarRedefinicaoSenha = "rate-solicitar-redefinicao-senha";
     public const string RedefinirSenha = "rate-redefinir-senha";
+    public const string PasskeyLoginIniciar = "rate-passkey-login-iniciar";
+    public const string PasskeyLoginConcluir = "rate-passkey-login-concluir";
+    public const string PasskeyReconfirmar = "rate-passkey-reconfirmar";
 }

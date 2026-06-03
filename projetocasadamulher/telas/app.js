@@ -1466,14 +1466,24 @@ function setupPasskeyLogin() {
             });
             const result = await resComplete.json();
             if (!resComplete.ok) {
-                if (result.reconfirmacaoId) {
-                    sessionStorage.setItem("reconfirmacao_id", result.reconfirmacaoId);
-                    window.location.href = "confirmar-passkey.html";
-                    return;
-                }
                 throw new Error(result.mensagem || "Falha no login");
             }
-            CasaMulherAuth.saveToken(result.token);
+
+            if (result.requerReconfirmacao || result.reconfirmacaoId) {
+                sessionStorage.setItem("reconfirmacao_id", result.reconfirmacaoId);
+                sessionStorage.setItem("reconfirmacao_motivo", result.motivoReconfirmacao || "prazo_7_dias");
+                if (result.identificadorFuncionario) {
+                    sessionStorage.setItem("reconfirmacao_identificador", result.identificadorFuncionario);
+                }
+                window.location.href = "confirmar-passkey.html";
+                return;
+            }
+
+            if (!result.token) {
+                throw new Error("Não foi possível concluir o login com chave de acesso.");
+            }
+
+            CasaMulherAuth.salvarSessao(result);
             window.location.href = "painel.html";
         } catch (err) {
             setMessage(msg, err.message, "error");
@@ -1537,6 +1547,22 @@ function setupPasskeyReconfirmacao() {
     const form = document.getElementById("form-reconfirmacao-passkey");
     const msg = document.getElementById("mensagem-reconfirmacao");
     if (!form) return;
+
+    const identificadorInput = document.getElementById("reconfirmar-identificador");
+    const subtitulo = document.getElementById("reconfirmacao-subtitulo");
+    const identificadorSalvo = sessionStorage.getItem("reconfirmacao_identificador");
+    const motivo = sessionStorage.getItem("reconfirmacao_motivo");
+
+    if (subtitulo) {
+        subtitulo.textContent = motivo === "primeiro_acesso"
+            ? "Como este é seu primeiro acesso por chave de acesso, precisamos confirmar sua identidade uma vez com ID e senha."
+            : "Para sua segurança, como faz mais de 7 dias desde o último login completo, precisamos confirmar sua identidade.";
+    }
+
+    if (identificadorInput && identificadorSalvo) {
+        identificadorInput.value = identificadorSalvo;
+    }
+
     form.addEventListener("submit", async (e) => {
         e.preventDefault();
         try {
@@ -1544,11 +1570,12 @@ function setupPasskeyReconfirmacao() {
             setMessage(msg, "Validando credenciais...", "");
             const reconfirmacaoId = sessionStorage.getItem("reconfirmacao_id");
             if (!reconfirmacaoId) throw new Error("ID de reconfirma\u00e7\u00e3o n\u00e3o encontrado.");
+            const identificadorFuncionario = document.getElementById("reconfirmar-identificador").value.trim();
             const senha = document.getElementById("reconfirmar-senha").value;
             const codigo2fa = document.getElementById("reconfirmar-2fa")?.value;
-            const payload = { reconfirmacaoId, senha };
-            if (codigo2fa) payload.codigo2fa = codigo2fa;
-            const res = await fetch(`${API_BASE_URL}/api/auth/passkey/login/reconfirmar`, {
+            const payload = { reconfirmacaoId, identificadorFuncionario, senha };
+            if (codigo2fa) payload.codigoDoAplicativo = codigo2fa;
+            const res = await fetch(`${API_BASE_URL}/api/auth/passkey/reconfirmar`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload)
@@ -1556,7 +1583,9 @@ function setupPasskeyReconfirmacao() {
             const result = await res.json();
             if (!res.ok) throw new Error(result.mensagem || "Falha na reconfirma\u00e7\u00e3o");
             sessionStorage.removeItem("reconfirmacao_id");
-            CasaMulherAuth.saveToken(result.token);
+            sessionStorage.removeItem("reconfirmacao_identificador");
+            sessionStorage.removeItem("reconfirmacao_motivo");
+            CasaMulherAuth.salvarSessao(result);
             window.location.href = "painel.html";
         } catch (err) {
             setMessage(msg, err.message, "error");

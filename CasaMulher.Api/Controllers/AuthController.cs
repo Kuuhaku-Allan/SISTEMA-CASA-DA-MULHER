@@ -2,11 +2,14 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using CasaMulher.Api.Data;
 using CasaMulher.Api.DTOs;
 using CasaMulher.Api.Models;
 using CasaMulher.Api.Security;
 using CasaMulher.Api.Services;
+using Fido2NetLib;
+using Fido2NetLib.Objects;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
@@ -23,6 +26,9 @@ public class AuthController : ControllerBase
 {
     private const string AuthenticatorIssuer = "Casa da Mulher";
     private static readonly TimeSpan LoginTemporarioValidade = TimeSpan.FromMinutes(5);
+    private static readonly TimeSpan PasskeyChallengeValidade = TimeSpan.FromMinutes(5);
+    private static readonly TimeSpan PasskeyReconfirmacaoValidade = TimeSpan.FromMinutes(5);
+    private static readonly TimeSpan PasskeyReconfirmacaoPrazo = TimeSpan.FromDays(7);
 
     private readonly AppDbContext _dbContext;
     private readonly UserManager<ApplicationUser> _userManager;
@@ -33,6 +39,7 @@ public class AuthController : ControllerBase
     private readonly IRedefinicaoSenhaThrottleService _redefinicaoSenhaThrottleService;
     private readonly IConfiguration _configuration;
     private readonly IDataProtector _loginDoisFatoresProtector;
+    private readonly IFido2 _fido2;
 
     public AuthController(
         AppDbContext dbContext,
@@ -43,7 +50,8 @@ public class AuthController : ControllerBase
         IRedefinicaoSenhaEmailService redefinicaoSenhaEmailService,
         IRedefinicaoSenhaThrottleService redefinicaoSenhaThrottleService,
         IConfiguration configuration,
-        IDataProtectionProvider dataProtectionProvider)
+        IDataProtectionProvider dataProtectionProvider,
+        IFido2 fido2)
     {
         _dbContext = dbContext;
         _userManager = userManager;
@@ -54,6 +62,7 @@ public class AuthController : ControllerBase
         _redefinicaoSenhaThrottleService = redefinicaoSenhaThrottleService;
         _configuration = configuration;
         _loginDoisFatoresProtector = dataProtectionProvider.CreateProtector("CasaMulher.LoginDoisFatores");
+        _fido2 = fido2;
     }
 
     [AllowAnonymous]
@@ -583,6 +592,363 @@ public class AuthController : ControllerBase
             $"Funcionário {usuario.IdentificadorFuncionario} concluiu a troca obrigatória de senha.");
 
         return Ok(new { mensagem = "Senha alterada com sucesso." });
+    }
+
+    // ── Passkey login — iniciar ────────────────────────────────────────────
+
+    [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.PasskeyLoginIniciar)]
+    [HttpPost("passkey/login/iniciar")]
+    public async Task<ActionResult<PasskeyLoginIniciarResponse>> PasskeyLoginIniciar()
+    {
+        // Busca todas as credenciais cadastradas (sem filtrar por usuário — login discoverable)
+        var todasCredenciais = await _dbContext.PasskeyCredentials
+            .Select(c => c.CredentialId)
+            .ToListAsync();
+
+        if (todasCredenciais.Count == 0)
+        {
+            return BadRequest(new
+            {
+                mensagem = "Nenhuma chave de acesso cadastrada. Entre com ID e senha e ative uma chave em Segurança."
+            });
+        }
+
+        var allowCredentials = todasCredenciais
+            .Select(id => new PublicKeyCredentialDescriptor(id))
+            .ToList();
+
+        var options = _fido2.GetAssertionOptions(
+            allowCredentials,
+            UserVerificationRequirement.Required);
+
+        var challengeId = Guid.NewGuid().ToString("N");
+        var optionsJson = options.ToJson();
+
+        _dbContext.PasskeyChallenges.Add(new PasskeyChallenge
+        {
+            ChallengeId = challengeId,
+            ChallengeBytes = options.Challenge,
+            Tipo = "Login",
+            OptionsJson = optionsJson,
+            UserId = null,
+            CriadoEm = DateTime.UtcNow,
+            ExpiracaoEm = DateTime.UtcNow.Add(PasskeyChallengeValidade)
+        });
+
+        await _dbContext.SaveChangesAsync();
+
+        return Ok(new PasskeyLoginIniciarResponse
+        {
+            ChallengeId = challengeId,
+            PublicKeyOptions = JsonNode.Parse(optionsJson)
+        });
+    }
+
+    // ── Passkey login — concluir ───────────────────────────────────────────
+
+    [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.PasskeyLoginConcluir)]
+    [HttpPost("passkey/login/concluir")]
+    public async Task<ActionResult<PasskeyLoginConcluirResponse>> PasskeyLoginConcluir(PasskeyLoginConcluirRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.ChallengeId))
+        {
+            return BadRequest(new { mensagem = "ChallengeId inválido." });
+        }
+
+        var challenge = await _dbContext.PasskeyChallenges
+            .SingleOrDefaultAsync(c => c.ChallengeId == request.ChallengeId && c.Tipo == "Login");
+
+        if (challenge is null || challenge.ExpiracaoEm < DateTime.UtcNow)
+        {
+            return BadRequest(new { mensagem = "Sessão de login expirada ou inválida. Tente novamente." });
+        }
+
+        AssertionOptions assertionOptions;
+
+        try
+        {
+            assertionOptions = AssertionOptions.FromJson(challenge.OptionsJson);
+        }
+        catch
+        {
+            return BadRequest(new { mensagem = "Não foi possível recuperar o contexto de login." });
+        }
+
+        if (request.Credential is null)
+        {
+            return BadRequest(new { mensagem = "Credencial não informada." });
+        }
+
+        AuthenticatorAssertionRawResponse assertionResponse;
+
+        try
+        {
+            var credJson = request.Credential.ToJsonString();
+            assertionResponse = JsonSerializer.Deserialize<AuthenticatorAssertionRawResponse>(credJson)
+                ?? throw new InvalidOperationException("Deserialização retornou null.");
+        }
+        catch
+        {
+            return BadRequest(new { mensagem = "Formato da credencial inválido." });
+        }
+
+        // Encontrar a credencial pelo rawId enviado pelo browser
+        var rawId = assertionResponse.RawId;
+        var credencial = await _dbContext.PasskeyCredentials
+            .Include(c => c.User)
+            .SingleOrDefaultAsync(c => c.CredentialId == rawId);
+
+        if (credencial is null || credencial.User is null)
+        {
+            await _auditoriaService.RegistrarAsync(
+                "PASSKEY_LOGIN_FALHA",
+                "PasskeyCredential",
+                null,
+                "Tentativa de login por passkey com credencial desconhecida.");
+
+            return Unauthorized(new { mensagem = "Chave de acesso não reconhecida." });
+        }
+
+        var usuario = credencial.User;
+
+        if (!usuario.Ativo)
+        {
+            await _auditoriaService.RegistrarAsync(
+                "PASSKEY_LOGIN_FALHA",
+                "PasskeyCredential",
+                usuario.Id,
+                $"Login por passkey bloqueado para usuário inativo {usuario.IdentificadorFuncionario}.");
+
+            return Unauthorized(new { mensagem = "Usuário desativado. Procure a coordenação." });
+        }
+
+        // Validar assinatura com Fido2NetLib
+        IsUserHandleOwnerOfCredentialIdAsync isUserHandleOwner = (args, _) =>
+            Task.FromResult(args.UserHandle.SequenceEqual(System.Text.Encoding.UTF8.GetBytes(usuario.Id)));
+
+        AssertionVerificationResult assertionResult;
+
+        try
+        {
+            assertionResult = await _fido2.MakeAssertionAsync(
+                assertionResponse,
+                assertionOptions,
+                credencial.PublicKey,
+                credencial.SignatureCounter,
+                isUserHandleOwner);
+        }
+        catch (Fido2VerificationException ex)
+        {
+            await _auditoriaService.RegistrarAsync(
+                "PASSKEY_LOGIN_FALHA",
+                "PasskeyCredential",
+                usuario.Id,
+                $"Falha na validação da assinatura passkey para {usuario.IdentificadorFuncionario}: {ex.Message}");
+
+            return Unauthorized(new { mensagem = "Falha na verificação da chave de acesso." });
+        }
+
+        // Atualizar contador e último uso
+        credencial.SignatureCounter = assertionResult.Counter;
+        credencial.UltimoUsoEm = DateTime.UtcNow;
+        _dbContext.PasskeyChallenges.Remove(challenge);
+        await _dbContext.SaveChangesAsync();
+
+        // Verificar regra dos 7 dias
+        var primeiroAcessoPorPasskey = usuario.PasskeyReconfirmadoEm is null;
+        var precisaReconfirmar = primeiroAcessoPorPasskey
+            || DateTime.UtcNow - usuario.PasskeyReconfirmadoEm!.Value > PasskeyReconfirmacaoPrazo;
+
+        if (precisaReconfirmar)
+        {
+            var motivoReconfirmacao = primeiroAcessoPorPasskey
+                ? "primeiro_acesso"
+                : "prazo_7_dias";
+            var descricaoMotivoReconfirmacao = primeiroAcessoPorPasskey
+                ? "primeiro acesso por passkey"
+                : "prazo de 7 dias expirado";
+            var reconfirmacaoId = Guid.NewGuid().ToString("N");
+
+            _dbContext.PasskeyReconfirmacoes.Add(new PasskeyReconfirmacao
+            {
+                ReconfirmacaoId = reconfirmacaoId,
+                UserId = usuario.Id,
+                CredentialId = credencial.CredentialId,
+                CriadoEm = DateTime.UtcNow,
+                ExpiracaoEm = DateTime.UtcNow.Add(PasskeyReconfirmacaoValidade)
+            });
+
+            await _dbContext.SaveChangesAsync();
+
+            await _auditoriaService.RegistrarAsync(
+                "PASSKEY_RECONFIRMACAO_SOLICITADA",
+                "PasskeyCredential",
+                usuario.Id,
+                $"Reconfirmação de credenciais solicitada para {usuario.IdentificadorFuncionario} ({descricaoMotivoReconfirmacao}).");
+
+            var roles = await _userManager.GetRolesAsync(usuario);
+
+            return Ok(new PasskeyLoginConcluirResponse
+            {
+                RequerReconfirmacao = true,
+                MotivoReconfirmacao = motivoReconfirmacao,
+                ReconfirmacaoId = reconfirmacaoId,
+                NomeCompleto = usuario.NomeCompleto,
+                Email = usuario.Email ?? string.Empty,
+                Perfil = roles.FirstOrDefault() ?? usuario.Perfil,
+                IdentificadorFuncionario = usuario.IdentificadorFuncionario,
+                DoisFatoresObrigatorio = usuario.DoisFatoresObrigatorio,
+                DoisFatoresAtivado = usuario.TwoFactorEnabled,
+                TemDoisFatores = usuario.TwoFactorEnabled,
+                DeveTrocarSenha = usuario.DeveTrocarSenha
+            });
+        }
+
+        var rolesLogin = await _userManager.GetRolesAsync(usuario);
+
+        await _auditoriaService.RegistrarAsync(
+            "PASSKEY_LOGIN_SUCESSO",
+            "PasskeyCredential",
+            usuario.Id,
+            $"Login por passkey concluído para {usuario.IdentificadorFuncionario}.");
+
+        return Ok(new PasskeyLoginConcluirResponse
+        {
+            Token = GerarJwt(usuario, rolesLogin),
+            NomeCompleto = usuario.NomeCompleto,
+            Email = usuario.Email ?? string.Empty,
+            Perfil = rolesLogin.FirstOrDefault() ?? usuario.Perfil,
+            IdentificadorFuncionario = usuario.IdentificadorFuncionario,
+            DoisFatoresObrigatorio = usuario.DoisFatoresObrigatorio,
+            DoisFatoresAtivado = usuario.TwoFactorEnabled,
+            TemDoisFatores = usuario.TwoFactorEnabled,
+            DeveTrocarSenha = usuario.DeveTrocarSenha
+        });
+    }
+
+    // ── Passkey — reconfirmação dos 7 dias ────────────────────────────────
+
+    [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.PasskeyReconfirmar)]
+    [HttpPost("passkey/reconfirmar")]
+    public async Task<ActionResult<PasskeyLoginConcluirResponse>> PasskeyReconfirmar(PasskeyReconfirmarRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.ReconfirmacaoId))
+        {
+            return BadRequest(new { mensagem = "Token de reconfirmação inválido." });
+        }
+
+        var reconfirmacao = await _dbContext.PasskeyReconfirmacoes
+            .SingleOrDefaultAsync(r => r.ReconfirmacaoId == request.ReconfirmacaoId);
+
+        if (reconfirmacao is null || reconfirmacao.ExpiracaoEm < DateTime.UtcNow)
+        {
+            return Unauthorized(new { mensagem = "Token de reconfirmação expirado ou inválido. Faça login por passkey novamente." });
+        }
+
+        // Verificar ID + senha
+        var requestComIdentificador = new LoginRequest
+        {
+            Identificador = request.IdentificadorFuncionario,
+            Email = string.Empty,
+            Senha = request.Senha
+        };
+
+        var usuario = await EncontrarUsuarioParaLogin(requestComIdentificador);
+
+        if (usuario is null || !usuario.Ativo || usuario.Id != reconfirmacao.UserId)
+        {
+            await _auditoriaService.RegistrarAsync(
+                "PASSKEY_RECONFIRMACAO_FALHA",
+                "PasskeyCredential",
+                reconfirmacao.UserId,
+                "Reconfirmação de passkey falhou: usuário não localizado ou inativo.");
+
+            return Unauthorized(new { mensagem = "Identificador ou senha inválidos." });
+        }
+
+        if (await _userManager.IsLockedOutAsync(usuario))
+        {
+            return Unauthorized(new { mensagem = "Acesso temporariamente bloqueado. Aguarde alguns minutos e tente novamente." });
+        }
+
+        var senhaValida = await _userManager.CheckPasswordAsync(usuario, request.Senha);
+
+        if (!senhaValida)
+        {
+            await _userManager.AccessFailedAsync(usuario);
+
+            await _auditoriaService.RegistrarAsync(
+                "PASSKEY_RECONFIRMACAO_FALHA",
+                "PasskeyCredential",
+                usuario.Id,
+                $"Reconfirmação de passkey falhou por senha incorreta para {usuario.IdentificadorFuncionario}.");
+
+            return Unauthorized(new { mensagem = "Identificador ou senha inválidos." });
+        }
+
+        // Se o usuário tem 2FA ativo, exigir código do aplicativo
+        if (usuario.TwoFactorEnabled)
+        {
+            if (string.IsNullOrWhiteSpace(request.CodigoDoAplicativo))
+            {
+                return BadRequest(new { mensagem = "Informe o código do aplicativo autenticador." });
+            }
+
+            var codigo = NormalizarCodigoDoisFatores(request.CodigoDoAplicativo);
+            var codigoValido = await _userManager.VerifyTwoFactorTokenAsync(
+                usuario,
+                _userManager.Options.Tokens.AuthenticatorTokenProvider,
+                codigo);
+
+            if (!codigoValido)
+            {
+                await _userManager.AccessFailedAsync(usuario);
+
+                await _auditoriaService.RegistrarAsync(
+                    "PASSKEY_RECONFIRMACAO_FALHA",
+                    "PasskeyCredential",
+                    usuario.Id,
+                    $"Reconfirmação de passkey falhou por código autenticador incorreto para {usuario.IdentificadorFuncionario}.");
+
+                return Unauthorized(new { mensagem = "Código de segurança inválido." });
+            }
+        }
+
+        if (await _userManager.GetAccessFailedCountAsync(usuario) > 0)
+        {
+            await _userManager.ResetAccessFailedCountAsync(usuario);
+        }
+
+        // Atualizar data de reconfirmação e remover token temporário
+        usuario.PasskeyReconfirmadoEm = DateTime.UtcNow;
+        await _userManager.UpdateAsync(usuario);
+
+        _dbContext.PasskeyReconfirmacoes.Remove(reconfirmacao);
+        await _dbContext.SaveChangesAsync();
+
+        var roles = await _userManager.GetRolesAsync(usuario);
+
+        await _auditoriaService.RegistrarAsync(
+            "PASSKEY_RECONFIRMADA",
+            "PasskeyCredential",
+            usuario.Id,
+            $"Credenciais reconfirmadas com sucesso para login por passkey de {usuario.IdentificadorFuncionario}.");
+
+        return Ok(new PasskeyLoginConcluirResponse
+        {
+            Token = GerarJwt(usuario, roles),
+            NomeCompleto = usuario.NomeCompleto,
+            Email = usuario.Email ?? string.Empty,
+            Perfil = roles.FirstOrDefault() ?? usuario.Perfil,
+            IdentificadorFuncionario = usuario.IdentificadorFuncionario,
+            DoisFatoresObrigatorio = usuario.DoisFatoresObrigatorio,
+            DoisFatoresAtivado = usuario.TwoFactorEnabled,
+            TemDoisFatores = usuario.TwoFactorEnabled,
+            DeveTrocarSenha = usuario.DeveTrocarSenha
+        });
     }
 
     private Task RegistrarConvitePublicoInvalidoAsync(string descricao)

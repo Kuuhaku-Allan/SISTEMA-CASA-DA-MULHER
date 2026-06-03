@@ -92,6 +92,15 @@
         salvarUsuario(resultado);
     }
 
+    function saveToken(tokenOuResultado) {
+        if (tokenOuResultado && typeof tokenOuResultado === "object") {
+            salvarSessao(tokenOuResultado);
+            return;
+        }
+
+        localStorage.setItem("token", tokenOuResultado || "");
+    }
+
     function salvarUsuario(usuario) {
         localStorage.setItem("perfil", usuario.perfil || "");
         localStorage.setItem("email", usuario.email || "");
@@ -254,6 +263,7 @@
         podeAcessar,
         protegerPagina,
         protegerPerfil,
+        saveToken,
         salvarSessao,
         salvarUsuario
     };

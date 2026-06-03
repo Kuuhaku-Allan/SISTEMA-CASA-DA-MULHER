@@ -16,6 +16,12 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
 
     public DbSet<EmailEvento> EmailEventos => Set<EmailEvento>();
 
+    public DbSet<PasskeyCredential> PasskeyCredentials => Set<PasskeyCredential>();
+
+    public DbSet<PasskeyChallenge> PasskeyChallenges => Set<PasskeyChallenge>();
+
+    public DbSet<PasskeyReconfirmacao> PasskeyReconfirmacoes => Set<PasskeyReconfirmacao>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -104,6 +110,67 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             entity.Property(evento => evento.Tipo).HasMaxLength(80).IsRequired();
             entity.Property(evento => evento.Status).HasMaxLength(40).IsRequired();
             entity.Property(evento => evento.Erro).HasMaxLength(500);
+        });
+
+        builder.Entity<PasskeyCredential>(entity =>
+        {
+            entity.ToTable("PasskeyCredentials");
+
+            entity.HasIndex(c => c.CredentialId).IsUnique();
+            entity.HasIndex(c => c.UserId);
+
+            entity.Property(c => c.UserId)
+                .HasMaxLength(80)
+                .IsRequired();
+
+            entity.Property(c => c.NomeDispositivo)
+                .HasMaxLength(120);
+
+            entity.Property(c => c.Transports)
+                .HasMaxLength(200);
+
+            entity.HasOne(c => c.User)
+                .WithMany(u => u.PasskeyCredentials)
+                .HasForeignKey(c => c.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<PasskeyChallenge>(entity =>
+        {
+            entity.ToTable("PasskeyChallenges");
+
+            entity.HasIndex(c => c.ChallengeId).IsUnique();
+            entity.HasIndex(c => c.ExpiracaoEm);
+
+            entity.Property(c => c.ChallengeId)
+                .HasMaxLength(80)
+                .IsRequired();
+
+            entity.Property(c => c.Tipo)
+                .HasMaxLength(20)
+                .IsRequired();
+
+            entity.Property(c => c.UserId)
+                .HasMaxLength(80);
+
+            entity.Property(c => c.OptionsJson)
+                .IsRequired();
+        });
+
+        builder.Entity<PasskeyReconfirmacao>(entity =>
+        {
+            entity.ToTable("PasskeyReconfirmacoes");
+
+            entity.HasIndex(r => r.ReconfirmacaoId).IsUnique();
+            entity.HasIndex(r => r.ExpiracaoEm);
+
+            entity.Property(r => r.ReconfirmacaoId)
+                .HasMaxLength(80)
+                .IsRequired();
+
+            entity.Property(r => r.UserId)
+                .HasMaxLength(80)
+                .IsRequired();
         });
     }
 }

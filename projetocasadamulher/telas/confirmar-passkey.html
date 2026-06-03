@@ -5,17 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Confirmar Acesso - Casa da Mulher</title>
     <link rel="stylesheet" href="style.css">
-    <script src="auth.js" defer></script>
-    <script src="app.js" defer></script>
+    <script src="auth.js?v=20260603-passkey-fix" defer></script>
+    <script src="app.js?v=20260603-passkey-fix" defer></script>
 </head>
 <body>
     <main class="auth-container">
         <section class="auth-box">
             <img src="IMAGENS/logo_oficial.png" alt="Logo Casa da Mulher" class="logo-login">
             <h1 class="auth-title">Confirmar acesso</h1>
-            <p class="auth-subtitle">Para sua seguran&ccedil;a, como faz mais de 7 dias desde o &uacute;ltimo login completo, precisamos confirmar sua identidade.</p>
+            <p id="reconfirmacao-subtitulo" class="auth-subtitle">Para sua seguran&ccedil;a, precisamos confirmar sua identidade.</p>
 
             <form id="form-reconfirmacao-passkey" class="auth-form" novalidate>
+                <div class="input-group">
+                    <label for="reconfirmar-identificador">ID do funcion&aacute;rio</label>
+                    <input type="text" id="reconfirmar-identificador" name="identificadorFuncionario" placeholder="CM-000001" autocomplete="username" required>
+                </div>
+
                 <div class="input-group">
                     <label for="reconfirmar-senha">Sua Senha</label>
                     <input type="password" id="reconfirmar-senha" name="senha" placeholder="********" required>

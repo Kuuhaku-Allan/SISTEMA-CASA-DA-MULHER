@@ -4,6 +4,7 @@ using CasaMulher.Api.Data;
 using CasaMulher.Api.Models;
 using CasaMulher.Api.Security;
 using CasaMulher.Api.Services;
+using Fido2NetLib;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -144,6 +145,15 @@ builder.Services.AddRateLimiter(options =>
 
     options.AddPolicy(RateLimitPolicies.RedefinirSenha, context =>
         CriarLimitadorPorIp(context, permitLimit: 5, TimeSpan.FromMinutes(15)));
+
+    options.AddPolicy(RateLimitPolicies.PasskeyLoginIniciar, context =>
+        CriarLimitadorPorIp(context, permitLimit: 10, TimeSpan.FromMinutes(1)));
+
+    options.AddPolicy(RateLimitPolicies.PasskeyLoginConcluir, context =>
+        CriarLimitadorPorIp(context, permitLimit: 10, TimeSpan.FromMinutes(1)));
+
+    options.AddPolicy(RateLimitPolicies.PasskeyReconfirmar, context =>
+        CriarLimitadorPorIp(context, permitLimit: 5, TimeSpan.FromMinutes(1)));
 });
 builder.Services.AddCors(options =>
 {
@@ -161,6 +171,25 @@ builder.Services.AddScoped<IFuncionarioIdentificadorService, GeradorIdentificado
 builder.Services.AddScoped<IAuditoriaService, AuditoriaService>();
 builder.Services.AddScoped<IRedefinicaoSenhaEmailService, RedefinicaoSenhaEmailService>();
 builder.Services.AddSingleton<IRedefinicaoSenhaThrottleService, InMemoryRedefinicaoSenhaThrottleService>();
+
+// WebAuthn / Passkey — Fido2 v3 é instanciado diretamente (sem extension method)
+var fido2Origin = builder.Environment.IsDevelopment()
+    ? "http://localhost:5500"
+    : builder.Configuration["Fido2:Origin"] ?? "http://localhost:5500";
+
+var fido2RpId = builder.Environment.IsDevelopment()
+    ? "localhost"
+    : builder.Configuration["Fido2:RpId"] ?? "localhost";
+
+var fido2Config = new Fido2Configuration
+{
+    ServerName = "Casa da Mulher",
+    ServerDomain = fido2RpId,
+    Origins = new HashSet<string> { fido2Origin },
+    TimestampDriftTolerance = 300000 // 5 min em ms
+};
+
+builder.Services.AddSingleton<IFido2>(new Fido2(fido2Config));
 
 var emailProvider = builder.Configuration.GetValue("Email:Provider", builder.Environment.IsDevelopment() ? "Fake" : "Smtp");
 
