@@ -4,7 +4,6 @@ namespace CasaMulher.Api.DTOs;
 
 public class RegisterFuncionarioRequest
 {
-    [Required]
     [MaxLength(160)]
     public string NomeCompleto { get; set; } = string.Empty;
 

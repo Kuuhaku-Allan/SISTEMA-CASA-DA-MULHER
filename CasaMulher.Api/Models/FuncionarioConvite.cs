@@ -10,6 +10,8 @@ public class FuncionarioConvite
 
     public string Perfil { get; set; } = string.Empty;
 
+    public string IdentificadorFuncionario { get; set; } = string.Empty;
+
     public string CodigoHash { get; set; } = string.Empty;
 
     public bool Usado { get; set; }

@@ -59,6 +59,12 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
                 .HasMaxLength(40)
                 .IsRequired();
 
+            entity.Property(convite => convite.IdentificadorFuncionario)
+                .HasMaxLength(20)
+                .IsRequired();
+
+            entity.HasIndex(convite => convite.IdentificadorFuncionario);
+
             entity.Property(convite => convite.CodigoHash)
                 .HasMaxLength(128)
                 .IsRequired();

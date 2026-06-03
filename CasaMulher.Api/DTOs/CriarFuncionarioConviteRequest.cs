@@ -14,6 +14,11 @@ public class CriarFuncionarioConviteRequest
     public string Email { get; set; } = string.Empty;
 
     [Required]
+    [EmailAddress]
+    [MaxLength(256)]
+    public string ConfirmarEmail { get; set; } = string.Empty;
+
+    [Required]
     [MaxLength(40)]
     public string Perfil { get; set; } = string.Empty;
 

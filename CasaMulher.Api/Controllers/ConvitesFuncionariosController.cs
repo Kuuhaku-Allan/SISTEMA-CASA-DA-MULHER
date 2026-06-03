@@ -19,6 +19,7 @@ public class ConvitesFuncionariosController : ControllerBase
     private readonly AppDbContext _dbContext;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IConviteCodigoService _codigoService;
+    private readonly IFuncionarioIdentificadorService _identificadorService;
     private readonly IAuditoriaService _auditoriaService;
     private readonly IEmailService _emailService;
     private readonly IConfiguration _configuration;
@@ -27,6 +28,7 @@ public class ConvitesFuncionariosController : ControllerBase
         AppDbContext dbContext,
         UserManager<ApplicationUser> userManager,
         IConviteCodigoService codigoService,
+        IFuncionarioIdentificadorService identificadorService,
         IAuditoriaService auditoriaService,
         IEmailService emailService,
         IConfiguration configuration)
@@ -34,6 +36,7 @@ public class ConvitesFuncionariosController : ControllerBase
         _dbContext = dbContext;
         _userManager = userManager;
         _codigoService = codigoService;
+        _identificadorService = identificadorService;
         _auditoriaService = auditoriaService;
         _emailService = emailService;
         _configuration = configuration;
@@ -66,8 +69,25 @@ public class ConvitesFuncionariosController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<CriarFuncionarioConviteResponse>> Criar(CriarFuncionarioConviteRequest request)
     {
+        var nomeCompleto = request.NomeCompleto.Trim();
         var email = request.Email.Trim();
+        var confirmarEmail = request.ConfirmarEmail.Trim();
         var perfil = request.Perfil.Trim().ToLowerInvariant();
+
+        if (string.IsNullOrWhiteSpace(nomeCompleto))
+        {
+            return BadRequest(new { mensagem = "Informe o nome completo do funcionario." });
+        }
+
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            return BadRequest(new { mensagem = "Informe o e-mail do funcionario." });
+        }
+
+        if (!string.Equals(email, confirmarEmail, StringComparison.OrdinalIgnoreCase))
+        {
+            return BadRequest(new { mensagem = "Os e-mails nao conferem." });
+        }
 
         if (!PerfisAcesso.EhValido(perfil))
         {
@@ -87,11 +107,13 @@ public class ConvitesFuncionariosController : ControllerBase
         }
 
         var codigoCadastro = await GerarCodigoUnico();
+        var identificadorFuncionario = await _identificadorService.GerarProximoAsync(perfil);
         var convite = new FuncionarioConvite
         {
-            NomeCompleto = request.NomeCompleto.Trim(),
+            NomeCompleto = nomeCompleto,
             Email = email,
             Perfil = perfil,
+            IdentificadorFuncionario = identificadorFuncionario,
             CodigoHash = _codigoService.GerarHash(codigoCadastro),
             ExpiraEm = DateTime.UtcNow.AddDays(request.DiasParaExpirar)
         };
@@ -112,17 +134,19 @@ public class ConvitesFuncionariosController : ControllerBase
             NomeCompleto = convite.NomeCompleto,
             Email = convite.Email,
             Perfil = convite.Perfil,
+            IdentificadorFuncionario = convite.IdentificadorFuncionario,
             CodigoCadastro = codigoCadastro,
             LinkCadastro = linkCadastro,
             ExpiraEm = convite.ExpiraEm,
             EmailEnviado = resultadoEmail.EmailEnviado,
             StatusEmail = resultadoEmail.StatusEmail,
-            AvisoEmail = resultadoEmail.AvisoEmail
+            AvisoEmail = resultadoEmail.AvisoEmail,
+            AvisoEmailAlias = ObterAvisoEmailAlias(convite.Email)
         };
 
         var descricaoAuditoria = request.EnviarEmail
-            ? $"Criou convite para {convite.Email} com perfil {convite.Perfil}. Envio de e-mail solicitado: {resultadoEmail.StatusEmail ?? "Nao informado"}."
-            : $"Criou convite para {convite.Email} com perfil {convite.Perfil}. Envio de e-mail nao solicitado.";
+            ? $"Criou convite para {convite.Email} com perfil {convite.Perfil} e ID {convite.IdentificadorFuncionario}. Envio de e-mail solicitado: {resultadoEmail.StatusEmail ?? "Nao informado"}."
+            : $"Criou convite para {convite.Email} com perfil {convite.Perfil} e ID {convite.IdentificadorFuncionario}. Envio de e-mail nao solicitado.";
 
         await _auditoriaService.RegistrarAsync(
             "CONVITE_CRIADO",
@@ -203,6 +227,7 @@ public class ConvitesFuncionariosController : ControllerBase
             NomeCompleto = convite.NomeCompleto,
             Email = convite.Email,
             Perfil = convite.Perfil,
+            IdentificadorFuncionario = convite.IdentificadorFuncionario,
             Status = ObterStatus(convite, agora),
             CriadoEm = convite.CriadoEm,
             ExpiraEm = convite.ExpiraEm,
@@ -247,7 +272,11 @@ public class ConvitesFuncionariosController : ControllerBase
         }
 
         const string assunto = "Convite de acesso - Sistema Casa da Mulher";
-        var corpoHtml = MontarCorpoEmailConvite(convite.NomeCompleto, linkCadastroAbsoluto, diasParaExpirar);
+        var corpoHtml = MontarCorpoEmailConvite(
+            convite.NomeCompleto,
+            convite.IdentificadorFuncionario,
+            linkCadastroAbsoluto,
+            diasParaExpirar);
 
         try
         {
@@ -291,17 +320,44 @@ public class ConvitesFuncionariosController : ControllerBase
         return $"{frontendBaseUrl.TrimEnd('/')}/{linkCadastroRelativo}";
     }
 
-    private static string MontarCorpoEmailConvite(string nomeCompleto, string linkCadastro, int diasParaExpirar)
+    private static string? ObterAvisoEmailAlias(string email)
+    {
+        var arrobaIndex = email.IndexOf('@');
+
+        if (arrobaIndex <= 0 || !email[..arrobaIndex].Contains('+', StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        return "Este e-mail contem alias com '+'. Confira se o destinatario deve receber exatamente neste endereco.";
+    }
+
+    private static string MontarCorpoEmailConvite(
+        string nomeCompleto,
+        string identificadorFuncionario,
+        string linkCadastro,
+        int diasParaExpirar)
     {
         var nome = WebUtility.HtmlEncode(nomeCompleto);
+        var identificador = WebUtility.HtmlEncode(identificadorFuncionario);
         var link = WebUtility.HtmlEncode(linkCadastro);
 
         return $"""
             <p>Ola, {nome}.</p>
-            <p>Voce foi convidada para criar seu acesso ao Sistema Casa da Mulher.</p>
-            <p><a href="{link}">Clique aqui para concluir seu cadastro</a>.</p>
-            <p>Este convite expira em {diasParaExpirar} dia(s).</p>
-            <p>Se voce nao esperava este convite, ignore esta mensagem.</p>
+            <p>Voce recebeu um convite para criar seu acesso ao Sistema Casa da Mulher de Itaquaquecetuba.</p>
+            <p>Seu ID de funcionario sera:</p>
+            <p><strong>{identificador}</strong></p>
+            <p>Para finalizar seu cadastro, clique no botao abaixo e crie sua senha de acesso:</p>
+            <p>
+                <a href="{link}" style="display:inline-block;padding:12px 18px;background:#18726b;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:700;">
+                    Finalizar meu cadastro
+                </a>
+            </p>
+            <p>Se o botao nao abrir, copie e cole este link no navegador:</p>
+            <p><a href="{link}">{link}</a></p>
+            <p>Este convite e individual, de uso unico e expira em {diasParaExpirar} dia(s).</p>
+            <p>Caso voce nao reconheca este convite, ignore esta mensagem ou entre em contato com a coordenacao da Casa da Mulher.</p>
+            <p>Atenciosamente,<br>Casa da Mulher de Itaquaquecetuba</p>
             """;
     }
 

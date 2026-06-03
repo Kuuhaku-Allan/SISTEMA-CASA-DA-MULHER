@@ -17,10 +17,15 @@ public class GeradorIdentificadorFuncionarioService : IFuncionarioIdentificadorS
     {
         var prefixo = ObterPrefixo(perfil);
         var prefixoBusca = $"{prefixo}-";
-        var identificadores = await _dbContext.Users
+        var identificadoresUsuarios = await _dbContext.Users
             .Where(usuario => usuario.IdentificadorFuncionario.StartsWith(prefixoBusca))
             .Select(usuario => usuario.IdentificadorFuncionario)
             .ToListAsync();
+        var identificadoresConvites = await _dbContext.FuncionariosConvites
+            .Where(convite => convite.IdentificadorFuncionario.StartsWith(prefixoBusca))
+            .Select(convite => convite.IdentificadorFuncionario)
+            .ToListAsync();
+        var identificadores = identificadoresUsuarios.Concat(identificadoresConvites);
 
         var proximoNumero = identificadores
             .Select(identificador => ExtrairNumero(prefixoBusca, identificador))
@@ -30,11 +35,13 @@ public class GeradorIdentificadorFuncionarioService : IFuncionarioIdentificadorS
         for (var tentativa = 0; tentativa < 100; tentativa++)
         {
             var identificador = $"{prefixo}-{proximoNumero + tentativa:000000}";
-            var existe = await _dbContext.Users.AnyAsync(usuario =>
+            var existeUsuario = await _dbContext.Users.AnyAsync(usuario =>
                 usuario.IdentificadorFuncionario == identificador
                 || usuario.NormalizedUserName == identificador);
+            var existeConvite = await _dbContext.FuncionariosConvites.AnyAsync(convite =>
+                convite.IdentificadorFuncionario == identificador);
 
-            if (!existe)
+            if (!existeUsuario && !existeConvite)
             {
                 return identificador;
             }

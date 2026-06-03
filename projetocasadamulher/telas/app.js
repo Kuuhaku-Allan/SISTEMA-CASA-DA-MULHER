@@ -199,6 +199,7 @@ async function copyText(text, messageElement) {
 function setupCadastro() {
     const form = document.getElementById("formCadastroFuncionario");
     const mensagem = document.getElementById("mensagemCadastro");
+    const avisoConvite = document.getElementById("avisoConvite");
 
     if (!form) {
         return;
@@ -209,22 +210,47 @@ function setupCadastro() {
     const codigoParam = params.get("codigo");
     const emailInput = document.getElementById("email");
     const codigoInput = document.getElementById("codigoCadastro");
-    const avisoConviteReconhecido = document.getElementById("avisoConviteReconhecido");
-    const ajudaConviteAutomatico = document.getElementById("ajudaConviteAutomatico");
+    const nomeInput = document.getElementById("nomeCompleto");
+    const identificadorInput = document.getElementById("identificadorFuncionario");
 
-    if (emailParam) {
-        emailInput.value = emailParam;
-        emailInput.readOnly = true;
+    if (!emailParam || !codigoParam) {
+        avisoConvite.textContent = "Abra o link do convite enviado pela coordenacao para criar sua senha de acesso.";
+        avisoConvite.className = "notice";
+        form.classList.add("hidden");
+        return;
     }
 
-    if (codigoParam) {
-        codigoInput.value = codigoParam;
-        codigoInput.readOnly = true;
-    }
+    emailInput.value = emailParam;
+    codigoInput.value = codigoParam;
 
-    if (emailParam && codigoParam) {
-        avisoConviteReconhecido?.classList.remove("hidden");
-        ajudaConviteAutomatico?.classList.remove("hidden");
+    async function carregarConvite() {
+        avisoConvite.textContent = "Verificando convite...";
+        avisoConvite.className = "notice";
+        form.classList.add("hidden");
+
+        try {
+            const url = `${API_BASE_URL}/api/auth/convite-publico?email=${encodeURIComponent(emailParam)}&codigo=${encodeURIComponent(codigoParam)}`;
+            const response = await fetch(url);
+
+            if (!response.ok) {
+                avisoConvite.textContent = await readApiMessage(response);
+                avisoConvite.className = "notice notice-error";
+                return;
+            }
+
+            const convite = await response.json();
+            nomeInput.value = convite.nomeCompleto || "";
+            emailInput.value = convite.email || emailParam;
+            identificadorInput.value = convite.identificadorFuncionario || "";
+            codigoInput.value = codigoParam;
+
+            avisoConvite.textContent = "Convite reconhecido. Confira seus dados e crie sua senha de acesso.";
+            avisoConvite.className = "notice notice-success";
+            form.classList.remove("hidden");
+        } catch {
+            avisoConvite.textContent = "Nao foi possivel conectar a API para validar o convite.";
+            avisoConvite.className = "notice notice-error";
+        }
     }
 
     form.addEventListener("submit", async function (event) {
@@ -238,7 +264,6 @@ function setupCadastro() {
         disableSubmit(form, true);
 
         const dados = {
-            nomeCompleto: document.getElementById("nomeCompleto").value.trim(),
             email: document.getElementById("email").value.trim(),
             senha: document.getElementById("senha").value,
             confirmarSenha: document.getElementById("confirmarSenha").value,
@@ -281,6 +306,8 @@ function setupCadastro() {
             disableSubmit(form, false);
         }
     });
+
+    carregarConvite();
 }
 
 function setupLogin() {
@@ -468,12 +495,33 @@ async function setupConvites() {
 
     const form = document.getElementById("formConvite");
     const resultPanel = document.getElementById("conviteGerado");
+    const conviteEmailInput = document.getElementById("conviteEmail");
+    const conviteConfirmarEmailInput = document.getElementById("conviteConfirmarEmail");
+    const avisoEmailAlias = document.getElementById("avisoEmailAlias");
     let ultimoCodigo = "";
     let ultimoLink = "";
 
+    function emailTemAlias(email) {
+        const partes = String(email || "").split("@");
+        return partes.length === 2 && partes[0].includes("+");
+    }
+
+    function atualizarAvisoEmailAlias() {
+        const email = conviteEmailInput.value.trim();
+
+        if (emailTemAlias(email)) {
+            avisoEmailAlias.classList.remove("hidden");
+            return;
+        }
+
+        avisoEmailAlias.classList.add("hidden");
+    }
+
+    conviteEmailInput.addEventListener("input", atualizarAvisoEmailAlias);
+
     async function carregarConvites() {
         const lista = document.getElementById("listaConvites");
-        lista.innerHTML = "<tr><td colspan=\"6\">Carregando...</td></tr>";
+        lista.innerHTML = "<tr><td colspan=\"7\">Carregando...</td></tr>";
 
         try {
             const response = await CasaMulherAuth.apiFetch("/api/convites-funcionarios", {
@@ -491,14 +539,14 @@ async function setupConvites() {
             }
 
             if (!response.ok) {
-                lista.innerHTML = "<tr><td colspan=\"6\">Nao foi possivel carregar os convites.</td></tr>";
+                lista.innerHTML = "<tr><td colspan=\"7\">Nao foi possivel carregar os convites.</td></tr>";
                 return;
             }
 
             const convites = await response.json();
 
             if (convites.length === 0) {
-                lista.innerHTML = "<tr><td colspan=\"6\">Nenhum convite cadastrado.</td></tr>";
+                lista.innerHTML = "<tr><td colspan=\"7\">Nenhum convite cadastrado.</td></tr>";
                 return;
             }
 
@@ -510,6 +558,7 @@ async function setupConvites() {
 
                 return `
                     <tr>
+                        <td>${escapeHtml(convite.identificadorFuncionario || "-")}</td>
                         <td>${escapeHtml(convite.nomeCompleto)}</td>
                         <td>${escapeHtml(convite.email)}</td>
                         <td>${escapeHtml(formatPerfil(convite.perfil))}</td>
@@ -520,7 +569,7 @@ async function setupConvites() {
                 `;
             }).join("");
         } catch {
-            lista.innerHTML = "<tr><td colspan=\"6\">Nao foi possivel conectar a API.</td></tr>";
+            lista.innerHTML = "<tr><td colspan=\"7\">Nao foi possivel conectar a API.</td></tr>";
         }
     }
 
@@ -531,12 +580,30 @@ async function setupConvites() {
             return;
         }
 
+        const email = conviteEmailInput.value.trim();
+        const confirmarEmail = conviteConfirmarEmailInput.value.trim();
+
+        if (email.toLowerCase() !== confirmarEmail.toLowerCase()) {
+            setMessage(mensagem, "Os e-mails nao conferem.", "error");
+            return;
+        }
+
+        if (emailTemAlias(email)) {
+            const confirmado = window.confirm(`Este e-mail contem alias com "+":\n\n${email}\n\nDeseja enviar exatamente para este endereco?`);
+
+            if (!confirmado) {
+                setMessage(mensagem, "Confira o e-mail antes de gerar o convite.", "info");
+                return;
+            }
+        }
+
         setMessage(mensagem, "Gerando convite...", "info");
         disableSubmit(form, true);
 
         const dados = {
             nomeCompleto: document.getElementById("conviteNome").value.trim(),
-            email: document.getElementById("conviteEmail").value.trim(),
+            email,
+            confirmarEmail,
             perfil: document.getElementById("convitePerfil").value,
             diasParaExpirar: Number(document.getElementById("conviteDias").value),
             enviarEmail: document.getElementById("conviteEnviarEmail").checked
@@ -559,14 +626,16 @@ async function setupConvites() {
             ultimoCodigo = resultado.codigoCadastro;
             ultimoLink = resultado.linkCadastro;
             const avisoLinkLocal = getAvisoLinkLocal(ultimoLink);
+            const avisoAlias = resultado.avisoEmailAlias ? ` ${resultado.avisoEmailAlias}` : "";
 
+            document.getElementById("identificadorGerado").textContent = resultado.identificadorFuncionario || "-";
             document.getElementById("codigoGerado").textContent = ultimoCodigo;
             document.getElementById("linkGerado").textContent = ultimoLink;
-            document.getElementById("emailConviteStatus").textContent = `${formatResultadoEmailConvite(resultado)}${avisoLinkLocal}`;
+            document.getElementById("emailConviteStatus").textContent = `${formatResultadoEmailConvite(resultado)}${avisoAlias}${avisoLinkLocal}`;
             resultPanel.classList.remove("hidden");
 
             const mensagemSucesso = resultado.statusEmail
-                ? `Convite criado com sucesso. ${formatResultadoEmailConvite(resultado)}${avisoLinkLocal}`
+                ? `Convite criado com sucesso. ${formatResultadoEmailConvite(resultado)}${avisoAlias}${avisoLinkLocal}`
                 : "Convite criado com sucesso. Envie o link para o funcionario criar a conta.";
             const tipoMensagem = resultado.statusEmail === "Falhou" || resultado.statusEmail === "NaoConfigurado"
                 ? "info"
@@ -576,6 +645,7 @@ async function setupConvites() {
             form.reset();
             document.getElementById("conviteDias").value = "7";
             document.getElementById("conviteEnviarEmail").checked = true;
+            avisoEmailAlias.classList.add("hidden");
             await carregarConvites();
         } catch {
             setMessage(mensagem, "Nao foi possivel conectar a API.", "error");

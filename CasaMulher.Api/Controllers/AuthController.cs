@@ -27,7 +27,6 @@ public class AuthController : ControllerBase
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly RoleManager<IdentityRole> _roleManager;
     private readonly IConviteCodigoService _codigoService;
-    private readonly IFuncionarioIdentificadorService _identificadorService;
     private readonly IAuditoriaService _auditoriaService;
     private readonly IConfiguration _configuration;
     private readonly IDataProtector _loginDoisFatoresProtector;
@@ -37,7 +36,6 @@ public class AuthController : ControllerBase
         UserManager<ApplicationUser> userManager,
         RoleManager<IdentityRole> roleManager,
         IConviteCodigoService codigoService,
-        IFuncionarioIdentificadorService identificadorService,
         IAuditoriaService auditoriaService,
         IConfiguration configuration,
         IDataProtectionProvider dataProtectionProvider)
@@ -46,10 +44,35 @@ public class AuthController : ControllerBase
         _userManager = userManager;
         _roleManager = roleManager;
         _codigoService = codigoService;
-        _identificadorService = identificadorService;
         _auditoriaService = auditoriaService;
         _configuration = configuration;
         _loginDoisFatoresProtector = dataProtectionProvider.CreateProtector("CasaMulher.LoginDoisFatores");
+    }
+
+    [AllowAnonymous]
+    [HttpGet("convite-publico")]
+    public async Task<ActionResult<ConvitePublicoResponse>> ObterConvitePublico([FromQuery] string email, [FromQuery] string codigo)
+    {
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(codigo))
+        {
+            return BadRequest(new { mensagem = "Informe o e-mail e o codigo do convite." });
+        }
+
+        var convite = await ObterConvitePorCodigoAsync(codigo);
+        var erroConvite = ValidarConviteParaFinalizacao(convite, email.Trim());
+
+        if (erroConvite is not null)
+        {
+            return erroConvite;
+        }
+
+        return Ok(new ConvitePublicoResponse
+        {
+            NomeCompleto = convite!.NomeCompleto,
+            Email = convite.Email,
+            IdentificadorFuncionario = convite.IdentificadorFuncionario,
+            ExpiraEm = convite.ExpiraEm
+        });
     }
 
     [AllowAnonymous]
@@ -62,38 +85,12 @@ public class AuthController : ControllerBase
         }
 
         var email = request.Email.Trim();
-        var codigoHash = _codigoService.GerarHash(request.CodigoCadastro);
-        var convite = await _dbContext.FuncionariosConvites
-            .SingleOrDefaultAsync(item => item.CodigoHash == codigoHash);
+        var convite = await ObterConvitePorCodigoAsync(request.CodigoCadastro);
+        var erroConvite = ValidarConviteParaFinalizacao(convite, email);
 
-        if (convite is null || !_codigoService.CodigoCorresponde(request.CodigoCadastro, convite.CodigoHash))
+        if (erroConvite is not null)
         {
-            return BadRequest(new { mensagem = "Codigo de cadastro invalido." });
-        }
-
-        if (convite.Cancelado)
-        {
-            return BadRequest(new { mensagem = "Codigo de cadastro cancelado." });
-        }
-
-        if (convite.Usado)
-        {
-            return BadRequest(new { mensagem = "Codigo de cadastro ja utilizado." });
-        }
-
-        if (convite.ExpiraEm < DateTime.UtcNow)
-        {
-            return BadRequest(new { mensagem = "Codigo de cadastro expirado." });
-        }
-
-        if (!string.Equals(convite.Email.Trim(), email, StringComparison.OrdinalIgnoreCase))
-        {
-            return BadRequest(new { mensagem = "E-mail informado nao corresponde ao convite." });
-        }
-
-        if (!PerfisAcesso.EhValido(convite.Perfil))
-        {
-            return BadRequest(new { mensagem = "Perfil do convite invalido." });
+            return erroConvite;
         }
 
         var usuarioExistente = await _userManager.FindByEmailAsync(email);
@@ -101,6 +98,17 @@ public class AuthController : ControllerBase
         if (usuarioExistente is not null)
         {
             return BadRequest(new { mensagem = "Ja existe usuario cadastrado com este e-mail." });
+        }
+
+        var identificadorFuncionario = convite!.IdentificadorFuncionario.Trim();
+        var identificadorNormalizado = identificadorFuncionario.ToUpperInvariant();
+        var identificadorEmUso = await _dbContext.Users.AnyAsync(usuario =>
+            usuario.IdentificadorFuncionario == identificadorFuncionario
+            || usuario.NormalizedUserName == identificadorNormalizado);
+
+        if (identificadorEmUso)
+        {
+            return BadRequest(new { mensagem = "O identificador deste convite ja esta em uso." });
         }
 
         await using var transaction = await _dbContext.Database.BeginTransactionAsync();
@@ -119,11 +127,10 @@ public class AuthController : ControllerBase
             }
         }
 
-        var identificadorFuncionario = await _identificadorService.GerarProximoAsync(convite.Perfil);
         var usuario = new ApplicationUser
         {
-            NomeCompleto = request.NomeCompleto.Trim(),
-            Email = email,
+            NomeCompleto = convite.NomeCompleto.Trim(),
+            Email = convite.Email.Trim(),
             UserName = identificadorFuncionario,
             IdentificadorFuncionario = identificadorFuncionario,
             Perfil = convite.Perfil,
@@ -396,6 +403,66 @@ public class AuthController : ControllerBase
         return await _dbContext.Users.SingleOrDefaultAsync(usuario =>
             usuario.NormalizedUserName == identificadorNormalizado
             || usuario.IdentificadorFuncionario.ToUpper() == identificadorNormalizado);
+    }
+
+    private async Task<FuncionarioConvite?> ObterConvitePorCodigoAsync(string codigoCadastro)
+    {
+        if (string.IsNullOrWhiteSpace(codigoCadastro))
+        {
+            return null;
+        }
+
+        var codigo = codigoCadastro.Trim();
+        var codigoHash = _codigoService.GerarHash(codigo);
+        var convite = await _dbContext.FuncionariosConvites
+            .SingleOrDefaultAsync(item => item.CodigoHash == codigoHash);
+
+        if (convite is null || !_codigoService.CodigoCorresponde(codigo, convite.CodigoHash))
+        {
+            return null;
+        }
+
+        return convite;
+    }
+
+    private ActionResult? ValidarConviteParaFinalizacao(FuncionarioConvite? convite, string email)
+    {
+        if (convite is null)
+        {
+            return BadRequest(new { mensagem = "Convite invalido." });
+        }
+
+        if (convite.Cancelado)
+        {
+            return BadRequest(new { mensagem = "Convite cancelado." });
+        }
+
+        if (convite.Usado)
+        {
+            return BadRequest(new { mensagem = "Convite ja utilizado." });
+        }
+
+        if (convite.ExpiraEm < DateTime.UtcNow)
+        {
+            return BadRequest(new { mensagem = "Convite expirado." });
+        }
+
+        if (!string.Equals(convite.Email.Trim(), email, StringComparison.OrdinalIgnoreCase))
+        {
+            return BadRequest(new { mensagem = "E-mail informado nao corresponde ao convite." });
+        }
+
+        if (!PerfisAcesso.EhValido(convite.Perfil))
+        {
+            return BadRequest(new { mensagem = "Perfil do convite invalido." });
+        }
+
+        if (string.IsNullOrWhiteSpace(convite.IdentificadorFuncionario))
+        {
+            return BadRequest(new { mensagem = "Convite sem identificador de funcionario reservado." });
+        }
+
+        return null;
     }
 
     private static bool PerfilExigeDoisFatores(string perfil)

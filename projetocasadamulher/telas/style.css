@@ -111,6 +111,11 @@ select {
     outline: 3px solid rgba(24, 114, 107, 0.15);
 }
 
+.input-group input[readonly] {
+    color: #40505f;
+    background: #f3f6f7;
+}
+
 .hint {
     margin: -2px 0 0;
     color: #5f6872;
@@ -159,6 +164,12 @@ select {
     border-color: #cce9d8;
     color: #176a3a;
     background: #effaf3;
+}
+
+.notice-error {
+    border-color: #f4c7c3;
+    color: #9b1c16;
+    background: #fff4f2;
 }
 
 .steps-list {

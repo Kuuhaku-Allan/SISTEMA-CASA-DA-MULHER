@@ -43,6 +43,12 @@
                     <input type="email" id="conviteEmail" name="email" required>
                 </div>
 
+                <div class="input-group">
+                    <label for="conviteConfirmarEmail">Confirmar e-mail</label>
+                    <input type="email" id="conviteConfirmarEmail" name="confirmarEmail" required>
+                    <p id="avisoEmailAlias" class="field-help hidden">Este e-mail contem um alias com "+". Confira se o envio deve ser feito exatamente para esse endereco.</p>
+                </div>
+
                 <div class="input-grid">
                     <div class="input-group">
                         <label for="convitePerfil">Perfil de acesso</label>
@@ -78,6 +84,10 @@
 
                 <dl class="profile-list compact-list">
                     <div>
+                        <dt>ID do funcion&aacute;rio</dt>
+                        <dd id="identificadorGerado">-</dd>
+                    </div>
+                    <div>
                         <dt>C&oacute;digo</dt>
                         <dd id="codigoGerado">-</dd>
                     </div>
@@ -107,6 +117,7 @@
                     <table>
                         <thead>
                             <tr>
+                                <th>ID</th>
                                 <th>Nome</th>
                                 <th>E-mail</th>
                                 <th>Perfil</th>

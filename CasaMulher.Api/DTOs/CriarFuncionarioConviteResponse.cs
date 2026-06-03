@@ -10,6 +10,8 @@ public class CriarFuncionarioConviteResponse
 
     public string Perfil { get; set; } = string.Empty;
 
+    public string IdentificadorFuncionario { get; set; } = string.Empty;
+
     public string CodigoCadastro { get; set; } = string.Empty;
 
     public string LinkCadastro { get; set; } = string.Empty;
@@ -21,4 +23,6 @@ public class CriarFuncionarioConviteResponse
     public string? StatusEmail { get; set; }
 
     public string? AvisoEmail { get; set; }
+
+    public string? AvisoEmailAlias { get; set; }
 }

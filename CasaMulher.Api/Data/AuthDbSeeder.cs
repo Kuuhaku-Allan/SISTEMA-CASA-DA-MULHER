@@ -24,6 +24,7 @@ public static class AuthDbSeeder
         var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
         var codigoService = scope.ServiceProvider.GetRequiredService<IConviteCodigoService>();
+        var identificadorService = scope.ServiceProvider.GetRequiredService<IFuncionarioIdentificadorService>();
 
         await dbContext.Database.MigrateAsync();
 
@@ -38,10 +39,17 @@ public static class AuthDbSeeder
         foreach (var conviteDemo in ConvitesDemo)
         {
             var codigoHash = codigoService.GerarHash(conviteDemo.Codigo);
-            var conviteExiste = await dbContext.FuncionariosConvites.AnyAsync(convite => convite.CodigoHash == codigoHash);
+            var conviteExiste = await dbContext.FuncionariosConvites
+                .SingleOrDefaultAsync(convite => convite.CodigoHash == codigoHash);
 
-            if (conviteExiste)
+            if (conviteExiste is not null)
             {
+                if (string.IsNullOrWhiteSpace(conviteExiste.IdentificadorFuncionario))
+                {
+                    conviteExiste.IdentificadorFuncionario = await identificadorService.GerarProximoAsync(conviteDemo.Perfil);
+                    await dbContext.SaveChangesAsync();
+                }
+
                 continue;
             }
 
@@ -50,12 +58,13 @@ public static class AuthDbSeeder
                 NomeCompleto = conviteDemo.NomeCompleto,
                 Email = conviteDemo.Email,
                 Perfil = conviteDemo.Perfil,
+                IdentificadorFuncionario = await identificadorService.GerarProximoAsync(conviteDemo.Perfil),
                 CodigoHash = codigoHash,
                 ExpiraEm = DateTime.UtcNow.AddMonths(6)
             });
-        }
 
-        await dbContext.SaveChangesAsync();
+            await dbContext.SaveChangesAsync();
+        }
     }
 
     private sealed record DemoConvite(string NomeCompleto, string Email, string Perfil, string Codigo);
