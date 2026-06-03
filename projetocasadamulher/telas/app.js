@@ -1,4 +1,4 @@
-const API_BASE_URL = window.API_BASE_URL || "http://localhost:5001";
+﻿const API_BASE_URL = window.API_BASE_URL || "http://localhost:5001";
 const PERFIS_LABEL = {
     adm: "Coordenação / ADM",
     recepcao: "Recepção",
@@ -111,7 +111,15 @@ function formatAcaoAuditoria(acao) {
         REDEFINICAO_SENHA_CONCLUIDA: "Redefinição de senha concluída",
         REDEFINICAO_SENHA_FALHA: "Falha na redefinição",
         DOIS_FATORES_RESETADO: "Autenticador redefinido",
-        SENHA_TROCADA: "Senha trocada"
+        SENHA_TROCADA: "Senha trocada",
+        PASSKEY_CRIADA: "Chave de acesso cadastrada",
+        PASSKEY_CRIADA_FALHA: "Falha ao cadastrar chave de acesso",
+        PASSKEY_REMOVIDA: "Chave de acesso removida",
+        PASSKEY_LOGIN_SUCESSO: "Login por chave de acesso",
+        PASSKEY_LOGIN_FALHA: "Falha no login por chave de acesso",
+        PASSKEY_RECONFIRMACAO_SOLICITADA: "Reconfirmacao de credenciais solicitada",
+        PASSKEY_RECONFIRMADA: "Credenciais reconfirmadas",
+        PASSKEY_RECONFIRMACAO_FALHA: "Falha na reconfirmacao de credenciais"
     };
 
     return acoes[acao] || acao || "-";
@@ -1387,3 +1395,218 @@ setupSolicitarRedefinicaoSenha();
 setupFuncionarios();
 setupAuditoria();
 setupEmails();
+// --- PASSKEY HELPERS ---
+// --- PASSKEY HELPERS ---
+function bufferToBase64url(buffer) {
+    const bytes = new Uint8Array(buffer);
+    let str = "";
+    for (let i = 0; i < bytes.byteLength; i++) {
+        str += String.fromCharCode(bytes[i]);
+    }
+    return btoa(str).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+}
+
+function base64urlToBuffer(base64url) {
+    const padding = "==".slice(0, (4 - base64url.length % 4) % 4);
+    const base64 = (base64url + padding).replace(/-/g, "+").replace(/_/g, "/");
+    const rawData = atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray.buffer;
+}
+
+function isPasskeySupported() {
+    return window.PublicKeyCredential !== undefined;
+}
+
+function setupPasskeyLogin() {
+    const container = document.getElementById("passkey-login-container");
+    const btn = document.getElementById("btn-passkey-login");
+    const msg = document.getElementById("mensagem-passkey-login");
+    
+    if (!container || !btn) return;
+    
+    if (!isPasskeySupported()) {
+        container.hidden = true;
+        return;
+    } else {
+        container.hidden = false;
+    }
+    
+    btn.addEventListener("click", async () => {
+        try {
+            btn.disabled = true;
+            setMessage(msg, "Iniciando login com chave de acesso...", "");
+            const resInit = await fetch(`${API_BASE_URL}/api/auth/passkey/login/iniciar`, { method: "POST" });
+            if (!resInit.ok) throw new Error(await readApiMessage(resInit));
+            const initData = await resInit.json();
+            const options = initData.publicKeyOptions;
+            options.challenge = base64urlToBuffer(options.challenge);
+            if (options.allowCredentials) {
+                options.allowCredentials.forEach(c => c.id = base64urlToBuffer(c.id));
+            }
+            const credential = await navigator.credentials.get({ publicKey: options });
+            const credData = {
+                id: credential.id,
+                rawId: bufferToBase64url(credential.rawId),
+                type: credential.type,
+                response: {
+                    authenticatorData: bufferToBase64url(credential.response.authenticatorData),
+                    clientDataJSON: bufferToBase64url(credential.response.clientDataJSON),
+                    signature: bufferToBase64url(credential.response.signature),
+                    userHandle: credential.response.userHandle ? bufferToBase64url(credential.response.userHandle) : null
+                }
+            };
+            const resComplete = await fetch(`${API_BASE_URL}/api/auth/passkey/login/concluir`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ challengeId: initData.challengeId, credential: credData })
+            });
+            const result = await resComplete.json();
+            if (!resComplete.ok) {
+                if (result.reconfirmacaoId) {
+                    sessionStorage.setItem("reconfirmacao_id", result.reconfirmacaoId);
+                    window.location.href = "confirmar-passkey.html";
+                    return;
+                }
+                throw new Error(result.mensagem || "Falha no login");
+            }
+            CasaMulherAuth.saveToken(result.token);
+            window.location.href = "painel.html";
+        } catch (err) {
+            setMessage(msg, err.message, "error");
+        } finally {
+            btn.disabled = false;
+        }
+    });
+}
+setupPasskeyLogin();
+
+function setupPasskeyRegistro() {
+    const btn = document.getElementById("btn-cadastrar-passkey");
+    const msg = document.getElementById("mensagem-passkey-cadastro");
+    if (!btn) return;
+    if (!isPasskeySupported()) {
+        btn.style.display = "none";
+        setMessage(msg, "O seu navegador ou dispositivo n\u00e3o suporta chaves de acesso (WebAuthn).", "error");
+        return;
+    }
+    btn.addEventListener("click", async () => {
+        try {
+            btn.disabled = true;
+            setMessage(msg, "Iniciando cadastro da chave de acesso...", "");
+            const resInit = await fetch(`${API_BASE_URL}/api/passkeys/registrar/iniciar`, { method: "POST", headers: getAuthHeaders(false) });
+            if (!resInit.ok) throw new Error(await readApiMessage(resInit));
+            const initData = await resInit.json();
+            const options = initData.publicKeyOptions;
+            options.challenge = base64urlToBuffer(options.challenge);
+            options.user.id = base64urlToBuffer(options.user.id);
+            if (options.excludeCredentials) {
+                options.excludeCredentials.forEach(c => c.id = base64urlToBuffer(c.id));
+            }
+            const credential = await navigator.credentials.create({ publicKey: options });
+            const credData = {
+                id: credential.id,
+                rawId: bufferToBase64url(credential.rawId),
+                type: credential.type,
+                response: {
+                    attestationObject: bufferToBase64url(credential.response.attestationObject),
+                    clientDataJSON: bufferToBase64url(credential.response.clientDataJSON)
+                }
+            };
+            const resComplete = await fetch(`${API_BASE_URL}/api/passkeys/registrar/concluir`, {
+                method: "POST",
+                headers: getAuthHeaders(true),
+                body: JSON.stringify({ challengeId: initData.challengeId, credential: credData, nomeDispositivo: navigator.platform || "Dispositivo" })
+            });
+            if (!resComplete.ok) throw new Error(await readApiMessage(resComplete));
+            setMessage(msg, "Chave de acesso cadastrada com sucesso!", "success");
+            if (typeof carregarPasskeys === "function") carregarPasskeys();
+        } catch (err) {
+            setMessage(msg, err.message, "error");
+        } finally {
+            btn.disabled = false;
+        }
+    });
+}
+setupPasskeyRegistro();
+
+function setupPasskeyReconfirmacao() {
+    const form = document.getElementById("form-reconfirmacao-passkey");
+    const msg = document.getElementById("mensagem-reconfirmacao");
+    if (!form) return;
+    form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        try {
+            disableSubmit(form, true);
+            setMessage(msg, "Validando credenciais...", "");
+            const reconfirmacaoId = sessionStorage.getItem("reconfirmacao_id");
+            if (!reconfirmacaoId) throw new Error("ID de reconfirma\u00e7\u00e3o n\u00e3o encontrado.");
+            const senha = document.getElementById("reconfirmar-senha").value;
+            const codigo2fa = document.getElementById("reconfirmar-2fa")?.value;
+            const payload = { reconfirmacaoId, senha };
+            if (codigo2fa) payload.codigo2fa = codigo2fa;
+            const res = await fetch(`${API_BASE_URL}/api/auth/passkey/login/reconfirmar`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+            const result = await res.json();
+            if (!res.ok) throw new Error(result.mensagem || "Falha na reconfirma\u00e7\u00e3o");
+            sessionStorage.removeItem("reconfirmacao_id");
+            CasaMulherAuth.saveToken(result.token);
+            window.location.href = "painel.html";
+        } catch (err) {
+            setMessage(msg, err.message, "error");
+        } finally {
+            disableSubmit(form, false);
+        }
+    });
+}
+setupPasskeyReconfirmacao();
+
+async function carregarPasskeys() {
+    const ul = document.getElementById("lista-passkeys");
+    if (!ul) return;
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/passkeys`, { headers: getAuthHeaders(false) });
+        if (!res.ok) throw new Error();
+        const chaves = await res.json();
+        ul.innerHTML = "";
+        if (chaves.length === 0) {
+            ul.innerHTML = `<li style="list-style-type: none; color: var(--color-text-light);">Nenhuma chave cadastrada.</li>`;
+            return;
+        }
+        for (const c of chaves) {
+            const li = document.createElement("li");
+            li.style.listStyleType = "none";
+            li.style.marginBottom = "0.5rem";
+            li.style.display = "flex";
+            li.style.justifyContent = "space-between";
+            li.style.alignItems = "center";
+            li.style.padding = "0.5rem";
+            li.style.border = "1px solid var(--color-border)";
+            li.style.borderRadius = "var(--border-radius)";
+            li.innerHTML = `<div><strong>${escapeHtml(c.nomeDispositivo)}</strong><br><small style="color:var(--color-text-light)">Criada: ${new Date(c.criadoEm).toLocaleDateString()}</small></div>`;
+            const btn = document.createElement("button");
+            btn.textContent = "Remover";
+            btn.className = "btn-secondary";
+            btn.style.padding = "0.25rem 0.5rem";
+            btn.style.fontSize = "0.8rem";
+            btn.style.width = "auto";
+            btn.onclick = async () => {
+                if (confirm("Remover esta chave de acesso?")) {
+                    await fetch(`${API_BASE_URL}/api/passkeys/${c.id}`, { method: "DELETE", headers: getAuthHeaders(false) });
+                    carregarPasskeys();
+                }
+            };
+            li.appendChild(btn);
+            ul.appendChild(li);
+        }
+    } catch {
+        ul.innerHTML = `<li style="list-style-type: none; color: red;">Erro ao carregar chaves.</li>`;
+    }
+}
+if (window.location.pathname.endsWith("seguranca.html")) { carregarPasskeys(); }

@@ -1,4 +1,4 @@
-* {
+﻿* {
     box-sizing: border-box;
 }
 
@@ -599,3 +599,25 @@ small,
         grid-template-columns: 1fr;
     }
 }
+
+/* Passkey Login Styles */
+#passkey-login-container button svg {
+    transition: transform 0.2s ease;
+}
+#passkey-login-container button:hover svg {
+    transform: scale(1.1);
+}
+#lista-passkeys li {
+    background-color: var(--color-surface);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.passkey-login-container { margin-top: 1.25rem; }
+.login-divider { display: flex; align-items: center; text-align: center; color: var(--color-text-light); margin: 1.25rem 0 1rem; }
+.login-divider::before, .login-divider::after { content: ""; flex: 1; border-bottom: 1px solid var(--color-border); }
+.login-divider span { padding: 0 0.75rem; font-size: 0.9rem; }
+.btn-passkey-login { width: 100%; border: 1px solid var(--color-border); background: #ffffff; color: var(--color-text); border-radius: var(--border-radius); padding: 0.85rem 1rem; font-weight: 700; cursor: pointer; transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.1s ease; }
+.btn-passkey-login:hover { background: #f8fafc; border-color: var(--color-accent); }
+.btn-passkey-login:active { transform: translateY(1px); }
+.btn-passkey-login:disabled { opacity: 0.7; cursor: not-allowed; }
+.text-center { text-align: center; }

@@ -15,6 +15,8 @@
             <h1 class="auth-title">Acesso de funcion&aacute;rios</h1>
             <p class="auth-subtitle">Entre com o ID fornecido pela coordena&ccedil;&atilde;o.</p>
 
+
+
             <form id="formLogin" class="auth-form" novalidate>
                 <div class="input-group">
                     <label for="identificador">ID do funcion&aacute;rio</label>
@@ -32,6 +34,22 @@
                 <button type="submit" class="btn-primary">Entrar no sistema</button>
                 <a class="text-link" href="solicitar-redefinicao.html">Esqueci minha senha</a>
             </form>
+
+            <div id="passkey-login-container" class="passkey-login-container" hidden>
+                <div class="login-divider">
+                    <span>ou</span>
+                </div>
+
+                <button type="button" id="btn-passkey-login" class="btn-passkey-login">
+                    Entrar com chave de acesso
+                </button>
+
+                <p class="form-help text-center">
+                    Use seu dispositivo, digital, rosto ou PIN para entrar com mais rapidez.
+                </p>
+
+                <div id="mensagem-passkey-login" class="form-message"></div>
+            </div>
 
             <form id="formLogin2fa" class="auth-form hidden" novalidate>
                 <div class="input-group">

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirmar Acesso - Casa da Mulher</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="auth.js" defer></script>
+    <script src="app.js" defer></script>
+</head>
+<body>
+    <main class="auth-container">
+        <section class="auth-box">
+            <img src="IMAGENS/logo_oficial.png" alt="Logo Casa da Mulher" class="logo-login">
+            <h1 class="auth-title">Confirmar acesso</h1>
+            <p class="auth-subtitle">Para sua seguran&ccedil;a, como faz mais de 7 dias desde o &uacute;ltimo login completo, precisamos confirmar sua identidade.</p>
+
+            <form id="form-reconfirmacao-passkey" class="auth-form" novalidate>
+                <div class="input-group">
+                    <label for="reconfirmar-senha">Sua Senha</label>
+                    <input type="password" id="reconfirmar-senha" name="senha" placeholder="********" required>
+                </div>
+
+                <div class="input-group">
+                    <label for="reconfirmar-2fa">C&oacute;digo de Seguran&ccedil;a (2FA)</label>
+                    <input type="text" id="reconfirmar-2fa" name="codigo2fa" inputmode="numeric" placeholder="123456" autocomplete="one-time-code">
+                    <p class="field-help">Deixe em branco se n&atilde;o tiver o 2FA ativado.</p>
+                </div>
+
+                <div id="mensagem-reconfirmacao" class="message" aria-live="polite"></div>
+
+                <button type="submit" class="btn-primary">Confirmar e Entrar</button>
+                <a class="btn-secondary" href="index.html" style="text-align: center; display: block; margin-top: 1rem; text-decoration: none;">Cancelar</a>
+            </form>
+        </section>
+    </main>
+</body>
+</html>
