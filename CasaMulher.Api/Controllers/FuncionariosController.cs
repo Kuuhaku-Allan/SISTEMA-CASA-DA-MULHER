@@ -52,7 +52,7 @@ public class FuncionariosController : ControllerBase
 
         if (funcionario is null)
         {
-            return NotFound(new { mensagem = "Funcionario nao encontrado." });
+            return NotFound(new { mensagem = "Funcionário não encontrado." });
         }
 
         return Ok(MapearFuncionario(funcionario));
@@ -65,7 +65,7 @@ public class FuncionariosController : ControllerBase
 
         if (funcionario is null)
         {
-            return NotFound(new { mensagem = "Funcionario nao encontrado." });
+            return NotFound(new { mensagem = "Funcionário não encontrado." });
         }
 
         funcionario.Ativo = false;
@@ -74,7 +74,7 @@ public class FuncionariosController : ControllerBase
             "FUNCIONARIO_DESATIVADO",
             "ApplicationUser",
             funcionario.Id,
-            $"Desativou o funcionario {funcionario.IdentificadorFuncionario} ({funcionario.Email}).");
+            $"Desativou o funcionário {funcionario.IdentificadorFuncionario} ({funcionario.Email}).");
 
         return Ok(MapearFuncionario(funcionario));
     }
@@ -86,7 +86,7 @@ public class FuncionariosController : ControllerBase
 
         if (funcionario is null)
         {
-            return NotFound(new { mensagem = "Funcionario nao encontrado." });
+            return NotFound(new { mensagem = "Funcionário não encontrado." });
         }
 
         funcionario.Ativo = true;
@@ -95,7 +95,7 @@ public class FuncionariosController : ControllerBase
             "FUNCIONARIO_REATIVADO",
             "ApplicationUser",
             funcionario.Id,
-            $"Reativou o funcionario {funcionario.IdentificadorFuncionario} ({funcionario.Email}).");
+            $"Reativou o funcionário {funcionario.IdentificadorFuncionario} ({funcionario.Email}).");
 
         return Ok(MapearFuncionario(funcionario));
     }
@@ -107,14 +107,14 @@ public class FuncionariosController : ControllerBase
 
         if (!PerfisAcesso.EhValido(novoPerfil))
         {
-            return BadRequest(new { mensagem = "Perfil invalido." });
+            return BadRequest(new { mensagem = "Perfil inválido." });
         }
 
         var funcionario = await _userManager.FindByIdAsync(id);
 
         if (funcionario is null)
         {
-            return NotFound(new { mensagem = "Funcionario nao encontrado." });
+            return NotFound(new { mensagem = "Funcionário não encontrado." });
         }
 
         if (!await _roleManager.RoleExistsAsync(novoPerfil))
@@ -151,7 +151,7 @@ public class FuncionariosController : ControllerBase
 
         if (funcionario is null)
         {
-            return NotFound(new { mensagem = "Funcionario nao encontrado." });
+            return NotFound(new { mensagem = "Funcionário não encontrado." });
         }
 
         var senhaTemporaria = _senhaTemporariaService.Gerar();
@@ -162,7 +162,7 @@ public class FuncionariosController : ControllerBase
         {
             return BadRequest(new
             {
-                mensagem = "Nao foi possivel resetar a senha.",
+                mensagem = "Não foi possível redefinir a senha.",
                 erros = result.Errors.Select(error => error.Description)
             });
         }
@@ -173,11 +173,11 @@ public class FuncionariosController : ControllerBase
             "SENHA_RESETADA",
             "ApplicationUser",
             funcionario.Id,
-            $"Resetou a senha do funcionario {funcionario.IdentificadorFuncionario} ({funcionario.Email}).");
+            $"Redefiniu a senha do funcionário {funcionario.IdentificadorFuncionario} ({funcionario.Email}).");
 
         return Ok(new ResetarSenhaFuncionarioResponse
         {
-            Mensagem = "Senha temporaria gerada com sucesso.",
+            Mensagem = "Senha temporária gerada com sucesso.",
             SenhaTemporaria = senhaTemporaria,
             DeveTrocarSenha = true
         });
@@ -190,7 +190,7 @@ public class FuncionariosController : ControllerBase
 
         if (funcionario is null)
         {
-            return NotFound(new { mensagem = "Funcionario nao encontrado." });
+            return NotFound(new { mensagem = "Funcionário não encontrado." });
         }
 
         await _userManager.SetTwoFactorEnabledAsync(funcionario, false);
@@ -199,9 +199,9 @@ public class FuncionariosController : ControllerBase
             "DOIS_FATORES_RESETADO",
             "ApplicationUser",
             funcionario.Id,
-            $"Resetou o autenticador 2FA do funcionario {funcionario.IdentificadorFuncionario} ({funcionario.Email}).");
+            $"Redefiniu o autenticador 2FA do funcionário {funcionario.IdentificadorFuncionario} ({funcionario.Email}).");
 
-        return Ok(new { mensagem = "Authenticator resetado com sucesso." });
+        return Ok(new { mensagem = "Autenticador redefinido com sucesso." });
     }
 
     private static FuncionarioAdminResponse MapearFuncionario(ApplicationUser funcionario)

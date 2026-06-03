@@ -55,7 +55,7 @@ public class AuthController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(codigo))
         {
-            return BadRequest(new { mensagem = "Informe o e-mail e o codigo do convite." });
+            return BadRequest(new { mensagem = "Informe o e-mail e o código do convite." });
         }
 
         var convite = await ObterConvitePorCodigoAsync(codigo);
@@ -81,7 +81,7 @@ public class AuthController : ControllerBase
     {
         if (request.Senha != request.ConfirmarSenha)
         {
-            return BadRequest(new { mensagem = "Senha e confirmacao de senha nao conferem." });
+            return BadRequest(new { mensagem = "Senha e confirmação de senha não conferem." });
         }
 
         var email = request.Email.Trim();
@@ -97,7 +97,7 @@ public class AuthController : ControllerBase
 
         if (usuarioExistente is not null)
         {
-            return BadRequest(new { mensagem = "Ja existe usuario cadastrado com este e-mail." });
+            return BadRequest(new { mensagem = "Já existe usuário cadastrado com este e-mail." });
         }
 
         var identificadorFuncionario = convite!.IdentificadorFuncionario.Trim();
@@ -108,7 +108,7 @@ public class AuthController : ControllerBase
 
         if (identificadorEmUso)
         {
-            return BadRequest(new { mensagem = "O identificador deste convite ja esta em uso." });
+            return BadRequest(new { mensagem = "O identificador deste convite já está em uso." });
         }
 
         await using var transaction = await _dbContext.Database.BeginTransactionAsync();
@@ -121,7 +121,7 @@ public class AuthController : ControllerBase
             {
                 return BadRequest(new
                 {
-                    mensagem = "Nao foi possivel preparar o perfil do usuario.",
+                    mensagem = "Não foi possível preparar o perfil do usuário.",
                     erros = roleResult.Errors.Select(error => error.Description)
                 });
             }
@@ -145,7 +145,7 @@ public class AuthController : ControllerBase
         {
             return BadRequest(new
             {
-                mensagem = "Nao foi possivel cadastrar o funcionario.",
+                mensagem = "Não foi possível cadastrar o funcionário.",
                 erros = createResult.Errors.Select(error => error.Description)
             });
         }
@@ -156,7 +156,7 @@ public class AuthController : ControllerBase
         {
             return BadRequest(new
             {
-                mensagem = "Nao foi possivel vincular o perfil ao funcionario.",
+                mensagem = "Não foi possível vincular o perfil ao funcionário.",
                 erros = roleAssignResult.Errors.Select(error => error.Description)
             });
         }
@@ -170,7 +170,7 @@ public class AuthController : ControllerBase
 
         return Ok(new
         {
-            mensagem = "Funcionario cadastrado com sucesso.",
+            mensagem = "Funcionário cadastrado com sucesso.",
             identificadorFuncionario = usuario.IdentificadorFuncionario
         });
     }
@@ -185,17 +185,17 @@ public class AuthController : ControllerBase
         {
             if (usuario is not null && !usuario.Ativo)
             {
-                return Unauthorized(new { mensagem = "Usuario desativado. Procure a coordenacao." });
+                return Unauthorized(new { mensagem = "Usuário desativado. Procure a coordenação." });
             }
 
-            return Unauthorized(new { mensagem = "Identificador ou senha invalidos." });
+            return Unauthorized(new { mensagem = "Identificador ou senha inválidos." });
         }
 
         var senhaValida = await _userManager.CheckPasswordAsync(usuario, request.Senha);
 
         if (!senhaValida)
         {
-            return Unauthorized(new { mensagem = "Identificador ou senha invalidos." });
+            return Unauthorized(new { mensagem = "Identificador ou senha inválidos." });
         }
 
         var roles = await _userManager.GetRolesAsync(usuario);
@@ -216,7 +216,7 @@ public class AuthController : ControllerBase
 
         if (usuario is null || !usuario.Ativo || !usuario.TwoFactorEnabled)
         {
-            return Unauthorized(new { mensagem = "Login temporario invalido ou expirado." });
+            return Unauthorized(new { mensagem = "Login temporário inválido ou expirado." });
         }
 
         var codigo = NormalizarCodigoDoisFatores(request.Codigo);
@@ -227,7 +227,7 @@ public class AuthController : ControllerBase
 
         if (!valido)
         {
-            return Unauthorized(new { mensagem = "Codigo de seguranca invalido." });
+            return Unauthorized(new { mensagem = "Código de segurança inválido." });
         }
 
         var roles = await _userManager.GetRolesAsync(usuario);
@@ -247,7 +247,7 @@ public class AuthController : ControllerBase
 
         if (usuario.TwoFactorEnabled)
         {
-            return BadRequest(new { mensagem = "O codigo de seguranca ja esta ativo para este usuario." });
+            return BadRequest(new { mensagem = "O código de segurança já está ativo para este usuário." });
         }
 
         await _userManager.ResetAuthenticatorKeyAsync(usuario);
@@ -255,14 +255,14 @@ public class AuthController : ControllerBase
 
         if (string.IsNullOrWhiteSpace(chave))
         {
-            return BadRequest(new { mensagem = "Nao foi possivel iniciar a configuracao do aplicativo autenticador." });
+            return BadRequest(new { mensagem = "Não foi possível iniciar a configuração do aplicativo autenticador." });
         }
 
         var uri = GerarAuthenticatorUri(usuario, chave);
 
         return Ok(new DoisFatoresConfiguracaoResponse
         {
-            Mensagem = "Configuracao iniciada com sucesso.",
+            Mensagem = "Configuração iniciada com sucesso.",
             ChaveManual = FormatarChaveManual(chave),
             AuthenticatorUri = uri,
             QrCodeData = uri
@@ -288,12 +288,12 @@ public class AuthController : ControllerBase
 
         if (!valido)
         {
-            return BadRequest(new { mensagem = "Codigo de seguranca invalido." });
+            return BadRequest(new { mensagem = "Código de segurança inválido." });
         }
 
         await _userManager.SetTwoFactorEnabledAsync(usuario, true);
 
-        return Ok(new { mensagem = "Codigo de seguranca ativado com sucesso." });
+        return Ok(new { mensagem = "Código de segurança ativado com sucesso." });
     }
 
     [Authorize]
@@ -309,13 +309,13 @@ public class AuthController : ControllerBase
 
         if (usuario.DoisFatoresObrigatorio)
         {
-            return BadRequest(new { mensagem = "O codigo de seguranca e obrigatorio para este perfil." });
+            return BadRequest(new { mensagem = "O código de segurança é obrigatório para este perfil." });
         }
 
         await _userManager.SetTwoFactorEnabledAsync(usuario, false);
         await _userManager.ResetAuthenticatorKeyAsync(usuario);
 
-        return Ok(new { mensagem = "Codigo de seguranca desativado." });
+        return Ok(new { mensagem = "Código de segurança desativado." });
     }
 
     [Authorize]
@@ -354,7 +354,7 @@ public class AuthController : ControllerBase
 
         if (request.NovaSenha != request.ConfirmarNovaSenha)
         {
-            return BadRequest(new { mensagem = "Nova senha e confirmacao nao conferem." });
+            return BadRequest(new { mensagem = "Nova senha e confirmação não conferem." });
         }
 
         var result = await _userManager.ChangePasswordAsync(usuario, request.SenhaAtual, request.NovaSenha);
@@ -363,7 +363,7 @@ public class AuthController : ControllerBase
         {
             return BadRequest(new
             {
-                mensagem = "Nao foi possivel trocar a senha.",
+                mensagem = "Não foi possível trocar a senha.",
                 erros = result.Errors.Select(error => error.Description)
             });
         }
@@ -374,7 +374,7 @@ public class AuthController : ControllerBase
             "SENHA_TROCADA",
             "ApplicationUser",
             usuario.Id,
-            $"Funcionario {usuario.IdentificadorFuncionario} concluiu a troca obrigatoria de senha.");
+            $"Funcionário {usuario.IdentificadorFuncionario} concluiu a troca obrigatória de senha.");
 
         return Ok(new { mensagem = "Senha alterada com sucesso." });
     }
@@ -429,7 +429,7 @@ public class AuthController : ControllerBase
     {
         if (convite is null)
         {
-            return BadRequest(new { mensagem = "Convite invalido." });
+            return BadRequest(new { mensagem = "Convite inválido." });
         }
 
         if (convite.Cancelado)
@@ -439,7 +439,7 @@ public class AuthController : ControllerBase
 
         if (convite.Usado)
         {
-            return BadRequest(new { mensagem = "Convite ja utilizado." });
+            return BadRequest(new { mensagem = "Convite já utilizado." });
         }
 
         if (convite.ExpiraEm < DateTime.UtcNow)
@@ -449,17 +449,17 @@ public class AuthController : ControllerBase
 
         if (!string.Equals(convite.Email.Trim(), email, StringComparison.OrdinalIgnoreCase))
         {
-            return BadRequest(new { mensagem = "E-mail informado nao corresponde ao convite." });
+            return BadRequest(new { mensagem = "E-mail informado não corresponde ao convite." });
         }
 
         if (!PerfisAcesso.EhValido(convite.Perfil))
         {
-            return BadRequest(new { mensagem = "Perfil do convite invalido." });
+            return BadRequest(new { mensagem = "Perfil do convite inválido." });
         }
 
         if (string.IsNullOrWhiteSpace(convite.IdentificadorFuncionario))
         {
-            return BadRequest(new { mensagem = "Convite sem identificador de funcionario reservado." });
+            return BadRequest(new { mensagem = "Convite sem identificador de funcionário reservado." });
         }
 
         return null;

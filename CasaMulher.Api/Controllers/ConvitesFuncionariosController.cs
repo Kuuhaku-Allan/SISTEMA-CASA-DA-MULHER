@@ -60,7 +60,7 @@ public class ConvitesFuncionariosController : ControllerBase
 
         if (convite is null)
         {
-            return NotFound(new { mensagem = "Convite nao encontrado." });
+            return NotFound(new { mensagem = "Convite não encontrado." });
         }
 
         return Ok(MapearConvite(convite, DateTime.UtcNow));
@@ -76,34 +76,34 @@ public class ConvitesFuncionariosController : ControllerBase
 
         if (string.IsNullOrWhiteSpace(nomeCompleto))
         {
-            return BadRequest(new { mensagem = "Informe o nome completo do funcionario." });
+            return BadRequest(new { mensagem = "Informe o nome completo do funcionário." });
         }
 
         if (string.IsNullOrWhiteSpace(email))
         {
-            return BadRequest(new { mensagem = "Informe o e-mail do funcionario." });
+            return BadRequest(new { mensagem = "Informe o e-mail do funcionário." });
         }
 
         if (!string.Equals(email, confirmarEmail, StringComparison.OrdinalIgnoreCase))
         {
-            return BadRequest(new { mensagem = "Os e-mails nao conferem." });
+            return BadRequest(new { mensagem = "Os e-mails não conferem." });
         }
 
         if (!PerfisAcesso.EhValido(perfil))
         {
-            return BadRequest(new { mensagem = "Perfil invalido para convite." });
+            return BadRequest(new { mensagem = "Perfil inválido para convite." });
         }
 
         var usuarioExistente = await _userManager.FindByEmailAsync(email);
 
         if (usuarioExistente is not null)
         {
-            return BadRequest(new { mensagem = "Ja existe usuario cadastrado com este e-mail." });
+            return BadRequest(new { mensagem = "Já existe usuário cadastrado com este e-mail." });
         }
 
         if (await ExisteConvitePendenteParaEmail(email))
         {
-            return BadRequest(new { mensagem = "Ja existe convite pendente para este e-mail." });
+            return BadRequest(new { mensagem = "Já existe convite pendente para este e-mail." });
         }
 
         var codigoCadastro = await GerarCodigoUnico();
@@ -145,8 +145,8 @@ public class ConvitesFuncionariosController : ControllerBase
         };
 
         var descricaoAuditoria = request.EnviarEmail
-            ? $"Criou convite para {convite.Email} com perfil {convite.Perfil} e ID {convite.IdentificadorFuncionario}. Envio de e-mail solicitado: {resultadoEmail.StatusEmail ?? "Nao informado"}."
-            : $"Criou convite para {convite.Email} com perfil {convite.Perfil} e ID {convite.IdentificadorFuncionario}. Envio de e-mail nao solicitado.";
+            ? $"Criou convite para {convite.Email} com perfil {convite.Perfil} e ID {convite.IdentificadorFuncionario}. Envio de e-mail solicitado: {resultadoEmail.StatusEmail ?? "Não informado"}."
+            : $"Criou convite para {convite.Email} com perfil {convite.Perfil} e ID {convite.IdentificadorFuncionario}. Envio de e-mail não solicitado.";
 
         await _auditoriaService.RegistrarAsync(
             "CONVITE_CRIADO",
@@ -164,17 +164,17 @@ public class ConvitesFuncionariosController : ControllerBase
 
         if (convite is null)
         {
-            return NotFound(new { mensagem = "Convite nao encontrado." });
+            return NotFound(new { mensagem = "Convite não encontrado." });
         }
 
         if (convite.Usado)
         {
-            return BadRequest(new { mensagem = "Convite ja utilizado nao pode ser cancelado." });
+            return BadRequest(new { mensagem = "Convite já utilizado não pode ser cancelado." });
         }
 
         if (convite.Cancelado)
         {
-            return BadRequest(new { mensagem = "Convite ja esta cancelado." });
+            return BadRequest(new { mensagem = "Convite já está cancelado." });
         }
 
         convite.Cancelado = true;
@@ -216,7 +216,7 @@ public class ConvitesFuncionariosController : ControllerBase
             }
         }
 
-        throw new InvalidOperationException("Nao foi possivel gerar codigo unico de convite.");
+        throw new InvalidOperationException("Não foi possível gerar código único de convite.");
     }
 
     private static FuncionarioConviteResponse MapearConvite(FuncionarioConvite convite, DateTime agora)
@@ -292,7 +292,7 @@ public class ConvitesFuncionariosController : ControllerBase
             return new ResultadoEmailConvite(
                 false,
                 status,
-                "Convite criado, mas nao foi possivel enviar o e-mail. Use o link manual como alternativa.");
+                "Convite criado, mas não foi possível enviar o e-mail. Use o link manual como alternativa.");
         }
     }
 
@@ -329,7 +329,7 @@ public class ConvitesFuncionariosController : ControllerBase
             return null;
         }
 
-        return "Este e-mail contem alias com '+'. Confira se o destinatario deve receber exatamente neste endereco.";
+        return "Este e-mail contém alias com '+'. Confira se o destinatário deve receber exatamente neste endereço.";
     }
 
     private static string MontarCorpoEmailConvite(
@@ -343,20 +343,20 @@ public class ConvitesFuncionariosController : ControllerBase
         var link = WebUtility.HtmlEncode(linkCadastro);
 
         return $"""
-            <p>Ola, {nome}.</p>
-            <p>Voce recebeu um convite para criar seu acesso ao Sistema Casa da Mulher de Itaquaquecetuba.</p>
-            <p>Seu ID de funcionario sera:</p>
+            <p>Olá, {nome}.</p>
+            <p>Você recebeu um convite para criar seu acesso ao Sistema Casa da Mulher de Itaquaquecetuba.</p>
+            <p>Seu ID de funcionário será:</p>
             <p><strong>{identificador}</strong></p>
-            <p>Para finalizar seu cadastro, clique no botao abaixo e crie sua senha de acesso:</p>
+            <p>Para finalizar seu cadastro, clique no botão abaixo e crie sua senha de acesso:</p>
             <p>
                 <a href="{link}" style="display:inline-block;padding:12px 18px;background:#18726b;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:700;">
                     Finalizar meu cadastro
                 </a>
             </p>
-            <p>Se o botao nao abrir, copie e cole este link no navegador:</p>
+            <p>Se o botão não abrir, copie e cole este link no navegador:</p>
             <p><a href="{link}">{link}</a></p>
-            <p>Este convite e individual, de uso unico e expira em {diasParaExpirar} dia(s).</p>
-            <p>Caso voce nao reconheca este convite, ignore esta mensagem ou entre em contato com a coordenacao da Casa da Mulher.</p>
+            <p>Este convite é individual, de uso único e expira em {diasParaExpirar} dia(s).</p>
+            <p>Caso você não reconheça este convite, ignore esta mensagem ou entre em contato com a coordenação da Casa da Mulher.</p>
             <p>Atenciosamente,<br>Casa da Mulher de Itaquaquecetuba</p>
             """;
     }

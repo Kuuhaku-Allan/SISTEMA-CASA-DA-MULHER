@@ -38,7 +38,7 @@ public class AuditoriaController : ControllerBase
 
         if (evento is null)
         {
-            return NotFound(new { mensagem = "Evento de auditoria nao encontrado." });
+            return NotFound(new { mensagem = "Evento de auditoria não encontrado." });
         }
 
         return Ok(Mapear(evento));

@@ -1,10 +1,10 @@
 const API_BASE_URL = window.API_BASE_URL || "http://localhost:5001";
 const PERFIS_LABEL = {
-    adm: "Coordenacao / ADM",
-    recepcao: "Recepcao",
+    adm: "Coordenação / ADM",
+    recepcao: "Recepção",
     professor: "Professor",
     as_social: "Assistente Social",
-    juridico: "Juridico"
+    juridico: "Jurídico"
 };
 
 function setMessage(element, text, type) {
@@ -32,10 +32,10 @@ async function readApiMessage(response) {
             return Object.values(data.errors).flat().join(" ");
         }
     } catch {
-        return "Nao foi possivel ler a resposta da API.";
+        return "Não foi possível ler a resposta da API.";
     }
 
-    return "Nao foi possivel concluir a operacao.";
+    return "Não foi possível concluir a operação.";
 }
 
 function disableSubmit(form, disabled) {
@@ -110,7 +110,7 @@ function formatAcaoAuditoria(acao) {
 
 function formatTipoEmail(tipo) {
     const tipos = {
-        ConviteFuncionario: "Convite de funcionario",
+        ConviteFuncionario: "Convite de funcionário",
         TesteSmoke: "Teste de e-mail"
     };
 
@@ -133,7 +133,7 @@ function escapeHtml(value) {
 
 function formatResultadoEmailConvite(resultado) {
     if (!resultado.statusEmail) {
-        return "Envio por e-mail nao solicitado.";
+        return "Envio por e-mail não solicitado.";
     }
 
     if (resultado.statusEmail === "Simulado") {
@@ -165,7 +165,7 @@ function getAvisoLinkLocal(link) {
         const hostname = url.hostname.toLowerCase();
 
         if (hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1") {
-            return " Este link funciona apenas neste computador. Para enviar para outra pessoa, use um endereco hospedado ou servidor na rede.";
+            return " Este link funciona apenas neste computador. Para enviar para outra pessoa, use um endereço hospedado ou servidor na rede.";
         }
     } catch {
         return "";
@@ -192,7 +192,7 @@ async function copyText(text, messageElement) {
 
         setMessage(messageElement, "Copiado.", "success");
     } catch {
-        setMessage(messageElement, "Nao foi possivel copiar automaticamente.", "error");
+        setMessage(messageElement, "Não foi possível copiar automaticamente.", "error");
     }
 }
 
@@ -214,7 +214,7 @@ function setupCadastro() {
     const identificadorInput = document.getElementById("identificadorFuncionario");
 
     if (!emailParam || !codigoParam) {
-        avisoConvite.textContent = "Abra o link do convite enviado pela coordenacao para criar sua senha de acesso.";
+        avisoConvite.textContent = "Abra o link do convite enviado pela coordenação para criar sua senha de acesso.";
         avisoConvite.className = "notice";
         form.classList.add("hidden");
         return;
@@ -248,7 +248,7 @@ function setupCadastro() {
             avisoConvite.className = "notice notice-success";
             form.classList.remove("hidden");
         } catch {
-            avisoConvite.textContent = "Nao foi possivel conectar a API para validar o convite.";
+            avisoConvite.textContent = "Não foi possível conectar à API para validar o convite.";
             avisoConvite.className = "notice notice-error";
         }
     }
@@ -301,7 +301,7 @@ function setupCadastro() {
                 window.location.href = "index.html";
             }, 3500);
         } catch {
-            setMessage(mensagem, "Nao foi possivel conectar a API.", "error");
+            setMessage(mensagem, "Não foi possível conectar à API.", "error");
         } finally {
             disableSubmit(form, false);
         }
@@ -369,7 +369,7 @@ function setupLogin() {
                 sessionStorage.setItem("loginTemporario2fa", resultado.loginTemporario);
                 form.classList.add("hidden");
                 form2fa.classList.remove("hidden");
-                setMessage(mensagem2fa, "Informe o codigo de seguranca do seu aplicativo autenticador.", "info");
+                setMessage(mensagem2fa, "Informe o código de segurança do seu aplicativo autenticador.", "info");
                 return;
             }
 
@@ -381,7 +381,7 @@ function setupLogin() {
                 redirectAfterLogin(resultado);
             }, 600);
         } catch {
-            setMessage(mensagem, "Nao foi possivel conectar a API.", "error");
+            setMessage(mensagem, "Não foi possível conectar à API.", "error");
         } finally {
             disableSubmit(form, false);
         }
@@ -394,7 +394,7 @@ function setupLogin() {
             return;
         }
 
-        setMessage(mensagem2fa, "Validando codigo...", "info");
+        setMessage(mensagem2fa, "Validando código...", "info");
         disableSubmit(form2fa, true);
 
         try {
@@ -424,7 +424,7 @@ function setupLogin() {
                 redirectAfterLogin(resultado);
             }, 600);
         } catch {
-            setMessage(mensagem2fa, "Nao foi possivel conectar a API.", "error");
+            setMessage(mensagem2fa, "Não foi possível conectar à API.", "error");
         } finally {
             disableSubmit(form2fa, false);
         }
@@ -539,7 +539,7 @@ async function setupConvites() {
             }
 
             if (!response.ok) {
-                lista.innerHTML = "<tr><td colspan=\"7\">Nao foi possivel carregar os convites.</td></tr>";
+                lista.innerHTML = "<tr><td colspan=\"7\">Não foi possível carregar os convites.</td></tr>";
                 return;
             }
 
@@ -569,7 +569,7 @@ async function setupConvites() {
                 `;
             }).join("");
         } catch {
-            lista.innerHTML = "<tr><td colspan=\"7\">Nao foi possivel conectar a API.</td></tr>";
+            lista.innerHTML = "<tr><td colspan=\"7\">Não foi possível conectar à API.</td></tr>";
         }
     }
 
@@ -584,12 +584,12 @@ async function setupConvites() {
         const confirmarEmail = conviteConfirmarEmailInput.value.trim();
 
         if (email.toLowerCase() !== confirmarEmail.toLowerCase()) {
-            setMessage(mensagem, "Os e-mails nao conferem.", "error");
+            setMessage(mensagem, "Os e-mails não conferem.", "error");
             return;
         }
 
         if (emailTemAlias(email)) {
-            const confirmado = window.confirm(`Este e-mail contem alias com "+":\n\n${email}\n\nDeseja enviar exatamente para este endereco?`);
+            const confirmado = window.confirm(`Este e-mail contém alias com "+":\n\n${email}\n\nDeseja enviar exatamente para este endereço?`);
 
             if (!confirmado) {
                 setMessage(mensagem, "Confira o e-mail antes de gerar o convite.", "info");
@@ -636,7 +636,7 @@ async function setupConvites() {
 
             const mensagemSucesso = resultado.statusEmail
                 ? `Convite criado com sucesso. ${formatResultadoEmailConvite(resultado)}${avisoAlias}${avisoLinkLocal}`
-                : "Convite criado com sucesso. Envie o link para o funcionario criar a conta.";
+                : "Convite criado com sucesso. Envie o link para o funcionário criar a conta.";
             const tipoMensagem = resultado.statusEmail === "Falhou" || resultado.statusEmail === "NaoConfigurado"
                 ? "info"
                 : "success";
@@ -648,7 +648,7 @@ async function setupConvites() {
             avisoEmailAlias.classList.add("hidden");
             await carregarConvites();
         } catch {
-            setMessage(mensagem, "Nao foi possivel conectar a API.", "error");
+            setMessage(mensagem, "Não foi possível conectar à API.", "error");
         } finally {
             disableSubmit(form, false);
         }
@@ -689,7 +689,7 @@ async function setupConvites() {
             setMessage(mensagem, "Convite cancelado.", "success");
             await carregarConvites();
         } catch {
-            setMessage(mensagem, "Nao foi possivel conectar a API.", "error");
+            setMessage(mensagem, "Não foi possível conectar à API.", "error");
         } finally {
             button.disabled = false;
         }
@@ -756,7 +756,7 @@ async function setupTrocarSenha() {
                 window.location.href = "painel.html";
             }, 700);
         } catch {
-            setMessage(mensagem, "Nao foi possivel conectar a API.", "error");
+            setMessage(mensagem, "Não foi possível conectar à API.", "error");
         } finally {
             disableSubmit(form, false);
         }
@@ -806,7 +806,7 @@ async function setupFuncionarios() {
             }
 
             if (!response.ok) {
-                lista.innerHTML = "<tr><td colspan=\"6\">Nao foi possivel carregar funcionarios.</td></tr>";
+                lista.innerHTML = "<tr><td colspan=\"6\">Não foi possível carregar funcionários.</td></tr>";
                 return;
             }
 
@@ -845,7 +845,7 @@ async function setupFuncionarios() {
                 `;
             }).join("");
         } catch {
-            lista.innerHTML = "<tr><td colspan=\"6\">Nao foi possivel conectar a API.</td></tr>";
+            lista.innerHTML = "<tr><td colspan=\"6\">Não foi possível conectar à API.</td></tr>";
         }
     }
 
@@ -874,7 +874,7 @@ async function setupFuncionarios() {
                 mensagemElement: mensagem
             });
         } catch {
-            setMessage(mensagem, "Nao foi possivel conectar a API.", "error");
+            setMessage(mensagem, "Não foi possível conectar à API.", "error");
             await carregarFuncionarios();
             return;
         }
@@ -927,10 +927,10 @@ async function setupFuncionarios() {
                 document.getElementById("senhaTemporariaPanel").classList.remove("hidden");
             }
 
-            let mensagemSucesso = "Acao realizada com sucesso.";
+            let mensagemSucesso = "Ação realizada com sucesso.";
 
             if (action === "resetar-senha") {
-                mensagemSucesso = "Senha temporaria gerada. Entregue ao funcionario e oriente a troca no proximo acesso.";
+                mensagemSucesso = "Senha temporária gerada. Entregue ao funcionário e oriente a troca no próximo acesso.";
             }
 
             if (action === "resetar-2fa") {
@@ -940,7 +940,7 @@ async function setupFuncionarios() {
             setMessage(mensagem, mensagemSucesso, "success");
             await carregarFuncionarios();
         } catch {
-            setMessage(mensagem, "Nao foi possivel conectar a API.", "error");
+            setMessage(mensagem, "Não foi possível conectar à API.", "error");
         } finally {
             button.disabled = false;
         }
@@ -991,7 +991,7 @@ async function setupAuditoria() {
             }
 
             if (!response.ok) {
-                lista.innerHTML = "<tr><td colspan=\"5\">Nao foi possivel carregar auditoria.</td></tr>";
+                lista.innerHTML = "<tr><td colspan=\"5\">Não foi possível carregar auditoria.</td></tr>";
                 return;
             }
 
@@ -1020,7 +1020,7 @@ async function setupAuditoria() {
 
             setMessage(mensagem, "Historico atualizado.", "success");
         } catch {
-            lista.innerHTML = "<tr><td colspan=\"5\">Nao foi possivel conectar a API.</td></tr>";
+            lista.innerHTML = "<tr><td colspan=\"5\">Não foi possível conectar à API.</td></tr>";
         }
     }
 
@@ -1070,7 +1070,7 @@ async function setupEmails() {
             }
 
             if (!response.ok) {
-                lista.innerHTML = "<tr><td colspan=\"6\">Nao foi possivel carregar os e-mails.</td></tr>";
+                lista.innerHTML = "<tr><td colspan=\"6\">Não foi possível carregar os e-mails.</td></tr>";
                 return;
             }
 
@@ -1098,7 +1098,7 @@ async function setupEmails() {
 
             setMessage(mensagem, "Logs de e-mail atualizados.", "success");
         } catch {
-            lista.innerHTML = "<tr><td colspan=\"6\">Nao foi possivel conectar a API.</td></tr>";
+            lista.innerHTML = "<tr><td colspan=\"6\">Não foi possível conectar à API.</td></tr>";
         }
     }
 
@@ -1130,7 +1130,7 @@ async function setupSeguranca() {
         const usuario = await carregarUsuarioAtual();
 
         if (!usuario) {
-            setMessage(mensagem, "Nao foi possivel carregar os dados de seguranca.", "error");
+            setMessage(mensagem, "Não foi possível carregar os dados de segurança.", "error");
             return;
         }
 
@@ -1138,7 +1138,7 @@ async function setupSeguranca() {
         document.getElementById("segurancaStatus").textContent = usuario.doisFatoresAtivado
             ? "Ativado"
             : usuario.doisFatoresObrigatorio
-                ? "Obrigatorio, ainda nao configurado"
+                ? "Obrigatório, ainda não configurado"
                 : "Opcional";
     }
 
@@ -1173,9 +1173,9 @@ async function setupSeguranca() {
             }
 
             panel.classList.remove("hidden");
-            setMessage(mensagem, resultado.mensagem || "Configuracao iniciada. Escaneie o QR Code e confirme o codigo gerado pelo aplicativo.", "success");
+            setMessage(mensagem, resultado.mensagem || "Configuração iniciada. Escaneie o QR Code e confirme o código gerado pelo aplicativo.", "success");
         } catch {
-            setMessage(mensagem, "Nao foi possivel conectar a API.", "error");
+            setMessage(mensagem, "Não foi possível conectar à API.", "error");
         }
     });
 
@@ -1190,7 +1190,7 @@ async function setupSeguranca() {
             return;
         }
 
-        setMessage(mensagem, "Confirmando codigo...", "info");
+        setMessage(mensagem, "Confirmando código...", "info");
 
         try {
             const response = await CasaMulherAuth.apiFetch("/api/auth/2fa/confirmar", {
@@ -1207,16 +1207,16 @@ async function setupSeguranca() {
                 return;
             }
 
-            setMessage(mensagem, "Codigo de seguranca ativado.", "success");
+            setMessage(mensagem, "Código de segurança ativado.", "success");
             panel.classList.add("hidden");
             await atualizarStatus();
         } catch {
-            setMessage(mensagem, "Nao foi possivel conectar a API.", "error");
+            setMessage(mensagem, "Não foi possível conectar à API.", "error");
         }
     });
 
     document.getElementById("btnDesativar2fa").addEventListener("click", async function () {
-        setMessage(mensagem, "Desativando codigo de seguranca...", "info");
+        setMessage(mensagem, "Desativando código de segurança...", "info");
 
         try {
             const response = await CasaMulherAuth.apiFetch("/api/auth/2fa/desativar", {
@@ -1230,10 +1230,10 @@ async function setupSeguranca() {
                 return;
             }
 
-            setMessage(mensagem, "Codigo de seguranca desativado.", "success");
+            setMessage(mensagem, "Código de segurança desativado.", "success");
             await atualizarStatus();
         } catch {
-            setMessage(mensagem, "Nao foi possivel conectar a API.", "error");
+            setMessage(mensagem, "Não foi possível conectar à API.", "error");
         }
     });
 

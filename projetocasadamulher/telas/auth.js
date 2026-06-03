@@ -121,7 +121,7 @@
     async function apiFetch(url, options) {
         const settings = options || {};
         const mensagemElement = settings.mensagemElement;
-        const forbiddenMessage = settings.forbiddenMessage || "Voce nao tem permissao para acessar esta area.";
+        const forbiddenMessage = settings.forbiddenMessage || "Você não tem permissão para acessar esta área.";
         const fetchOptions = Object.assign({}, settings);
 
         delete fetchOptions.mensagemElement;
@@ -131,7 +131,7 @@
         const token = getToken();
 
         if (!token) {
-            logout("Sua sessao expirou. Faca login novamente.");
+            logout("Sua sessão expirou. Faça login novamente.");
             return new Response(null, { status: 401 });
         }
 
@@ -153,12 +153,12 @@
         try {
             response = await fetch(requestUrl, fetchOptions);
         } catch {
-            mostrarMensagem(mensagemElement, "Nao foi possivel conectar a API.", "error");
-            throw new Error("Nao foi possivel conectar a API.");
+            mostrarMensagem(mensagemElement, "Não foi possível conectar à API.", "error");
+            throw new Error("Não foi possível conectar à API.");
         }
 
         if (response.status === 401) {
-            logout("Sua sessao expirou. Faca login novamente.");
+            logout("Sua sessão expirou. Faça login novamente.");
             return response;
         }
 
@@ -174,7 +174,7 @@
 
         if (!estaLogado()) {
             if (settings.redirect !== false) {
-                logout("Sua sessao expirou. Faca login novamente.");
+                logout("Sua sessão expirou. Faça login novamente.");
             }
 
             return null;
@@ -234,7 +234,7 @@
                 settings.restritoElement.classList.remove("hidden");
             }
 
-            mostrarMensagem(settings.mensagemElement, "Voce nao tem permissao para acessar esta area.", "error");
+            mostrarMensagem(settings.mensagemElement, "Você não tem permissão para acessar esta área.", "error");
             return null;
         }
 

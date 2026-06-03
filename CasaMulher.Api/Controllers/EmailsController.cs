@@ -38,7 +38,7 @@ public class EmailsController : ControllerBase
 
         if (evento is null)
         {
-            return NotFound(new { mensagem = "Evento de e-mail nao encontrado." });
+            return NotFound(new { mensagem = "Evento de e-mail não encontrado." });
         }
 
         return Ok(Mapear(evento));

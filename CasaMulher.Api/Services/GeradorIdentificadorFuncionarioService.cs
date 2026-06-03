@@ -47,7 +47,7 @@ public class GeradorIdentificadorFuncionarioService : IFuncionarioIdentificadorS
             }
         }
 
-        throw new InvalidOperationException("Nao foi possivel gerar identificador unico para o funcionario.");
+        throw new InvalidOperationException("Não foi possível gerar identificador único para o funcionário.");
     }
 
     private static string ObterPrefixo(string perfil)
@@ -59,7 +59,7 @@ public class GeradorIdentificadorFuncionarioService : IFuncionarioIdentificadorS
             PerfisAcesso.Professor => "PRO",
             PerfisAcesso.AssistenteSocial => "SOC",
             PerfisAcesso.Juridico => "JUR",
-            _ => throw new ArgumentException("Perfil invalido para gerar identificador.", nameof(perfil))
+            _ => throw new ArgumentException("Perfil inválido para gerar identificador.", nameof(perfil))
         };
     }
 
