@@ -5,6 +5,7 @@ obj/
 *.user
 *.log
 *.pid
+.runtime/
 
 CasaMulher.Api/casamulher.db*
 CasaMulher.Api/DataProtectionKeys/
