@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Seguran&ccedil;a - Casa da Mulher</title>
     <link rel="stylesheet" href="style.css">
-    <script src="auth.js?v=20260603-passkey-fix" defer></script>
+    <script src="auth.js?v=20260604-email-recuperacao" defer></script>
     <script src="libs/qrcode.min.js" defer></script>
-    <script src="app.js?v=20260603-passkey-fix" defer></script>
+    <script src="app.js?v=20260604-email-recuperacao" defer></script>
 </head>
 <body>
     <main class="auth-container">
@@ -65,6 +65,36 @@
 
             <button type="button" id="btnDesativar2fa" class="btn-secondary">Desativar c&oacute;digo de seguran&ccedil;a</button>
             
+            <hr style="margin: 2rem 0; border: none; border-top: 1px solid var(--color-border);">
+
+            <h1 class="auth-title">E-mail de recupera&ccedil;&atilde;o</h1>
+            <p class="auth-subtitle">Use um e-mail reserva para fluxos futuros de recupera&ccedil;&atilde;o de conta.</p>
+
+            <dl class="profile-list compact-list">
+                <div>
+                    <dt>E-mail</dt>
+                    <dd id="emailRecuperacaoValor">-</dd>
+                </div>
+                <div>
+                    <dt>Status</dt>
+                    <dd id="emailRecuperacaoStatus">-</dd>
+                </div>
+            </dl>
+
+            <div id="mensagemEmailRecuperacao" class="message" aria-live="polite"></div>
+
+            <form id="formEmailRecuperacao" class="auth-form" novalidate>
+                <div class="input-group">
+                    <label for="emailRecuperacaoInput">E-mail de recupera&ccedil;&atilde;o</label>
+                    <input type="email" id="emailRecuperacaoInput" name="emailRecuperacao" placeholder="email.reserva@exemplo.com" autocomplete="email" required>
+                    <p class="field-help">O e-mail s&oacute; fica ativo depois da confirma&ccedil;&atilde;o pelo link enviado.</p>
+                </div>
+
+                <button type="submit" class="btn-primary">Enviar confirma&ccedil;&atilde;o</button>
+            </form>
+
+            <button type="button" id="btnRemoverEmailRecuperacao" class="btn-secondary" style="margin-top: 1rem;">Remover e-mail de recupera&ccedil;&atilde;o</button>
+
             <hr style="margin: 2rem 0; border: none; border-top: 1px solid var(--color-border);">
             
             <h1 class="auth-title">Chaves de acesso (Passkeys)</h1>

@@ -48,6 +48,16 @@ namespace CasaMulher.Api.Migrations
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("EmailRecuperacao")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("EmailRecuperacaoConfirmado")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("EmailRecuperacaoConfirmadoEm")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("IdentificadorFuncionario")
                         .IsRequired()
                         .HasMaxLength(20)

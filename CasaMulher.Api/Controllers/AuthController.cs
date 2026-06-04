@@ -36,6 +36,7 @@ public class AuthController : ControllerBase
     private readonly IConviteCodigoService _codigoService;
     private readonly IAuditoriaService _auditoriaService;
     private readonly IRedefinicaoSenhaEmailService _redefinicaoSenhaEmailService;
+    private readonly IEmailRecuperacaoEmailService _emailRecuperacaoEmailService;
     private readonly IRedefinicaoSenhaThrottleService _redefinicaoSenhaThrottleService;
     private readonly IConfiguration _configuration;
     private readonly IDataProtector _loginDoisFatoresProtector;
@@ -48,6 +49,7 @@ public class AuthController : ControllerBase
         IConviteCodigoService codigoService,
         IAuditoriaService auditoriaService,
         IRedefinicaoSenhaEmailService redefinicaoSenhaEmailService,
+        IEmailRecuperacaoEmailService emailRecuperacaoEmailService,
         IRedefinicaoSenhaThrottleService redefinicaoSenhaThrottleService,
         IConfiguration configuration,
         IDataProtectionProvider dataProtectionProvider,
@@ -59,6 +61,7 @@ public class AuthController : ControllerBase
         _codigoService = codigoService;
         _auditoriaService = auditoriaService;
         _redefinicaoSenhaEmailService = redefinicaoSenhaEmailService;
+        _emailRecuperacaoEmailService = emailRecuperacaoEmailService;
         _redefinicaoSenhaThrottleService = redefinicaoSenhaThrottleService;
         _configuration = configuration;
         _loginDoisFatoresProtector = dataProtectionProvider.CreateProtector("CasaMulher.LoginDoisFatores");
@@ -548,12 +551,167 @@ public class AuthController : ControllerBase
         {
             NomeCompleto = usuario.NomeCompleto,
             Email = usuario.Email ?? string.Empty,
+            EmailRecuperacao = usuario.EmailRecuperacao,
+            EmailRecuperacaoConfirmado = usuario.EmailRecuperacaoConfirmado,
             Perfil = usuario.Perfil,
             IdentificadorFuncionario = usuario.IdentificadorFuncionario,
             DoisFatoresObrigatorio = usuario.DoisFatoresObrigatorio,
             DoisFatoresAtivado = usuario.TwoFactorEnabled,
             DeveTrocarSenha = usuario.DeveTrocarSenha
         });
+    }
+
+    [Authorize]
+    [HttpPost("email-recuperacao/solicitar")]
+    public async Task<ActionResult<EmailRecuperacaoResponse>> SolicitarEmailRecuperacao(SolicitarEmailRecuperacaoRequest request)
+    {
+        var usuario = await ObterUsuarioAtual();
+
+        if (usuario is null)
+        {
+            return Unauthorized();
+        }
+
+        var emailRecuperacao = request.EmailRecuperacao.Trim();
+
+        if (string.IsNullOrWhiteSpace(emailRecuperacao))
+        {
+            return BadRequest(new { mensagem = "Informe um e-mail de recuperação válido." });
+        }
+
+        if (string.Equals(usuario.Email, emailRecuperacao, StringComparison.OrdinalIgnoreCase))
+        {
+            return BadRequest(new { mensagem = "O e-mail de recuperação deve ser diferente do e-mail principal." });
+        }
+
+        if (await EmailRecuperacaoEstaEmUsoPorOutroUsuarioAsync(usuario.Id, emailRecuperacao))
+        {
+            return BadRequest(new { mensagem = "Este e-mail não pode ser usado como e-mail de recuperação." });
+        }
+
+        if (usuario.EmailRecuperacaoConfirmado
+            && string.Equals(usuario.EmailRecuperacao, emailRecuperacao, StringComparison.OrdinalIgnoreCase))
+        {
+            return Ok(MapearEmailRecuperacaoResponse(
+                usuario,
+                "Este e-mail de recuperação já está confirmado.",
+                null));
+        }
+
+        usuario.EmailRecuperacao = emailRecuperacao;
+        usuario.EmailRecuperacaoConfirmado = false;
+        usuario.EmailRecuperacaoConfirmadoEm = null;
+
+        var updateResult = await _userManager.UpdateAsync(usuario);
+
+        if (!updateResult.Succeeded)
+        {
+            return BadRequest(new
+            {
+                mensagem = "Não foi possível salvar o e-mail de recuperação.",
+                erros = updateResult.Errors.Select(error => error.Description)
+            });
+        }
+
+        var resultadoEmail = await _emailRecuperacaoEmailService.EnviarConfirmacaoAsync(usuario);
+
+        await _auditoriaService.RegistrarAsync(
+            "EMAIL_RECUPERACAO_SOLICITADO",
+            "ApplicationUser",
+            usuario.Id,
+            $"Solicitou confirmação de e-mail de recuperação para {MascararEmail(emailRecuperacao)}. Status do e-mail: {resultadoEmail.StatusEmail ?? "Não informado"}.");
+
+        return Ok(MapearEmailRecuperacaoResponse(
+            usuario,
+            resultadoEmail.EmailEnviado
+                ? "Enviamos um link de confirmação para o e-mail informado."
+                : resultadoEmail.AvisoEmail ?? "Não foi possível enviar o link de confirmação.",
+            resultadoEmail));
+    }
+
+    [AllowAnonymous]
+    [HttpPost("email-recuperacao/confirmar")]
+    public async Task<ActionResult<EmailRecuperacaoResponse>> ConfirmarEmailRecuperacao(ConfirmarEmailRecuperacaoRequest request)
+    {
+        var emailRecuperacao = request.EmailRecuperacao.Trim();
+
+        if (string.IsNullOrWhiteSpace(emailRecuperacao) || string.IsNullOrWhiteSpace(request.Token))
+        {
+            return BadRequest(new { mensagem = "Solicitação de confirmação inválida." });
+        }
+
+        var emailNormalizado = emailRecuperacao.ToUpperInvariant();
+        var usuario = await _dbContext.Users.FirstOrDefaultAsync(item =>
+            item.EmailRecuperacao != null
+            && item.EmailRecuperacao.ToUpper() == emailNormalizado);
+
+        if (usuario is null || !usuario.Ativo)
+        {
+            return BadRequest(new { mensagem = "Solicitação de confirmação inválida ou expirada." });
+        }
+
+        var tokenValido = await _userManager.VerifyUserTokenAsync(
+            usuario,
+            TokenOptions.DefaultProvider,
+            EmailRecuperacaoTokenPurpose.Criar(emailRecuperacao),
+            request.Token);
+
+        if (!tokenValido)
+        {
+            await _auditoriaService.RegistrarAsync(
+                "EMAIL_RECUPERACAO_CONFIRMACAO_FALHA",
+                "ApplicationUser",
+                usuario.Id,
+                $"Confirmação de e-mail de recuperação falhou para {usuario.IdentificadorFuncionario}. Token não registrado.");
+
+            return BadRequest(new { mensagem = "Solicitação de confirmação inválida ou expirada." });
+        }
+
+        usuario.EmailRecuperacao = emailRecuperacao;
+        usuario.EmailRecuperacaoConfirmado = true;
+        usuario.EmailRecuperacaoConfirmadoEm = DateTime.UtcNow;
+
+        await _userManager.UpdateAsync(usuario);
+        await _auditoriaService.RegistrarAsync(
+            "EMAIL_RECUPERACAO_CONFIRMADO",
+            "ApplicationUser",
+            usuario.Id,
+            $"E-mail de recuperação confirmado para {usuario.IdentificadorFuncionario}.");
+
+        return Ok(MapearEmailRecuperacaoResponse(
+            usuario,
+            "E-mail de recuperação confirmado com sucesso.",
+            null));
+    }
+
+    [Authorize]
+    [HttpDelete("email-recuperacao")]
+    public async Task<IActionResult> RemoverEmailRecuperacao()
+    {
+        var usuario = await ObterUsuarioAtual();
+
+        if (usuario is null)
+        {
+            return Unauthorized();
+        }
+
+        if (string.IsNullOrWhiteSpace(usuario.EmailRecuperacao))
+        {
+            return Ok(new { mensagem = "Nenhum e-mail de recuperação cadastrado." });
+        }
+
+        usuario.EmailRecuperacao = null;
+        usuario.EmailRecuperacaoConfirmado = false;
+        usuario.EmailRecuperacaoConfirmadoEm = null;
+
+        await _userManager.UpdateAsync(usuario);
+        await _auditoriaService.RegistrarAsync(
+            "EMAIL_RECUPERACAO_REMOVIDO",
+            "ApplicationUser",
+            usuario.Id,
+            $"Removeu o e-mail de recuperação de {usuario.IdentificadorFuncionario}.");
+
+        return Ok(new { mensagem = "E-mail de recuperação removido." });
     }
 
     [Authorize]
@@ -958,6 +1116,50 @@ public class AuthController : ControllerBase
             "FuncionarioConvite",
             null,
             descricao);
+    }
+
+    private async Task<bool> EmailRecuperacaoEstaEmUsoPorOutroUsuarioAsync(string usuarioId, string emailRecuperacao)
+    {
+        var emailNormalizado = emailRecuperacao.Trim().ToUpperInvariant();
+
+        return await _dbContext.Users.AnyAsync(usuario =>
+            usuario.Id != usuarioId
+            && (
+                usuario.NormalizedEmail == emailNormalizado
+                || (
+                    usuario.EmailRecuperacao != null
+                    && usuario.EmailRecuperacao.ToUpper() == emailNormalizado
+                )
+            ));
+    }
+
+    private static EmailRecuperacaoResponse MapearEmailRecuperacaoResponse(
+        ApplicationUser usuario,
+        string mensagem,
+        ResultadoEmailRecuperacao? resultadoEmail)
+    {
+        return new EmailRecuperacaoResponse
+        {
+            Mensagem = mensagem,
+            EmailRecuperacao = usuario.EmailRecuperacao,
+            EmailRecuperacaoConfirmado = usuario.EmailRecuperacaoConfirmado,
+            EmailRecuperacaoConfirmadoEm = usuario.EmailRecuperacaoConfirmadoEm,
+            StatusEmail = resultadoEmail?.StatusEmail,
+            AvisoEmail = resultadoEmail?.AvisoEmail,
+            LinkConfirmacaoDesenvolvimento = resultadoEmail?.LinkConfirmacaoDesenvolvimento
+        };
+    }
+
+    private static string MascararEmail(string email)
+    {
+        var partes = email.Split('@', 2);
+
+        if (partes.Length != 2 || partes[0].Length <= 2)
+        {
+            return "***";
+        }
+
+        return $"{partes[0][0]}***{partes[0][^1]}@{partes[1]}";
     }
 
     private string ObterIpOrigem()

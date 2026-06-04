@@ -5,6 +5,8 @@
         "token",
         "perfil",
         "email",
+        "emailRecuperacao",
+        "emailRecuperacaoConfirmado",
         "nomeCompleto",
         "identificadorFuncionario",
         "doisFatoresObrigatorio",
@@ -37,6 +39,8 @@
             token: getToken(),
             perfil: getPerfil(),
             email: localStorage.getItem("email") || "",
+            emailRecuperacao: localStorage.getItem("emailRecuperacao") || "",
+            emailRecuperacaoConfirmado: localStorage.getItem("emailRecuperacaoConfirmado") === "true",
             nomeCompleto: localStorage.getItem("nomeCompleto") || "",
             identificadorFuncionario: localStorage.getItem("identificadorFuncionario") || "",
             doisFatoresObrigatorio: localStorage.getItem("doisFatoresObrigatorio") === "true",
@@ -104,6 +108,8 @@
     function salvarUsuario(usuario) {
         localStorage.setItem("perfil", usuario.perfil || "");
         localStorage.setItem("email", usuario.email || "");
+        localStorage.setItem("emailRecuperacao", usuario.emailRecuperacao || "");
+        localStorage.setItem("emailRecuperacaoConfirmado", String(Boolean(usuario.emailRecuperacaoConfirmado)));
         localStorage.setItem("nomeCompleto", usuario.nomeCompleto || "");
         localStorage.setItem("identificadorFuncionario", usuario.identificadorFuncionario || "");
         localStorage.setItem("doisFatoresObrigatorio", String(Boolean(usuario.doisFatoresObrigatorio)));

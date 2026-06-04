@@ -16,6 +16,12 @@ public class ApplicationUser : IdentityUser
 
     public bool DoisFatoresObrigatorio { get; set; }
 
+    public string? EmailRecuperacao { get; set; }
+
+    public bool EmailRecuperacaoConfirmado { get; set; }
+
+    public DateTime? EmailRecuperacaoConfirmadoEm { get; set; }
+
     public DateTime CriadoEm { get; set; } = DateTime.UtcNow;
 
     /// <summary>

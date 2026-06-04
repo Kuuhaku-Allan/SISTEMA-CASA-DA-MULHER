@@ -42,6 +42,9 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             entity.Property(user => user.IdentificadorFuncionario)
                 .HasMaxLength(20)
                 .IsRequired();
+
+            entity.Property(user => user.EmailRecuperacao)
+                .HasMaxLength(256);
         });
 
         builder.Entity<FuncionarioConvite>(entity =>

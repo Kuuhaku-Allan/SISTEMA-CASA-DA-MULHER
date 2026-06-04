@@ -170,6 +170,7 @@ builder.Services.AddScoped<IConviteCodigoService, ConviteCodigoService>();
 builder.Services.AddScoped<IFuncionarioIdentificadorService, GeradorIdentificadorFuncionarioService>();
 builder.Services.AddScoped<IAuditoriaService, AuditoriaService>();
 builder.Services.AddScoped<IRedefinicaoSenhaEmailService, RedefinicaoSenhaEmailService>();
+builder.Services.AddScoped<IEmailRecuperacaoEmailService, EmailRecuperacaoEmailService>();
 builder.Services.AddSingleton<IRedefinicaoSenhaThrottleService, InMemoryRedefinicaoSenhaThrottleService>();
 
 // WebAuthn / Passkey — Fido2 v3 é instanciado diretamente (sem extension method)

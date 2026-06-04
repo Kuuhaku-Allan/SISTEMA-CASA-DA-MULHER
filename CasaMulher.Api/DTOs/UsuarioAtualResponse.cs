@@ -6,6 +6,10 @@ public class UsuarioAtualResponse
 
     public string Email { get; set; } = string.Empty;
 
+    public string? EmailRecuperacao { get; set; }
+
+    public bool EmailRecuperacaoConfirmado { get; set; }
+
     public string Perfil { get; set; } = string.Empty;
 
     public string IdentificadorFuncionario { get; set; } = string.Empty;

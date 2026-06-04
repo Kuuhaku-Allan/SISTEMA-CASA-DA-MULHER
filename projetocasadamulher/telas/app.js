@@ -119,7 +119,11 @@ function formatAcaoAuditoria(acao) {
         PASSKEY_LOGIN_FALHA: "Falha no login por chave de acesso",
         PASSKEY_RECONFIRMACAO_SOLICITADA: "Reconfirmacao de credenciais solicitada",
         PASSKEY_RECONFIRMADA: "Credenciais reconfirmadas",
-        PASSKEY_RECONFIRMACAO_FALHA: "Falha na reconfirmacao de credenciais"
+        PASSKEY_RECONFIRMACAO_FALHA: "Falha na reconfirmacao de credenciais",
+        EMAIL_RECUPERACAO_SOLICITADO: "E-mail de recuperação solicitado",
+        EMAIL_RECUPERACAO_CONFIRMADO: "E-mail de recuperação confirmado",
+        EMAIL_RECUPERACAO_CONFIRMACAO_FALHA: "Falha na confirmação do e-mail de recuperação",
+        EMAIL_RECUPERACAO_REMOVIDO: "E-mail de recuperação removido"
     };
 
     return acoes[acao] || acao || "-";
@@ -128,6 +132,7 @@ function formatAcaoAuditoria(acao) {
 function formatTipoEmail(tipo) {
     const tipos = {
         ConviteFuncionario: "Convite de funcionário",
+        ConfirmacaoEmailRecuperacao: "Confirmação de e-mail de recuperação",
         RedefinicaoSenha: "Redefinição de senha",
         TesteSmoke: "Teste de e-mail"
     };
@@ -903,6 +908,49 @@ function setupSolicitarRedefinicaoSenha() {
     });
 }
 
+async function setupConfirmarEmailRecuperacao() {
+    const mensagem = document.getElementById("mensagemConfirmarEmailRecuperacao");
+
+    if (!mensagem) {
+        return;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const email = params.get("email");
+    const token = params.get("token");
+
+    if (!email || !token) {
+        setMessage(mensagem, "Abra o link enviado por e-mail para confirmar o e-mail de recuperação.", "error");
+        return;
+    }
+
+    setMessage(mensagem, "Confirmando e-mail de recuperação...", "info");
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/auth/email-recuperacao/confirmar`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                emailRecuperacao: email,
+                token
+            })
+        });
+
+        const resultado = await response.json();
+
+        if (!response.ok) {
+            setMessage(mensagem, resultado.mensagem || "Não foi possível confirmar o e-mail de recuperação.", "error");
+            return;
+        }
+
+        setMessage(mensagem, resultado.mensagem || "E-mail de recuperação confirmado com sucesso.", "success");
+    } catch {
+        setMessage(mensagem, "Não foi possível conectar à API.", "error");
+    }
+}
+
 async function setupFuncionarios() {
     const page = document.getElementById("funcionariosPage");
 
@@ -1258,7 +1306,13 @@ async function setupSeguranca() {
     }
 
     const mensagem = document.getElementById("mensagemSeguranca");
+    const mensagemEmailRecuperacao = document.getElementById("mensagemEmailRecuperacao");
     const panel = document.getElementById("configuracao2fa");
+    const formEmailRecuperacao = document.getElementById("formEmailRecuperacao");
+    const emailRecuperacaoInput = document.getElementById("emailRecuperacaoInput");
+    const emailRecuperacaoValor = document.getElementById("emailRecuperacaoValor");
+    const emailRecuperacaoStatus = document.getElementById("emailRecuperacaoStatus");
+    const btnRemoverEmailRecuperacao = document.getElementById("btnRemoverEmailRecuperacao");
     let chaveManualAtual = "";
     const usuarioInicial = await CasaMulherAuth.protegerPagina({
         mensagemElement: mensagem
@@ -1284,6 +1338,17 @@ async function setupSeguranca() {
             : usuario.doisFatoresObrigatorio
                 ? "Obrigatório, ainda não configurado"
                 : "Opcional";
+
+        if (emailRecuperacaoValor && emailRecuperacaoStatus && emailRecuperacaoInput && btnRemoverEmailRecuperacao) {
+            emailRecuperacaoValor.textContent = usuario.emailRecuperacao || "-";
+            emailRecuperacaoStatus.textContent = usuario.emailRecuperacao
+                ? usuario.emailRecuperacaoConfirmado
+                    ? "Confirmado"
+                    : "Aguardando confirmação"
+                : "Não cadastrado";
+            emailRecuperacaoInput.value = usuario.emailRecuperacao || "";
+            btnRemoverEmailRecuperacao.disabled = !usuario.emailRecuperacao;
+        }
     }
 
     document.getElementById("btnIniciar2fa").addEventListener("click", async function () {
@@ -1381,6 +1446,74 @@ async function setupSeguranca() {
         }
     });
 
+    if (formEmailRecuperacao) {
+        formEmailRecuperacao.addEventListener("submit", async function (event) {
+            event.preventDefault();
+
+            if (!formEmailRecuperacao.reportValidity()) {
+                return;
+            }
+
+            setMessage(mensagemEmailRecuperacao, "Enviando confirmação...", "info");
+            disableSubmit(formEmailRecuperacao, true);
+
+            try {
+                const response = await CasaMulherAuth.apiFetch("/api/auth/email-recuperacao/solicitar", {
+                    method: "POST",
+                    headers: getAuthHeaders(true),
+                    body: {
+                        emailRecuperacao: emailRecuperacaoInput.value.trim()
+                    },
+                    mensagemElement: mensagemEmailRecuperacao
+                });
+
+                const resultado = await response.json();
+
+                if (!response.ok) {
+                    setMessage(mensagemEmailRecuperacao, resultado.mensagem || "Não foi possível solicitar confirmação.", "error");
+                    return;
+                }
+
+                setMessage(mensagemEmailRecuperacao, resultado.mensagem || "Confirmação enviada.", "success");
+                await atualizarStatus();
+            } catch {
+                setMessage(mensagemEmailRecuperacao, "Não foi possível conectar à API.", "error");
+            } finally {
+                disableSubmit(formEmailRecuperacao, false);
+            }
+        });
+    }
+
+    if (btnRemoverEmailRecuperacao) {
+        btnRemoverEmailRecuperacao.addEventListener("click", async function () {
+            if (!confirm("Remover o e-mail de recuperação?")) {
+                return;
+            }
+
+            setMessage(mensagemEmailRecuperacao, "Removendo e-mail de recuperação...", "info");
+
+            try {
+                const response = await CasaMulherAuth.apiFetch("/api/auth/email-recuperacao", {
+                    method: "DELETE",
+                    headers: getAuthHeaders(false),
+                    mensagemElement: mensagemEmailRecuperacao
+                });
+
+                const resultado = await response.json();
+
+                if (!response.ok) {
+                    setMessage(mensagemEmailRecuperacao, resultado.mensagem || "Não foi possível remover o e-mail.", "error");
+                    return;
+                }
+
+                setMessage(mensagemEmailRecuperacao, resultado.mensagem || "E-mail de recuperação removido.", "success");
+                await atualizarStatus();
+            } catch {
+                setMessage(mensagemEmailRecuperacao, "Não foi possível conectar à API.", "error");
+            }
+        });
+    }
+
     atualizarStatus();
 }
 
@@ -1392,6 +1525,7 @@ setupSeguranca();
 setupTrocarSenha();
 setupRedefinirSenha();
 setupSolicitarRedefinicaoSenha();
+setupConfirmarEmailRecuperacao();
 setupFuncionarios();
 setupAuditoria();
 setupEmails();
