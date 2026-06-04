@@ -24,6 +24,8 @@ namespace CasaMulher.Api.Controllers;
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
 {
+    private sealed record JwtEmitido(string Token, DateTime ExpiraEm);
+
     private const string AuthenticatorIssuer = "Casa da Mulher";
     private static readonly TimeSpan LoginTemporarioValidade = TimeSpan.FromMinutes(5);
     private static readonly TimeSpan PasskeyChallengeValidade = TimeSpan.FromMinutes(5);
@@ -972,9 +974,12 @@ public class AuthController : ControllerBase
             usuario.Id,
             $"Login por passkey concluído para {usuario.IdentificadorFuncionario}.");
 
+        var jwtLoginPasskey = GerarJwt(usuario, rolesLogin);
+
         return Ok(new PasskeyLoginConcluirResponse
         {
-            Token = GerarJwt(usuario, rolesLogin),
+            Token = jwtLoginPasskey.Token,
+            ExpiraEm = jwtLoginPasskey.ExpiraEm,
             NomeCompleto = usuario.NomeCompleto,
             Email = usuario.Email ?? string.Empty,
             Perfil = rolesLogin.FirstOrDefault() ?? usuario.Perfil,
@@ -1095,9 +1100,12 @@ public class AuthController : ControllerBase
             usuario.Id,
             $"Credenciais reconfirmadas com sucesso para login por passkey de {usuario.IdentificadorFuncionario}.");
 
+        var jwtReconfirmacao = GerarJwt(usuario, roles);
+
         return Ok(new PasskeyLoginConcluirResponse
         {
-            Token = GerarJwt(usuario, roles),
+            Token = jwtReconfirmacao.Token,
+            ExpiraEm = jwtReconfirmacao.ExpiraEm,
             NomeCompleto = usuario.NomeCompleto,
             Email = usuario.Email ?? string.Empty,
             Perfil = roles.FirstOrDefault() ?? usuario.Perfil,
@@ -1278,9 +1286,12 @@ public class AuthController : ControllerBase
 
     private AuthResponse GerarAuthResponse(ApplicationUser usuario, IEnumerable<string> roles)
     {
+        var jwt = GerarJwt(usuario, roles);
+
         return new AuthResponse
         {
-            Token = GerarJwt(usuario, roles),
+            Token = jwt.Token,
+            ExpiraEm = jwt.ExpiraEm,
             NomeCompleto = usuario.NomeCompleto,
             Email = usuario.Email ?? string.Empty,
             Perfil = roles.FirstOrDefault() ?? usuario.Perfil,
@@ -1292,7 +1303,7 @@ public class AuthController : ControllerBase
         };
     }
 
-    private string GerarJwt(ApplicationUser usuario, IEnumerable<string> roles)
+    private JwtEmitido GerarJwt(ApplicationUser usuario, IEnumerable<string> roles)
     {
         var key = _configuration["Jwt:Key"];
 
@@ -1316,16 +1327,17 @@ public class AuthController : ControllerBase
 
         var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
         var credentials = new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256);
-        var expirationHours = _configuration.GetValue("Jwt:ExpirationHours", 8);
+        var expirationHours = _configuration.GetValue("Jwt:ExpirationHours", 24);
+        var expiraEm = DateTime.UtcNow.AddHours(expirationHours);
 
         var token = new JwtSecurityToken(
             issuer: _configuration["Jwt:Issuer"],
             audience: _configuration["Jwt:Audience"],
             claims: claims,
-            expires: DateTime.UtcNow.AddHours(expirationHours),
+            expires: expiraEm,
             signingCredentials: credentials);
 
-        return new JwtSecurityTokenHandler().WriteToken(token);
+        return new JwtEmitido(new JwtSecurityTokenHandler().WriteToken(token), expiraEm);
     }
 
     private string GerarLoginTemporario(ApplicationUser usuario)

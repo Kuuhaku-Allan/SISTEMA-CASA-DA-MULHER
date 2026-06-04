@@ -3,6 +3,7 @@
 
     const STORAGE_KEYS = [
         "token",
+        "expiraEm",
         "perfil",
         "email",
         "emailRecuperacao",
@@ -37,6 +38,7 @@
     function getUsuario() {
         return {
             token: getToken(),
+            expiraEm: localStorage.getItem("expiraEm") || "",
             perfil: getPerfil(),
             email: localStorage.getItem("email") || "",
             emailRecuperacao: localStorage.getItem("emailRecuperacao") || "",
@@ -50,7 +52,23 @@
     }
 
     function estaLogado() {
-        return Boolean(getToken());
+        return Boolean(getToken()) && !sessaoExpirada();
+    }
+
+    function sessaoExpirada() {
+        const expiraEm = localStorage.getItem("expiraEm");
+
+        if (!expiraEm) {
+            return false;
+        }
+
+        const timestamp = new Date(expiraEm).getTime();
+
+        if (!Number.isFinite(timestamp)) {
+            return false;
+        }
+
+        return timestamp <= Date.now();
     }
 
     function podeAcessar(area) {
@@ -93,6 +111,13 @@
 
     function salvarSessao(resultado) {
         localStorage.setItem("token", resultado.token);
+
+        if (resultado.expiraEm) {
+            localStorage.setItem("expiraEm", resultado.expiraEm);
+        } else {
+            localStorage.removeItem("expiraEm");
+        }
+
         salvarUsuario(resultado);
     }
 
@@ -103,6 +128,7 @@
         }
 
         localStorage.setItem("token", tokenOuResultado || "");
+        localStorage.removeItem("expiraEm");
     }
 
     function salvarUsuario(usuario) {
@@ -145,8 +171,8 @@
         const headers = new Headers(fetchOptions.headers || {});
         const token = getToken();
 
-        if (!token) {
-            logout("Sua sessão expirou. Faça login novamente.");
+        if (!token || sessaoExpirada()) {
+            logout("Sua sessão expirou por segurança. Faça login novamente.");
             return new Response(null, { status: 401 });
         }
 
@@ -173,7 +199,7 @@
         }
 
         if (response.status === 401) {
-            logout("Sua sessão expirou. Faça login novamente.");
+            logout("Sua sessão expirou por segurança. Faça login novamente.");
             return response;
         }
 
@@ -187,9 +213,17 @@
     async function carregarUsuarioAtual(options) {
         const settings = options || {};
 
-        if (!estaLogado()) {
+        if (!getToken()) {
             if (settings.redirect !== false) {
-                logout("Sua sessão expirou. Faça login novamente.");
+                logout("Sua sessão expirou por segurança. Faça login novamente.");
+            }
+
+            return null;
+        }
+
+        if (sessaoExpirada()) {
+            if (settings.redirect !== false) {
+                logout("Sua sessão expirou por segurança. Faça login novamente.");
             }
 
             return null;
@@ -271,6 +305,7 @@
         protegerPerfil,
         saveToken,
         salvarSessao,
-        salvarUsuario
+        salvarUsuario,
+        sessaoExpirada
     };
 })();

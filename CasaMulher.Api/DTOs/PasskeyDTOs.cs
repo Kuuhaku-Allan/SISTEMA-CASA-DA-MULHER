@@ -45,6 +45,8 @@ public sealed class PasskeyLoginConcluirResponse
     /// <summary>JWT emitido — presente somente quando não exige reconfirmação.</summary>
     public string? Token { get; set; }
 
+    public DateTime? ExpiraEm { get; set; }
+
     public string NomeCompleto { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string Perfil { get; set; } = string.Empty;

@@ -66,6 +66,13 @@ select {
     line-height: 1.18;
 }
 
+.section-title {
+    margin: 0 0 8px;
+    color: #1f2933;
+    font-size: 1.1rem;
+    line-height: 1.25;
+}
+
 .auth-subtitle {
     margin: 0 0 24px;
     color: #5f6872;
