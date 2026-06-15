@@ -64,6 +64,11 @@ function redirectAfterLogin(resultado) {
         return;
     }
 
+    if ((resultado.perfil || CasaMulherAuth.getPerfil()) === "recepcao") {
+        window.location.href = "recepcao.html";
+        return;
+    }
+
     window.location.href = "painel.html";
 }
 
@@ -482,6 +487,10 @@ async function setupPainel() {
         document.getElementById("linkFuncionarios")?.classList.remove("hidden");
     }
 
+    if (CasaMulherAuth.podeAcessar("recepcao")) {
+        document.getElementById("linkRecepcao")?.classList.remove("hidden");
+    }
+
     if (CasaMulherAuth.podeAcessar("auditoria")) {
         document.getElementById("linkAuditoria")?.classList.remove("hidden");
     }
@@ -770,13 +779,15 @@ async function setupTrocarSenha() {
                 return;
             }
 
-            CasaMulherAuth.salvarUsuario(Object.assign(CasaMulherAuth.getUsuario(), {
+            const usuarioAtualizado = Object.assign(CasaMulherAuth.getUsuario(), {
                 deveTrocarSenha: false
-            }));
+            });
+
+            CasaMulherAuth.salvarUsuario(usuarioAtualizado);
             setMessage(mensagem, "Senha trocada com sucesso.", "success");
 
             setTimeout(function () {
-                window.location.href = "painel.html";
+                redirectAfterLogin(usuarioAtualizado);
             }, 700);
         } catch {
             setMessage(mensagem, "Não foi possível conectar à API.", "error");
@@ -1618,7 +1629,7 @@ function setupPasskeyLogin() {
             }
 
             CasaMulherAuth.salvarSessao(result);
-            window.location.href = "painel.html";
+            redirectAfterLogin(result);
         } catch (err) {
             setMessage(msg, err.message, "error");
         } finally {
@@ -1720,7 +1731,7 @@ function setupPasskeyReconfirmacao() {
             sessionStorage.removeItem("reconfirmacao_identificador");
             sessionStorage.removeItem("reconfirmacao_motivo");
             CasaMulherAuth.salvarSessao(result);
-            window.location.href = "painel.html";
+            redirectAfterLogin(result);
         } catch (err) {
             setMessage(msg, err.message, "error");
         } finally {

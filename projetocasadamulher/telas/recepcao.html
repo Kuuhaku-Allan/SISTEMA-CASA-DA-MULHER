@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recep&ccedil;&atilde;o - Casa da Mulher</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .recepcao-shell .admin-header,
+        .recepcao-layout {
+            width: min(1240px, 100%);
+        }
+
+        .recepcao-layout {
+            margin: 0 auto;
+            display: grid;
+            gap: 16px;
+        }
+
+        .recepcao-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .recepcao-tabs .btn-secondary.active {
+            color: #ffffff;
+            background: var(--color-accent);
+        }
+
+        .recepcao-panel {
+            display: none;
+        }
+
+        .recepcao-panel.active {
+            display: flex;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .stat-box {
+            min-height: 112px;
+            padding: 18px;
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            background: #f8fbfa;
+        }
+
+        .stat-number {
+            display: block;
+            color: var(--color-accent);
+            font-size: 2.2rem;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        .stat-label {
+            display: block;
+            margin-top: 10px;
+            color: var(--color-text-light);
+            font-weight: 700;
+        }
+
+        .recepcao-form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        .input-group textarea {
+            width: 100%;
+            min-height: 90px;
+            padding: 11px 12px;
+            border: 1px solid #cfd7df;
+            border-radius: 6px;
+            background: #ffffff;
+            color: #1f2933;
+            font: inherit;
+            resize: vertical;
+        }
+
+        .input-group textarea:focus {
+            border-color: var(--color-accent);
+            outline: 3px solid rgba(24, 114, 107, 0.15);
+        }
+
+        .span-2 {
+            grid-column: span 2;
+        }
+
+        .search-row {
+            display: grid;
+            grid-template-columns: 1fr auto auto;
+            gap: 10px;
+            align-items: end;
+        }
+
+        .actions-inline {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .actions-inline .btn-link,
+        .actions-inline .btn-link-danger {
+            white-space: nowrap;
+        }
+
+        @media (max-width: 760px) {
+            .stats-grid,
+            .recepcao-form-grid,
+            .search-row {
+                grid-template-columns: 1fr;
+            }
+
+            .span-2 {
+                grid-column: auto;
+            }
+        }
+    </style>
+    <script src="auth.js" defer></script>
+    <script src="app.js" defer></script>
+    <script defer>
+        (function () {
+            "use strict";
+
+            const STORAGE_KEY = "casamulher_itaqua";
+            let patients = [];
+
+            async function init() {
+                const usuario = await protegerTelaRecepcao();
+
+                if (!usuario) {
+                    return;
+                }
+
+                document.getElementById("recepcaoNome").textContent = usuario.nomeCompleto || "-";
+                document.getElementById("recepcaoPerfil").textContent = formatPerfilLocal(usuario.perfil);
+
+                bindEvents();
+                updateDateTime();
+                setInterval(updateDateTime, 1000);
+                loadData();
+                updateDashboard();
+                displayPatients();
+            }
+
+            async function protegerTelaRecepcao() {
+                const usuario = await CasaMulherAuth.protegerPagina();
+
+                if (!usuario) {
+                    return null;
+                }
+
+                if (!CasaMulherAuth.podeAcessar("recepcao")) {
+                    alert("Voc\u00ea n\u00e3o tem permiss\u00e3o para acessar a recep\u00e7\u00e3o.");
+                    window.location.href = "painel.html";
+                    return null;
+                }
+
+                return usuario;
+            }
+
+            function bindEvents() {
+                document.getElementById("btnSairRecepcao")?.addEventListener("click", function () {
+                    CasaMulherAuth.logout();
+                });
+
+                document.querySelectorAll("[data-tab]").forEach(function (button) {
+                    button.addEventListener("click", function () {
+                        showTab(button.dataset.tab);
+                    });
+                });
+
+                document.getElementById("patientForm")?.addEventListener("submit", savePatient);
+                document.getElementById("btnLimparFormulario")?.addEventListener("click", resetForm);
+                document.getElementById("btnBuscarPaciente")?.addEventListener("click", searchPatients);
+                document.getElementById("btnMostrarTodas")?.addEventListener("click", resetSearch);
+
+                document.getElementById("searchPatient")?.addEventListener("input", function (event) {
+                    displayPatients(event.target.value);
+                });
+
+                document.getElementById("cpf")?.addEventListener("input", maskCPF);
+                document.getElementById("telefone")?.addEventListener("input", maskPhone);
+
+                document.getElementById("patientsList")?.addEventListener("click", function (event) {
+                    const button = event.target.closest("[data-action]");
+
+                    if (!button) {
+                        return;
+                    }
+
+                    const id = Number(button.dataset.id);
+
+                    if (button.dataset.action === "edit") {
+                        editPatient(id);
+                    }
+
+                    if (button.dataset.action === "delete") {
+                        deletePatient(id);
+                    }
+                });
+            }
+
+            function updateDateTime() {
+                const now = new Date();
+                document.getElementById("currentDate").textContent = now.toLocaleDateString("pt-BR", {
+                    weekday: "long",
+                    day: "2-digit",
+                    month: "long",
+                    year: "numeric"
+                });
+                document.getElementById("currentTime").textContent = now.toLocaleTimeString("pt-BR");
+            }
+
+            function loadData() {
+                try {
+                    const stored = localStorage.getItem(STORAGE_KEY);
+                    patients = stored ? JSON.parse(stored) : [];
+
+                    if (!Array.isArray(patients)) {
+                        patients = [];
+                    }
+                } catch {
+                    patients = [];
+                    showMessage("N\u00e3o foi poss\u00edvel carregar os acolhimentos salvos neste navegador.", "error");
+                }
+            }
+
+            function saveToLocal() {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(patients));
+            }
+
+            function maskCPF(event) {
+                let value = event.target.value.replace(/\D/g, "");
+
+                if (value.length > 11) {
+                    value = value.slice(0, 11);
+                }
+
+                value = value.replace(/^(\d{3})(\d)/, "$1.$2");
+                value = value.replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3");
+                value = value.replace(/\.(\d{3})(\d)/, ".$1-$2");
+                event.target.value = value;
+            }
+
+            function maskPhone(event) {
+                let value = event.target.value.replace(/\D/g, "");
+
+                if (value.length > 11) {
+                    value = value.slice(0, 11);
+                }
+
+                if (value.length <= 10) {
+                    value = value.replace(/^(\d{2})(\d)/, "($1) $2");
+                    value = value.replace(/(\d{4})(\d{1,4})$/, "$1-$2");
+                } else {
+                    value = value.replace(/^(\d{2})(\d)/, "($1) $2");
+                    value = value.replace(/(\d{5})(\d{1,4})$/, "$1-$2");
+                }
+
+                event.target.value = value;
+            }
+
+            function validarCPF(cpf) {
+                const clean = String(cpf || "").replace(/\D/g, "");
+
+                if (clean.length !== 11) {
+                    return false;
+                }
+
+                if (/^(\d)\1{10}$/.test(clean)) {
+                    return false;
+                }
+
+                let soma = 0;
+
+                for (let i = 0; i < 9; i += 1) {
+                    soma += Number(clean[i]) * (10 - i);
+                }
+
+                let digito1 = (soma * 10) % 11;
+                digito1 = digito1 === 10 ? 0 : digito1;
+
+                if (digito1 !== Number(clean[9])) {
+                    return false;
+                }
+
+                soma = 0;
+
+                for (let i = 0; i < 10; i += 1) {
+                    soma += Number(clean[i]) * (11 - i);
+                }
+
+                let digito2 = (soma * 10) % 11;
+                digito2 = digito2 === 10 ? 0 : digito2;
+
+                return digito2 === Number(clean[10]);
+            }
+
+            function savePatient(event) {
+                event.preventDefault();
+
+                const form = event.currentTarget;
+
+                if (!form.reportValidity()) {
+                    return;
+                }
+
+                const id = document.getElementById("patientId").value;
+                const nome = document.getElementById("nome").value.trim();
+                const cpfRaw = document.getElementById("cpf").value.trim();
+                const cpfClean = cpfRaw.replace(/\D/g, "");
+                const telefone = document.getElementById("telefone").value.trim();
+                const dataNascimento = document.getElementById("dataNascimento").value;
+                const curso = document.getElementById("curso").value;
+                const email = document.getElementById("email").value.trim();
+                const endereco = document.getElementById("endereco").value.trim();
+                const atendido = document.getElementById("atendido").value.trim();
+                const observacoes = document.getElementById("observacoes").value.trim();
+
+                if (!validarCPF(cpfClean)) {
+                    showMessage("CPF inv\u00e1lido. Confira os n\u00fameros informados.", "error");
+                    return;
+                }
+
+                const existingPatient = patients.find(function (patient) {
+                    return patient.cpfClean === cpfClean && (!id || String(patient.id) !== String(id));
+                });
+
+                if (existingPatient) {
+                    showMessage("J\u00e1 existe um cadastro com este CPF.", "error");
+                    return;
+                }
+
+                const previous = id ? patients.find(function (patient) {
+                    return String(patient.id) === String(id);
+                }) : null;
+
+                const patientData = {
+                    id: id ? Number(id) : Date.now(),
+                    nome,
+                    cpf: cpfRaw,
+                    cpfClean,
+                    telefone,
+                    dataNascimento,
+                    curso,
+                    email,
+                    endereco,
+                    atendido,
+                    observacoes,
+                    criadoEm: previous?.criadoEm || new Date().toISOString(),
+                    atualizadoEm: new Date().toISOString()
+                };
+
+                if (id) {
+                    const index = patients.findIndex(function (patient) {
+                        return String(patient.id) === String(id);
+                    });
+
+                    if (index !== -1) {
+                        patients[index] = patientData;
+                    }
+
+                    showMessage("Acolhimento atualizado.", "success");
+                } else {
+                    patients.push(patientData);
+                    showMessage("Acolhimento registrado.", "success");
+                }
+
+                saveToLocal();
+                updateDashboard();
+                displayPatients();
+                resetForm();
+                showTab("patients");
+            }
+
+            function displayPatients(searchTerm) {
+                const tbody = document.getElementById("patientsList");
+
+                if (!tbody) {
+                    return;
+                }
+
+                const term = String(searchTerm || "").trim().toLowerCase();
+                const filtered = term
+                    ? patients.filter(function (patient) {
+                        return String(patient.nome || "").toLowerCase().includes(term);
+                    })
+                    : patients;
+
+                if (filtered.length === 0) {
+                    tbody.innerHTML = "<tr><td colspan=\"7\">Nenhum acolhimento encontrado.</td></tr>";
+                    return;
+                }
+
+                tbody.innerHTML = filtered.map(function (patient) {
+                    return `
+                        <tr>
+                            <td>
+                                <strong>${escapeHtmlValue(patient.nome)}</strong>
+                                ${patient.email ? `<br><small>${escapeHtmlValue(patient.email)}</small>` : ""}
+                            </td>
+                            <td>${escapeHtmlValue(patient.cpf || "---")}</td>
+                            <td>${escapeHtmlValue(patient.telefone || "-")}</td>
+                            <td>${escapeHtmlValue(formatDateLocal(patient.dataNascimento))}</td>
+                            <td>${escapeHtmlValue(patient.curso || "A definir")}</td>
+                            <td>
+                                ${escapeHtmlValue(patient.atendido || "-")}
+                                ${patient.endereco ? `<br><small>${escapeHtmlValue(patient.endereco)}</small>` : ""}
+                            </td>
+                            <td>
+                                <div class="actions-inline">
+                                    <button type="button" class="btn-link" data-action="edit" data-id="${patient.id}">Editar</button>
+                                    <button type="button" class="btn-link-danger" data-action="delete" data-id="${patient.id}">Remover</button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }).join("");
+            }
+
+            function editPatient(id) {
+                const patient = patients.find(function (item) {
+                    return Number(item.id) === Number(id);
+                });
+
+                if (!patient) {
+                    return;
+                }
+
+                document.getElementById("patientId").value = patient.id;
+                document.getElementById("nome").value = patient.nome || "";
+                document.getElementById("cpf").value = patient.cpf || "";
+                document.getElementById("telefone").value = patient.telefone || "";
+                document.getElementById("dataNascimento").value = patient.dataNascimento || "";
+                document.getElementById("curso").value = patient.curso || "";
+                document.getElementById("email").value = patient.email || "";
+                document.getElementById("endereco").value = patient.endereco || "";
+                document.getElementById("atendido").value = patient.atendido || "";
+                document.getElementById("observacoes").value = patient.observacoes || "";
+
+                document.getElementById("formTitle").textContent = "Editar acolhimento";
+                document.getElementById("submitLabel").textContent = "Salvar alteracoes";
+                    showMessage("Altere os dados necess\u00e1rios e salve.", "info");
+                showTab("register");
+            }
+
+            function deletePatient(id) {
+                if (!confirm("Remover este registro de acolhimento?")) {
+                    return;
+                }
+
+                patients = patients.filter(function (patient) {
+                    return Number(patient.id) !== Number(id);
+                });
+
+                saveToLocal();
+                updateDashboard();
+                displayPatients(document.getElementById("searchPatient")?.value || "");
+                showMessage("Registro removido.", "success");
+            }
+
+            function searchPatients() {
+                displayPatients(document.getElementById("searchPatient").value);
+                showTab("patients");
+            }
+
+            function resetSearch() {
+                document.getElementById("searchPatient").value = "";
+                displayPatients("");
+            }
+
+            function updateDashboard() {
+                document.getElementById("totalPatients").textContent = String(patients.length);
+                document.getElementById("totalCourses").textContent = String(patients.filter(function (patient) {
+                    return patient.curso && patient.curso.trim() !== "";
+                }).length);
+
+                const uniqueCourses = new Set();
+                patients.forEach(function (patient) {
+                    if (patient.curso && patient.curso.trim()) {
+                        uniqueCourses.add(patient.curso);
+                    }
+                });
+                document.getElementById("activeEnrollments").textContent = String(uniqueCourses.size);
+            }
+
+            function resetForm() {
+                document.getElementById("patientForm").reset();
+                document.getElementById("patientId").value = "";
+                document.getElementById("formTitle").textContent = "Novo acolhimento";
+                document.getElementById("submitLabel").textContent = "Salvar acolhimento";
+            }
+
+            function showTab(tabName) {
+                document.querySelectorAll("[data-tab]").forEach(function (button) {
+                    button.classList.toggle("active", button.dataset.tab === tabName);
+                });
+
+                document.querySelectorAll("[data-panel]").forEach(function (panel) {
+                    panel.classList.toggle("active", panel.dataset.panel === tabName);
+                });
+
+                if (tabName === "dashboard") {
+                    updateDashboard();
+                }
+
+                if (tabName === "patients") {
+                    displayPatients(document.getElementById("searchPatient")?.value || "");
+                }
+            }
+
+            function showMessage(text, type) {
+                const message = document.getElementById("mensagemRecepcao");
+
+                if (!message) {
+                    return;
+                }
+
+                message.textContent = text;
+                message.className = `message ${type || ""}`.trim();
+            }
+
+            function escapeHtmlValue(value) {
+                return String(value || "")
+                    .replaceAll("&", "&amp;")
+                    .replaceAll("<", "&lt;")
+                    .replaceAll(">", "&gt;")
+                    .replaceAll('"', "&quot;")
+                    .replaceAll("'", "&#039;");
+            }
+
+            function formatDateLocal(dateString) {
+                if (!dateString) {
+                    return "-";
+                }
+
+                const parts = String(dateString).split("-");
+
+                if (parts.length !== 3) {
+                    return dateString;
+                }
+
+                return `${parts[2]}/${parts[1]}/${parts[0]}`;
+            }
+
+            function formatPerfilLocal(perfil) {
+                const labels = {
+                    adm: "Coordena\u00e7\u00e3o / ADM",
+                    recepcao: "Recep\u00e7\u00e3o",
+                    professor: "Professor",
+                    as_social: "Assistente Social",
+                    juridico: "Jur\u00eddico"
+                };
+
+                return labels[perfil] || perfil || "-";
+            }
+
+            document.addEventListener("DOMContentLoaded", init);
+        })();
+    </script>
+</head>
+<body>
+    <main id="recepcaoPage" class="admin-shell recepcao-shell">
+        <header class="admin-header">
+            <div>
+                <img src="IMAGENS/logo_oficial.png" alt="Logo Casa da Mulher" class="logo-admin">
+                <div>
+                    <h1>Recep&ccedil;&atilde;o</h1>
+                    <p><span id="recepcaoNome">-</span> &middot; <span id="recepcaoPerfil">-</span></p>
+                </div>
+            </div>
+            <div class="header-actions">
+                <a class="btn-secondary btn-compact button-link" href="painel.html">Voltar</a>
+                <button type="button" id="btnSairRecepcao" class="btn-secondary btn-compact">Sair</button>
+            </div>
+        </header>
+
+        <section class="recepcao-layout">
+            <section class="admin-panel">
+                <div class="table-heading">
+                    <div>
+                        <h2>Acolhimentos</h2>
+                        <p class="section-intro">Registro inicial da recep&ccedil;&atilde;o.</p>
+                    </div>
+                    <div>
+                        <div id="currentDate" class="muted"></div>
+                        <strong id="currentTime"></strong>
+                    </div>
+                </div>
+
+                <div class="recepcao-tabs" aria-label="Se&ccedil;&otilde;es da recep&ccedil;&atilde;o">
+                    <button type="button" class="btn-secondary btn-compact active" data-tab="dashboard">Painel</button>
+                    <button type="button" class="btn-secondary btn-compact" data-tab="patients">Mulheres atendidas</button>
+                    <button type="button" class="btn-secondary btn-compact" data-tab="register">Novo acolhimento</button>
+                </div>
+
+                <div id="mensagemRecepcao" class="message" aria-live="polite"></div>
+            </section>
+
+            <section class="admin-panel recepcao-panel active" data-panel="dashboard">
+                <div class="table-heading">
+                    <h2>Indicadores</h2>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <span id="totalPatients" class="stat-number">0</span>
+                        <span class="stat-label">Mulheres acolhidas</span>
+                    </div>
+                    <div class="stat-box">
+                        <span id="totalCourses" class="stat-number">0</span>
+                        <span class="stat-label">Com curso/oficina</span>
+                    </div>
+                    <div class="stat-box">
+                        <span id="activeEnrollments" class="stat-number">0</span>
+                        <span class="stat-label">Cursos diferentes</span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="admin-panel table-panel recepcao-panel" data-panel="patients">
+                <div class="table-heading">
+                    <h2>Mulheres atendidas</h2>
+                </div>
+
+                <div class="search-row">
+                    <div class="input-group">
+                        <label for="searchPatient">Buscar por nome</label>
+                        <input type="text" id="searchPatient" placeholder="Digite o nome">
+                    </div>
+                    <button type="button" id="btnBuscarPaciente" class="btn-primary btn-compact">Buscar</button>
+                    <button type="button" id="btnMostrarTodas" class="btn-secondary btn-compact">Mostrar todas</button>
+                </div>
+
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>CPF</th>
+                                <th>Telefone</th>
+                                <th>Nascimento</th>
+                                <th>Curso/Oficina</th>
+                                <th>Atendimento</th>
+                                <th>A&ccedil;&otilde;es</th>
+                            </tr>
+                        </thead>
+                        <tbody id="patientsList"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="admin-panel recepcao-panel" data-panel="register">
+                <div class="table-heading">
+                    <h2 id="formTitle">Novo acolhimento</h2>
+                </div>
+
+                <form id="patientForm" class="auth-form">
+                    <input type="hidden" id="patientId">
+
+                    <div class="recepcao-form-grid">
+                        <div class="input-group">
+                            <label for="nome">Nome completo *</label>
+                            <input type="text" id="nome" autocomplete="name" required>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="cpf">CPF *</label>
+                            <input type="text" id="cpf" inputmode="numeric" placeholder="000.000.000-00" required>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="telefone">Telefone *</label>
+                            <input type="tel" id="telefone" autocomplete="tel" placeholder="(11) 99999-9999" required>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="dataNascimento">Data de nascimento *</label>
+                            <input type="date" id="dataNascimento" required>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="endereco">Endere&ccedil;o</label>
+                            <input type="text" id="endereco" autocomplete="street-address">
+                        </div>
+
+                        <div class="input-group">
+                            <label for="atendido">Atendida por</label>
+                            <input type="text" id="atendido">
+                        </div>
+
+                        <div class="input-group">
+                            <label for="curso">Curso / oficina</label>
+                            <select id="curso">
+                                <option value="">A definir</option>
+                                <option value="Informatica">Inform&aacute;tica e Inclus&atilde;o Digital</option>
+                                <option value="Culinaria">Culin&aacute;ria e Autonomia</option>
+                                <option value="Estetica">Est&eacute;tica e Autoestima</option>
+                                <option value="Primeiros Socorros">Primeiros Socorros</option>
+                                <option value="Danca">Dan&ccedil;a Circular</option>
+                                <option value="Pilates">Pilates e Bem-estar</option>
+                                <option value="Empoderamento">Empoderamento Feminino</option>
+                            </select>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="email">E-mail</label>
+                            <input type="email" id="email" autocomplete="email">
+                        </div>
+
+                        <div class="input-group span-2">
+                            <label for="observacoes">Observa&ccedil;&otilde;es</label>
+                            <textarea id="observacoes"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="action-row">
+                        <button type="button" id="btnLimparFormulario" class="btn-secondary">Limpar campos</button>
+                        <button type="submit" class="btn-primary"><span id="submitLabel">Salvar acolhimento</span></button>
+                    </div>
+                </form>
+            </section>
+        </section>
+    </main>
+</body>
+</html>
