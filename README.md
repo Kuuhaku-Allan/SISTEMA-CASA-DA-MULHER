@@ -59,3 +59,51 @@ juridico@casamulher.local / JUR-2026 / juridico
 ```
 
 As chaves de `appsettings.json` são somente para desenvolvimento e devem ser trocadas antes de produção.
+
+## Como contribuir
+
+O repositório principal deve manter a branch `main` como a versão oficial e aprovada do projeto. Ninguém deve trabalhar direto na `main`; toda alteração precisa entrar por Pull Request para revisão.
+
+Fluxo recomendado:
+
+1. Faça um fork do repositório.
+2. Clone o fork no seu computador.
+3. Crie uma branch com o nome da alteração.
+4. Faça suas alterações.
+5. Envie a branch para o seu fork.
+6. Abra um Pull Request para a branch `main` deste repositório.
+7. Aguarde a revisão antes de a alteração entrar no projeto principal.
+
+Exemplo de branch:
+
+```bash
+git checkout -b tela-agendamento
+```
+
+Exemplo de envio:
+
+```bash
+git status
+git add .
+git commit -m "Adiciona tela de agendamento"
+git push origin tela-agendamento
+```
+
+Ao abrir o Pull Request, deixe marcada a opção `Allow edits by maintainers`, para que o mantenedor possa ajustar pequenos pontos na própria branch do PR.
+
+## Organização das pastas
+
+- `CasaMulher.Api/`: API do sistema. Alterações aqui precisam de revisão cuidadosa.
+- `projetocasadamulher/telas/`: telas HTML/CSS/JavaScript. Colegas podem enviar telas e ajustes visuais por Pull Request.
+- `docs/`: documentação do projeto, quando existir.
+- `scripts/`: scripts de apoio. Alterações aqui precisam de revisão cuidadosa.
+- `.github/`: configurações do repositório, incluindo modelo de Pull Request e responsáveis por revisão.
+
+Não envie:
+
+- senhas;
+- tokens;
+- arquivos `appsettings` reais de produção;
+- banco de dados local;
+- prints com e-mails reais ou dados sensíveis;
+- arquivos temporários.
