@@ -1,0 +1,77 @@
+name: Validacao basica
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  api:
+    name: API .NET
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Instalar .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restaurar pacotes
+        run: dotnet restore CasaMulher.Api/CasaMulher.Api.csproj
+
+      - name: Compilar API
+        run: dotnet build CasaMulher.Api/CasaMulher.Api.csproj --configuration Release --no-restore
+
+  frontend:
+    name: Sintaxe do front-end
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Instalar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Checar arquivos JavaScript
+        run: |
+          node --check projetocasadamulher/telas/config.js
+          node --check projetocasadamulher/telas/auth.js
+          node --check projetocasadamulher/telas/app.js
+
+      - name: Checar scripts inline dos HTMLs
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require("fs");
+          const path = require("path");
+
+          const dir = path.join("projetocasadamulher", "telas");
+          const files = fs.readdirSync(dir).filter((file) => file.endsWith(".html"));
+
+          for (const file of files) {
+            const fullPath = path.join(dir, file);
+            const html = fs.readFileSync(fullPath, "utf8");
+            const scripts = [...html.matchAll(/<script(?![^>]*src)[^>]*>([\s\S]*?)<\/script>/gi)];
+
+            for (const [index, match] of scripts.entries()) {
+              try {
+                new Function(match[1]);
+              } catch (error) {
+                console.error(`${fullPath} script inline ${index + 1}: ${error.message}`);
+                process.exitCode = 1;
+              }
+            }
+          }
+
+          if (process.exitCode) {
+            process.exit(process.exitCode);
+          }
+
+          console.log("Scripts inline OK.");
+          NODE
