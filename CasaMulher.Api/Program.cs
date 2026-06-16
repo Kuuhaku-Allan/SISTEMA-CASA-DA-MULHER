@@ -159,8 +159,30 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("FrontendLocal", policy =>
     {
+        if (builder.Environment.IsDevelopment())
+        {
+            policy
+                .SetIsOriginAllowed(OrigemDesenvolvimentoPermitida)
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+
+            return;
+        }
+
+        var frontendBaseUrl = builder.Configuration["Frontend:BaseUrl"];
+
+        if (!string.IsNullOrWhiteSpace(frontendBaseUrl))
+        {
+            policy
+                .WithOrigins(frontendBaseUrl.TrimEnd('/'))
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+
+            return;
+        }
+
         policy
-            .AllowAnyOrigin()
+            .SetIsOriginAllowed(_ => false)
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
@@ -285,4 +307,26 @@ static RateLimitPartition<string> CriarLimitadorPorIp(HttpContext context, int p
             QueueLimit = 0,
             AutoReplenishment = true
         });
+}
+
+static bool OrigemDesenvolvimentoPermitida(string origin)
+{
+    if (string.IsNullOrWhiteSpace(origin))
+    {
+        return false;
+    }
+
+    if (string.Equals(origin, "http://localhost:5500", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(origin, "http://127.0.0.1:5500", StringComparison.OrdinalIgnoreCase))
+    {
+        return true;
+    }
+
+    if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri))
+    {
+        return false;
+    }
+
+    return string.Equals(uri.Scheme, "https", StringComparison.OrdinalIgnoreCase)
+        && uri.Host.EndsWith(".app.github.dev", StringComparison.OrdinalIgnoreCase);
 }

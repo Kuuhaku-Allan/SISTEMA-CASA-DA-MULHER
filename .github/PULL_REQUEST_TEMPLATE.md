@@ -6,7 +6,7 @@ Descreva aqui o que foi adicionado ou alterado.
 
 - [ ] Nova tela
 - [ ] Ajuste visual
-- [ ] Correção de erro
+- [ ] Correção simples
 - [ ] Alteração em JavaScript
 - [ ] Alteração na API
 - [ ] Documentação
@@ -35,3 +35,9 @@ Cole aqui prints, se for alteração visual.
 - [ ] Usei nomes de arquivos claros.
 - [ ] A alteração está em uma branch separada.
 - [ ] O Pull Request está indo para a branch `main` do repositório principal.
+
+## Checklist de Codespaces
+
+- [ ] Testei no Codespaces, quando aplicável.
+- [ ] Rodei a tarefa `Casa da Mulher: iniciar sistema`, quando aplicável.
+- [ ] Expliquei como testar a alteração.

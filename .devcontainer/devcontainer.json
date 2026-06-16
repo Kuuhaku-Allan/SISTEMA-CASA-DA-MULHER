@@ -1,0 +1,35 @@
+{
+  "name": "Sistema Casa da Mulher",
+  "image": "mcr.microsoft.com/devcontainers/dotnet:1-8.0-bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.12"
+    }
+  },
+  "forwardPorts": [
+    5001,
+    5500
+  ],
+  "portsAttributes": {
+    "5001": {
+      "label": "Casa da Mulher API",
+      "onAutoForward": "notify"
+    },
+    "5500": {
+      "label": "Casa da Mulher Telas",
+      "onAutoForward": "openPreview"
+    }
+  },
+  "postCreateCommand": "chmod +x scripts/codespaces/*.sh && scripts/codespaces/setup.sh",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-dotnettools.csdevkit",
+        "ms-dotnettools.csharp",
+        "ecmel.vscode-html-css",
+        "GitHub.vscode-pull-request-github"
+      ]
+    }
+  }
+}

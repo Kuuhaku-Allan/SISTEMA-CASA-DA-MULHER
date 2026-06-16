@@ -1,0 +1,33 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Casa da Mulher: preparar ambiente",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "scripts/codespaces/setup.sh"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "Casa da Mulher: iniciar sistema",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "scripts/codespaces/start.sh"
+      ],
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "Casa da Mulher: enviar Pull Request",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "scripts/codespaces/enviar-pr.sh"
+      ],
+      "problemMatcher": []
+    }
+  ]
+}

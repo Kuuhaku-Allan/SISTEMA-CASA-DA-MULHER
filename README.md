@@ -24,6 +24,27 @@ Swagger:
 http://localhost:5001/swagger
 ```
 
+## Modo fácil para colaboradoras
+
+Quem for contribuir com telas pode usar o fluxo gratuito de Fork + GitHub Codespaces + Pull Request, sem instalar .NET, Git ou VS Code no computador.
+
+Resumo:
+
+1. A colaboradora faz fork do repositório.
+2. Abre um Codespace no próprio fork.
+3. Roda a tarefa `Casa da Mulher: iniciar sistema`.
+4. Edita os arquivos em `projetocasadamulher/telas/`.
+5. Roda a tarefa `Casa da Mulher: enviar Pull Request`.
+6. O Pull Request vai para revisão na branch `main`.
+
+Guia completo:
+
+```text
+docs/CODESPACES-PARA-COLABORADORAS.md
+```
+
+A `main` é a versão oficial do projeto. Alterações de outras pessoas devem entrar por Pull Request e passar por revisão.
+
 ## Fluxo de autenticação
 
 O cadastro de funcionário é restrito por convite. A tela envia apenas:
