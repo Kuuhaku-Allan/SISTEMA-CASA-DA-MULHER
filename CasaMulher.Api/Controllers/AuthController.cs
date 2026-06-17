@@ -1248,7 +1248,7 @@ public class AuthController : ControllerBase
             return BadRequest(new { mensagem = "E-mail informado não corresponde ao convite." });
         }
 
-        if (!PerfisAcesso.EhValido(convite.Perfil))
+        if (!PerfisAcesso.EhFuncionarioInstitucionalValido(convite.Perfil))
         {
             return BadRequest(new { mensagem = "Perfil do convite inválido." });
         }

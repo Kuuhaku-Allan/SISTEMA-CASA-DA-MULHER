@@ -43,35 +43,18 @@ jobs:
           node --check projetocasadamulher/telas/config.js
           node --check projetocasadamulher/telas/auth.js
           node --check projetocasadamulher/telas/app.js
+          node --check scripts/validar-regras-eqp.mjs
+          node --check scripts/validar-html-inline.mjs
 
-      - name: Checar scripts inline dos HTMLs
+      - name: Checar scripts Codespaces
         shell: bash
         run: |
-          node <<'NODE'
-          const fs = require("fs");
-          const path = require("path");
+          bash -n scripts/codespaces/setup.sh
+          bash -n scripts/codespaces/start.sh
+          bash -n scripts/codespaces/seed.sh
+          bash -n scripts/codespaces/detectar-fluxo.sh
+          bash -n scripts/codespaces/novo-prototipo.sh
+          bash -n scripts/codespaces/enviar-pr.sh
 
-          const dir = path.join("projetocasadamulher", "telas");
-          const files = fs.readdirSync(dir).filter((file) => file.endsWith(".html"));
-
-          for (const file of files) {
-            const fullPath = path.join(dir, file);
-            const html = fs.readFileSync(fullPath, "utf8");
-            const scripts = [...html.matchAll(/<script(?![^>]*src)[^>]*>([\s\S]*?)<\/script>/gi)];
-
-            for (const [index, match] of scripts.entries()) {
-              try {
-                new Function(match[1]);
-              } catch (error) {
-                console.error(`${fullPath} script inline ${index + 1}: ${error.message}`);
-                process.exitCode = 1;
-              }
-            }
-          }
-
-          if (process.exitCode) {
-            process.exit(process.exitCode);
-          }
-
-          console.log("Scripts inline OK.");
-          NODE
+      - name: Checar scripts inline dos HTMLs
+        run: node scripts/validar-html-inline.mjs .

@@ -21,6 +21,33 @@
       "problemMatcher": []
     },
     {
+      "label": "Casa da Mulher: detectar fluxo",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "scripts/codespaces/detectar-fluxo.sh"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "Casa da Mulher: criar novo protótipo",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "scripts/codespaces/novo-prototipo.sh"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "Casa da Mulher: validar regras EQP/ADM",
+      "type": "shell",
+      "command": "node",
+      "args": [
+        "scripts/validar-regras-eqp.mjs"
+      ],
+      "problemMatcher": []
+    },
+    {
       "label": "Casa da Mulher: enviar Pull Request",
       "type": "shell",
       "command": "bash",

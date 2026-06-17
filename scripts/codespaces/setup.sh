@@ -28,5 +28,8 @@ else
   echo "AVISO: Confira a saida acima. O ambiente ainda pode iniciar se a API aplicar migrations no primeiro start."
 fi
 
+echo "==> Detectando fluxo GitHub/Codespaces"
+bash "${SCRIPT_DIR}/detectar-fluxo.sh" || true
+
 echo "==> Ambiente preparado."
 echo "==> Para iniciar, use a tarefa: Casa da Mulher: iniciar sistema"

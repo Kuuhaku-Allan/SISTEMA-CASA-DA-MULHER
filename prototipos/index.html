@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prototipos - Sistema Casa da Mulher</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --bg: #f5f3ee;
+            --panel: #ffffff;
+            --ink: #23302f;
+            --muted: #5f6f6c;
+            --brand: #0f766e;
+            --line: #d9ded8;
+            --accent: #8f2f4a;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: Arial, Helvetica, sans-serif;
+            background: var(--bg);
+            color: var(--ink);
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            padding: 28px min(5vw, 52px);
+            background: var(--panel);
+            border-bottom: 1px solid var(--line);
+        }
+
+        header img {
+            width: 72px;
+            height: 72px;
+            object-fit: contain;
+        }
+
+        h1 {
+            margin: 0 0 6px;
+            font-size: clamp(1.8rem, 3vw, 2.6rem);
+        }
+
+        p {
+            line-height: 1.55;
+        }
+
+        main {
+            width: min(1100px, calc(100% - 32px));
+            margin: 28px auto 48px;
+        }
+
+        .notice {
+            padding: 16px 18px;
+            border-left: 5px solid var(--accent);
+            background: var(--panel);
+            border-radius: 6px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 14px;
+            margin-top: 20px;
+        }
+
+        .card {
+            display: grid;
+            gap: 10px;
+            padding: 18px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: var(--panel);
+        }
+
+        .card h2 {
+            margin: 0;
+            font-size: 1.1rem;
+        }
+
+        .meta {
+            color: var(--muted);
+            font-size: 0.92rem;
+        }
+
+        a.button {
+            width: max-content;
+            padding: 10px 14px;
+            border-radius: 6px;
+            color: #ffffff;
+            background: var(--brand);
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        code {
+            padding: 2px 5px;
+            border-radius: 4px;
+            background: #ece7dc;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <img src="../logo_oficial.png" alt="Logo Casa da Mulher">
+        <div>
+            <h1>Prototipos</h1>
+            <p>Area segura para rascunhos de telas e ideias da equipe.</p>
+        </div>
+    </header>
+
+    <main>
+        <section class="notice">
+            <strong>Nada aqui e producao.</strong>
+            Use apenas dados ficticios. Prototipos nao entram automaticamente no sistema principal.
+            Pull Requests de fork devem alterar somente arquivos dentro de <code>prototipos/</code>.
+        </section>
+
+        <section id="listaPrototipos" class="grid" aria-live="polite"></section>
+    </main>
+
+    <script>
+        async function carregarManifest() {
+            const lista = document.getElementById("listaPrototipos");
+
+            try {
+                const response = await fetch("manifest.json", { cache: "no-store" });
+
+                if (!response.ok) {
+                    throw new Error("manifest");
+                }
+
+                const data = await response.json();
+                const prototipos = Array.isArray(data.prototipos) ? data.prototipos : [];
+
+                if (prototipos.length === 0) {
+                    lista.innerHTML = "<article class=\"card\"><h2>Nenhum prototipo cadastrado</h2><p class=\"meta\">Use a tarefa do Codespaces para criar o primeiro.</p></article>";
+                    return;
+                }
+
+                lista.innerHTML = prototipos.map(function (item) {
+                    const titulo = escapeHtml(item.titulo || "Prototipo sem titulo");
+                    const autor = escapeHtml(item.autor || "Equipe");
+                    const status = escapeHtml(item.status || "rascunho");
+                    const pasta = escapeHtml(item.pasta || "#");
+
+                    return `
+                        <article class="card">
+                            <h2>${titulo}</h2>
+                            <div class="meta">Autor: ${autor} · Status: ${status}</div>
+                            <a class="button" href="${pasta}">Abrir</a>
+                        </article>
+                    `;
+                }).join("");
+            } catch {
+                lista.innerHTML = "<article class=\"card\"><h2>Nao foi possivel carregar o manifest</h2><p class=\"meta\">Confira o arquivo prototipos/manifest.json.</p></article>";
+            }
+        }
+
+        function escapeHtml(value) {
+            return String(value)
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll("\"", "&quot;")
+                .replaceAll("'", "&#039;");
+        }
+
+        carregarManifest();
+    </script>
+</body>
+</html>

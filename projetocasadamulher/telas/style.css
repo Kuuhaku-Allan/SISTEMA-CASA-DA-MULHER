@@ -408,6 +408,24 @@ select {
     align-items: start;
 }
 
+.team-dashboard {
+    width: min(1120px, 100%);
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    align-items: start;
+}
+
+.link-list {
+    display: grid;
+    gap: 10px;
+}
+
+.link-list .button-link {
+    margin-bottom: 0;
+}
+
 .admin-panel,
 .admin-alert {
     padding: 20px;
@@ -426,6 +444,12 @@ select {
 .result-panel,
 .table-panel {
     grid-column: 2;
+}
+
+.admin-shell > .table-panel {
+    width: min(1120px, 100%);
+    margin: 0 auto 16px;
+    grid-column: auto;
 }
 
 .compact-list {
@@ -487,6 +511,11 @@ th {
     background: #fff2bf;
 }
 
+.status-disponivel {
+    color: #176a3a;
+    background: #dff5e8;
+}
+
 .status-usado {
     color: #176a3a;
     background: #dff5e8;
@@ -498,6 +527,11 @@ th {
 }
 
 .status-cancelado {
+    color: #9b1c16;
+    background: #fde2df;
+}
+
+.status-revogado {
     color: #9b1c16;
     background: #fde2df;
 }
@@ -604,6 +638,10 @@ small,
     }
 
     .admin-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .team-dashboard {
         grid-template-columns: 1fr;
     }
 

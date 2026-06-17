@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using CasaMulher.Api.Data;
 using CasaMulher.Api.DTOs;
 using CasaMulher.Api.Models;
@@ -20,25 +21,34 @@ public class FuncionariosController : ControllerBase
     private readonly RoleManager<IdentityRole> _roleManager;
     private readonly IAuditoriaService _auditoriaService;
     private readonly IRedefinicaoSenhaEmailService _redefinicaoSenhaEmailService;
+    private readonly IMasterUserService _masterUserService;
 
     public FuncionariosController(
         AppDbContext dbContext,
         UserManager<ApplicationUser> userManager,
         RoleManager<IdentityRole> roleManager,
         IAuditoriaService auditoriaService,
-        IRedefinicaoSenhaEmailService redefinicaoSenhaEmailService)
+        IRedefinicaoSenhaEmailService redefinicaoSenhaEmailService,
+        IMasterUserService masterUserService)
     {
         _dbContext = dbContext;
         _userManager = userManager;
         _roleManager = roleManager;
         _auditoriaService = auditoriaService;
         _redefinicaoSenhaEmailService = redefinicaoSenhaEmailService;
+        _masterUserService = masterUserService;
     }
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<FuncionarioAdminResponse>>> Listar()
     {
+        if (!await PodeGerenciarFuncionariosInstitucionaisAsync())
+        {
+            return Forbid();
+        }
+
         var funcionarios = await _dbContext.Users
+            .Where(usuario => usuario.Perfil != PerfisAcesso.Equipe)
             .OrderBy(usuario => usuario.IdentificadorFuncionario)
             .ToListAsync();
 
@@ -48,11 +58,21 @@ public class FuncionariosController : ControllerBase
     [HttpGet("{id}")]
     public async Task<ActionResult<FuncionarioAdminResponse>> ObterPorId(string id)
     {
+        if (!await PodeGerenciarFuncionariosInstitucionaisAsync())
+        {
+            return Forbid();
+        }
+
         var funcionario = await _userManager.FindByIdAsync(id);
 
         if (funcionario is null)
         {
             return NotFound(new { mensagem = "Funcionário não encontrado." });
+        }
+
+        if (EhContaEquipe(funcionario))
+        {
+            return NotFound(new { mensagem = "Funcionario nao encontrado." });
         }
 
         return Ok(MapearFuncionario(funcionario));
@@ -61,11 +81,33 @@ public class FuncionariosController : ControllerBase
     [HttpPatch("{id}/desativar")]
     public async Task<ActionResult<FuncionarioAdminResponse>> Desativar(string id)
     {
+        if (!await PodeGerenciarFuncionariosInstitucionaisAsync())
+        {
+            return Forbid();
+        }
+
         var funcionario = await _userManager.FindByIdAsync(id);
 
         if (funcionario is null)
         {
             return NotFound(new { mensagem = "Funcionário não encontrado." });
+        }
+
+        if (EhContaEquipe(funcionario))
+        {
+            return NotFound(new { mensagem = "Funcionario nao encontrado." });
+        }
+
+        if (!await PodeExecutarAcaoFuncionarioAsync(funcionario))
+        {
+            return Forbid();
+        }
+
+        var bloqueioDesativacao = await ValidarDesativacaoSeguraAsync(funcionario);
+
+        if (bloqueioDesativacao is not null)
+        {
+            return bloqueioDesativacao;
         }
 
         funcionario.Ativo = false;
@@ -82,11 +124,26 @@ public class FuncionariosController : ControllerBase
     [HttpPatch("{id}/reativar")]
     public async Task<ActionResult<FuncionarioAdminResponse>> Reativar(string id)
     {
+        if (!await PodeGerenciarFuncionariosInstitucionaisAsync())
+        {
+            return Forbid();
+        }
+
         var funcionario = await _userManager.FindByIdAsync(id);
 
         if (funcionario is null)
         {
             return NotFound(new { mensagem = "Funcionário não encontrado." });
+        }
+
+        if (EhContaEquipe(funcionario))
+        {
+            return NotFound(new { mensagem = "Funcionario nao encontrado." });
+        }
+
+        if (!await PodeExecutarAcaoFuncionarioAsync(funcionario))
+        {
+            return Forbid();
         }
 
         funcionario.Ativo = true;
@@ -103,9 +160,14 @@ public class FuncionariosController : ControllerBase
     [HttpPatch("{id}/alterar-perfil")]
     public async Task<ActionResult<FuncionarioAdminResponse>> AlterarPerfil(string id, AlterarPerfilFuncionarioRequest request)
     {
+        if (!await PodeGerenciarFuncionariosInstitucionaisAsync())
+        {
+            return Forbid();
+        }
+
         var novoPerfil = request.Perfil.Trim().ToLowerInvariant();
 
-        if (!PerfisAcesso.EhValido(novoPerfil))
+        if (!PerfisAcesso.EhFuncionarioInstitucionalValido(novoPerfil))
         {
             return BadRequest(new { mensagem = "Perfil inválido." });
         }
@@ -115,6 +177,16 @@ public class FuncionariosController : ControllerBase
         if (funcionario is null)
         {
             return NotFound(new { mensagem = "Funcionário não encontrado." });
+        }
+
+        if (EhContaEquipe(funcionario))
+        {
+            return NotFound(new { mensagem = "Funcionario nao encontrado." });
+        }
+
+        if (!await PodeExecutarAcaoFuncionarioAsync(funcionario, novoPerfil))
+        {
+            return Forbid();
         }
 
         if (!await _roleManager.RoleExistsAsync(novoPerfil))
@@ -158,11 +230,26 @@ public class FuncionariosController : ControllerBase
 
     private async Task<ActionResult<ResetarSenhaFuncionarioResponse>> EnviarRedefinicaoSenhaPorEmail(string id)
     {
+        if (!await PodeGerenciarFuncionariosInstitucionaisAsync())
+        {
+            return Forbid();
+        }
+
         var funcionario = await _userManager.FindByIdAsync(id);
 
         if (funcionario is null)
         {
             return NotFound(new { mensagem = "Funcionário não encontrado." });
+        }
+
+        if (EhContaEquipe(funcionario))
+        {
+            return NotFound(new { mensagem = "Funcionario nao encontrado." });
+        }
+
+        if (!await PodeExecutarAcaoFuncionarioAsync(funcionario))
+        {
+            return Forbid();
         }
 
         var resultadoEmail = await _redefinicaoSenhaEmailService.EnviarAsync(funcionario);
@@ -186,11 +273,26 @@ public class FuncionariosController : ControllerBase
     [HttpPost("{id}/resetar-2fa")]
     public async Task<IActionResult> ResetarDoisFatores(string id)
     {
+        if (!await PodeGerenciarFuncionariosInstitucionaisAsync())
+        {
+            return Forbid();
+        }
+
         var funcionario = await _userManager.FindByIdAsync(id);
 
         if (funcionario is null)
         {
             return NotFound(new { mensagem = "Funcionário não encontrado." });
+        }
+
+        if (EhContaEquipe(funcionario))
+        {
+            return NotFound(new { mensagem = "Funcionario nao encontrado." });
+        }
+
+        if (!await PodeExecutarAcaoFuncionarioAsync(funcionario))
+        {
+            return Forbid();
         }
 
         await _userManager.SetTwoFactorEnabledAsync(funcionario, false);
@@ -219,6 +321,141 @@ public class FuncionariosController : ControllerBase
             DeveTrocarSenha = funcionario.DeveTrocarSenha,
             CriadoEm = funcionario.CriadoEm
         };
+    }
+
+    private async Task<bool> PodeGerenciarFuncionariosInstitucionaisAsync()
+    {
+        var usuarioId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (string.IsNullOrWhiteSpace(usuarioId))
+        {
+            return false;
+        }
+
+        var usuario = await _userManager.FindByIdAsync(usuarioId);
+
+        if (usuario is null || !usuario.Ativo)
+        {
+            return false;
+        }
+
+        if (string.Equals(usuario.Perfil, PerfisAcesso.Adm, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (!string.Equals(usuario.Perfil, PerfisAcesso.Equipe, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        return await _dbContext.EquipeMembros.AnyAsync(membro =>
+            membro.UserId == usuario.Id
+            && membro.Ativo
+            && membro.PapelEquipe == EquipePapeis.Owner
+            && membro.CodigoEquipe == _masterUserService.EquipeOwnerCodigo);
+    }
+
+    private async Task<bool> PodeExecutarAcaoFuncionarioAsync(ApplicationUser funcionario, string? novoPerfil = null)
+    {
+        if (EhContaEquipe(funcionario))
+        {
+            return false;
+        }
+
+        if (await UsuarioAtualEhMasterAsync())
+        {
+            return true;
+        }
+
+        var usuarioId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (string.IsNullOrWhiteSpace(usuarioId))
+        {
+            return false;
+        }
+
+        var usuarioAtual = await _userManager.FindByIdAsync(usuarioId);
+
+        if (usuarioAtual is null
+            || !usuarioAtual.Ativo
+            || !string.Equals(usuarioAtual.Perfil, PerfisAcesso.Adm, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        if (string.Equals(funcionario.Perfil, PerfisAcesso.Adm, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        if (string.Equals(novoPerfil, PerfisAcesso.Adm, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private async Task<bool> UsuarioAtualEhMasterAsync()
+    {
+        var usuarioId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (string.IsNullOrWhiteSpace(usuarioId))
+        {
+            return false;
+        }
+
+        var usuario = await _userManager.FindByIdAsync(usuarioId);
+
+        if (_masterUserService.EhSuperAdminInstitucional(usuario))
+        {
+            return true;
+        }
+
+        if (usuario is null
+            || !usuario.Ativo
+            || !string.Equals(usuario.Perfil, PerfisAcesso.Equipe, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        return await _dbContext.EquipeMembros.AnyAsync(membro =>
+            membro.UserId == usuario.Id
+            && membro.Ativo
+            && membro.PapelEquipe == EquipePapeis.Owner
+            && membro.CodigoEquipe == _masterUserService.EquipeOwnerCodigo);
+    }
+
+    private async Task<ActionResult?> ValidarDesativacaoSeguraAsync(ApplicationUser funcionario)
+    {
+        if (_masterUserService.EhSuperAdminInstitucional(funcionario))
+        {
+            return BadRequest(new { mensagem = "Nao e possivel desativar o super admin master configurado." });
+        }
+
+        if (!string.Equals(funcionario.Perfil, PerfisAcesso.Adm, StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        var existeOutroAdmAtivo = await _dbContext.Users.AnyAsync(usuario =>
+            usuario.Id != funcionario.Id
+            && usuario.Ativo
+            && usuario.Perfil == PerfisAcesso.Adm);
+
+        if (existeOutroAdmAtivo)
+        {
+            return null;
+        }
+
+        return BadRequest(new { mensagem = "Nao e possivel desativar o ultimo super admin ativo." });
+    }
+
+    private static bool EhContaEquipe(ApplicationUser funcionario)
+    {
+        return string.Equals(funcionario.Perfil, PerfisAcesso.Equipe, StringComparison.OrdinalIgnoreCase)
+            || funcionario.IdentificadorFuncionario.StartsWith("EQP-", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool PerfilExigeDoisFatores(string perfil)

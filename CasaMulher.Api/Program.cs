@@ -100,25 +100,41 @@ builder.Services
         };
     });
 
+// Contas EQP sao amplas apenas em desenvolvimento/homologacao para testes do projeto.
+// Em producao, as politicas abaixo voltam aos perfis institucionais reais.
+var permitirEquipeDev = builder.Environment.IsDevelopment() || builder.Environment.IsStaging();
+var rolesSomenteAdm = IncluirEquipeDev(permitirEquipeDev, PerfisAcesso.Adm);
+var rolesRecepcao = IncluirEquipeDev(permitirEquipeDev, PerfisAcesso.Adm, PerfisAcesso.Recepcao);
+var rolesCursos = IncluirEquipeDev(permitirEquipeDev, PerfisAcesso.Adm, PerfisAcesso.Professor);
+var rolesProntuarioSocial = IncluirEquipeDev(permitirEquipeDev, PerfisAcesso.Adm, PerfisAcesso.AssistenteSocial);
+var rolesJuridico = IncluirEquipeDev(permitirEquipeDev, PerfisAcesso.Adm, PerfisAcesso.Juridico);
+var rolesRelatorios = IncluirEquipeDev(permitirEquipeDev, PerfisAcesso.Adm, PerfisAcesso.AssistenteSocial, PerfisAcesso.Juridico);
+
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy(PoliticasAcesso.SomenteAdm, policy =>
-        policy.RequireRole(PerfisAcesso.Adm));
+        policy.RequireRole(rolesSomenteAdm));
 
     options.AddPolicy(PoliticasAcesso.AcessoRecepcao, policy =>
-        policy.RequireRole(PerfisAcesso.Adm, PerfisAcesso.Recepcao));
+        policy.RequireRole(rolesRecepcao));
 
     options.AddPolicy(PoliticasAcesso.AcessoCursos, policy =>
-        policy.RequireRole(PerfisAcesso.Adm, PerfisAcesso.Professor));
+        policy.RequireRole(rolesCursos));
 
     options.AddPolicy(PoliticasAcesso.AcessoProntuarioSocial, policy =>
-        policy.RequireRole(PerfisAcesso.Adm, PerfisAcesso.AssistenteSocial));
+        policy.RequireRole(rolesProntuarioSocial));
 
     options.AddPolicy(PoliticasAcesso.AcessoJuridico, policy =>
-        policy.RequireRole(PerfisAcesso.Adm, PerfisAcesso.Juridico));
+        policy.RequireRole(rolesJuridico));
 
     options.AddPolicy(PoliticasAcesso.AcessoRelatorios, policy =>
-        policy.RequireRole(PerfisAcesso.Adm, PerfisAcesso.AssistenteSocial, PerfisAcesso.Juridico));
+        policy.RequireRole(rolesRelatorios));
+
+    options.AddPolicy(PoliticasAcesso.AcessoEquipe, policy =>
+        policy.RequireRole(PerfisAcesso.Adm, PerfisAcesso.Equipe));
+
+    options.AddPolicy(PoliticasAcesso.GerenciarConvitesEquipe, policy =>
+        policy.RequireRole(PerfisAcesso.Adm, PerfisAcesso.Equipe));
 });
 builder.Services.AddRateLimiter(options =>
 {
@@ -139,6 +155,9 @@ builder.Services.AddRateLimiter(options =>
 
     options.AddPolicy(RateLimitPolicies.ConvitePublico, context =>
         CriarLimitadorPorIp(context, permitLimit: 10, TimeSpan.FromMinutes(1)));
+
+    options.AddPolicy(RateLimitPolicies.EquipeAtivacao, context =>
+        CriarLimitadorPorIp(context, permitLimit: 5, TimeSpan.FromMinutes(5)));
 
     options.AddPolicy(RateLimitPolicies.SolicitarRedefinicaoSenha, context =>
         CriarLimitadorPorIp(context, permitLimit: 3, TimeSpan.FromMinutes(15)));
@@ -190,10 +209,13 @@ builder.Services.AddCors(options =>
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IConviteCodigoService, ConviteCodigoService>();
 builder.Services.AddScoped<IFuncionarioIdentificadorService, GeradorIdentificadorFuncionarioService>();
+builder.Services.AddScoped<IMasterUserService, MasterUserService>();
 builder.Services.AddScoped<IAuditoriaService, AuditoriaService>();
 builder.Services.AddScoped<IRedefinicaoSenhaEmailService, RedefinicaoSenhaEmailService>();
 builder.Services.AddScoped<IEmailRecuperacaoEmailService, EmailRecuperacaoEmailService>();
 builder.Services.AddSingleton<IRedefinicaoSenhaThrottleService, InMemoryRedefinicaoSenhaThrottleService>();
+builder.Services.AddMemoryCache();
+builder.Services.AddHttpClient<IEquipeGithubService, EquipeGithubService>();
 
 // WebAuthn / Passkey — Fido2 v3 é instanciado diretamente (sem extension method)
 var fido2Origin = builder.Environment.IsDevelopment()
@@ -329,4 +351,17 @@ static bool OrigemDesenvolvimentoPermitida(string origin)
 
     return string.Equals(uri.Scheme, "https", StringComparison.OrdinalIgnoreCase)
         && uri.Host.EndsWith(".app.github.dev", StringComparison.OrdinalIgnoreCase);
+}
+
+static string[] IncluirEquipeDev(bool permitirEquipeDev, params string[] perfis)
+{
+    if (!permitirEquipeDev)
+    {
+        return perfis;
+    }
+
+    return perfis
+        .Append(PerfisAcesso.Equipe)
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToArray();
 }

@@ -33,6 +33,17 @@ public class ConviteCodigoService : IConviteCodigoService
         return $"CM-{new string(bloco)}-{DateTime.UtcNow.Year}";
     }
 
+    public string GerarCodigoAtivacaoEquipe()
+    {
+        Span<char> bloco1 = stackalloc char[4];
+        Span<char> bloco2 = stackalloc char[4];
+
+        PreencherBloco(bloco1);
+        PreencherBloco(bloco2);
+
+        return $"{new string(bloco1)}-{new string(bloco2)}";
+    }
+
     public string GerarHash(string codigo)
     {
         var codigoNormalizado = NormalizarCodigo(codigo);
@@ -60,5 +71,14 @@ public class ConviteCodigoService : IConviteCodigoService
     private static string NormalizarCodigo(string codigo)
     {
         return codigo.Trim().ToUpperInvariant();
+    }
+
+    private static void PreencherBloco(Span<char> bloco)
+    {
+        for (var index = 0; index < bloco.Length; index++)
+        {
+            var caractereIndex = RandomNumberGenerator.GetInt32(CodigoCaracteres.Length);
+            bloco[index] = CodigoCaracteres[caractereIndex];
+        }
     }
 }

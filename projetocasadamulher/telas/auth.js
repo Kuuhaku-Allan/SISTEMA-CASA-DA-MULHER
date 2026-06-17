@@ -17,6 +17,8 @@
 
     const PERMISSOES_POR_AREA = {
         convites: ["adm"],
+        equipe: ["equipe"],
+        equipeConvites: ["adm", "equipe"],
         funcionarios: ["adm"],
         auditoria: ["adm"],
         emails: ["adm"],
@@ -26,6 +28,18 @@
         juridico: ["adm", "juridico"],
         relatorios: ["adm", "as_social", "juridico"]
     };
+
+    const AREAS_EQUIPE_DEV = [
+        "convites",
+        "funcionarios",
+        "auditoria",
+        "emails",
+        "recepcao",
+        "cursos",
+        "social",
+        "juridico",
+        "relatorios"
+    ];
 
     function getToken() {
         return localStorage.getItem("token");
@@ -76,10 +90,43 @@
         const perfisPermitidos = PERMISSOES_POR_AREA[area];
 
         if (!perfil || !perfisPermitidos) {
+            return podeAcessarEquipeDev(area);
+        }
+
+        return perfisPermitidos.includes(perfil) || podeAcessarEquipeDev(area);
+    }
+
+    function ehPerfilEquipe(usuario) {
+        const perfil = usuario?.perfil || getPerfil();
+        return perfil === "equipe";
+    }
+
+    function podeAcessarEquipeDev(area) {
+        return ehPerfilEquipe() && AREAS_EQUIPE_DEV.includes(area);
+    }
+
+    async function protegerArea(area, options) {
+        const settings = options || {};
+        const usuario = await protegerPagina(settings);
+
+        if (!usuario) {
+            return null;
+        }
+
+        if (!podeAcessar(area)) {
+            if (settings.conteudoElement) {
+                settings.conteudoElement.classList.add("hidden");
+            }
+
+            if (settings.restritoElement) {
+                settings.restritoElement.classList.remove("hidden");
+            }
+
+            mostrarMensagem(settings.mensagemElement, "Você não tem permissão para acessar esta área.", "error");
             return false;
         }
 
-        return perfisPermitidos.includes(perfil);
+        return usuario;
     }
 
     function mostrarMensagem(element, text, type) {
@@ -301,7 +348,9 @@
         limparSessao,
         logout,
         podeAcessar,
+        podeAcessarEquipeDev,
         protegerPagina,
+        protegerArea,
         protegerPerfil,
         saveToken,
         salvarSessao,

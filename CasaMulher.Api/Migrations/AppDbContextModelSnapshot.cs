@@ -237,6 +237,213 @@ namespace CasaMulher.Api.Migrations
                     b.ToTable("EmailEventos", (string)null);
                 });
 
+            modelBuilder.Entity("CasaMulher.Api.Models.EquipeConvite", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("CodigoAtivacaoHash")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CodigoEquipe")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CriadoEm")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CriadoPorUserId")
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FluxoTrabalho")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NomeInformado")
+                        .HasMaxLength(160)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Observacao")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PapelEquipe")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("PodeCriarConvitesEquipe")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("PrecisaFork")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("RevogadoEm")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("UsaCodespaces")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("UsadoEm")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UsadoPorUserId")
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CodigoAtivacaoHash")
+                        .IsUnique();
+
+                    b.HasIndex("CodigoEquipe")
+                        .IsUnique();
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("EquipeConvites", (string)null);
+                });
+
+            modelBuilder.Entity("CasaMulher.Api.Models.EquipeMembro", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("Ativo")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("AtualizadoEm")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CodigoEquipe")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CriadoEm")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FluxoTrabalho")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ForkUrl")
+                        .HasMaxLength(300)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("GitHubId")
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("GitHubUsername")
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("GitHubVinculadoEm")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PapelEquipe")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("PodeCriarConvitesEquipe")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("PrecisaFork")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("UltimaVerificacaoGitHubEm")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("UsaCodespaces")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CodigoEquipe")
+                        .IsUnique();
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("EquipeMembros", (string)null);
+                });
+
+            modelBuilder.Entity("CasaMulher.Api.Models.EquipeSenhaReset", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("CodigoEquipe")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CodigoHash")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CriadoEm")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("ExpiraEm")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("GeradoPorUserId")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("Revogado")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("RevogadoEm")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("Usado")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("UsadoEm")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CodigoEquipe");
+
+                    b.HasIndex("CodigoHash")
+                        .IsUnique();
+
+                    b.HasIndex("ExpiraEm");
+
+                    b.ToTable("EquipeSenhaResets", (string)null);
+                });
+
             modelBuilder.Entity("CasaMulher.Api.Models.FuncionarioConvite", b =>
                 {
                     b.Property<int>("Id")

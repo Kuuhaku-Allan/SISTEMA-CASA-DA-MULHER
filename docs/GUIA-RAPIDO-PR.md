@@ -2,6 +2,40 @@
 
 Este guia e para o mantenedor revisar contribuicoes sem deixar a `main` virar uma zona de testes.
 
+O destino correto dos Pull Requests da equipe e:
+
+```text
+Sistema-Casa-da-Mulher/SISTEMA-CASA-DA-MULHER
+```
+
+Colaboradoras devem trabalhar no proprio fork e abrir PR para a branch `main` do repositorio principal.
+
+Para colaboradoras, o caminho seguro e alterar somente:
+
+```text
+prototipos/
+```
+
+PR vindo de fork que alterar arquivo fora de `prototipos/` sera bloqueado pelo GitHub Actions.
+
+## Enviar PR pelo Codespaces
+
+No Codespaces, use a tarefa:
+
+```text
+Casa da Mulher: enviar Pull Request
+```
+
+Ela:
+
+- bloqueia envio direto para `main`;
+- cria uma branch se a pessoa estiver na `main`;
+- bloqueia colaboradoras quando houver alteracao fora de `prototipos/`;
+- faz commit;
+- faz push para o fork;
+- tenta abrir PR contra `Sistema-Casa-da-Mulher/SISTEMA-CASA-DA-MULHER`;
+- se o GitHub CLI falhar, mostra instrucoes para abrir manualmente.
+
 ## Revisar PR
 
 1. Abra a aba `Pull requests`.
