@@ -29,6 +29,7 @@ public class EquipeController : ControllerBase
     private readonly IAuditoriaService _auditoriaService;
     private readonly IEquipeGithubService _githubService;
     private readonly IMasterUserService _masterUserService;
+    private readonly IWebHostEnvironment _environment;
 
     public EquipeController(
         AppDbContext dbContext,
@@ -38,7 +39,8 @@ public class EquipeController : ControllerBase
         IFuncionarioIdentificadorService identificadorService,
         IAuditoriaService auditoriaService,
         IEquipeGithubService githubService,
-        IMasterUserService masterUserService)
+        IMasterUserService masterUserService,
+        IWebHostEnvironment environment)
     {
         _dbContext = dbContext;
         _userManager = userManager;
@@ -48,6 +50,7 @@ public class EquipeController : ControllerBase
         _auditoriaService = auditoriaService;
         _githubService = githubService;
         _masterUserService = masterUserService;
+        _environment = environment;
     }
 
     [Authorize(Policy = PoliticasAcesso.AcessoEquipe)]
@@ -382,6 +385,55 @@ public class EquipeController : ControllerBase
         });
     }
 
+    [AllowAnonymous]
+    [HttpPost("convites/bootstrap")]
+    public async Task<ActionResult<BootstrapEquipeResponse>> BootstrapConvites(BootstrapEquipeRequest request)
+    {
+        if (!_environment.IsDevelopment() && !_environment.IsStaging())
+        {
+            return NotFound(new { mensagem = "Bootstrap de equipe disponivel apenas em Development/Staging." });
+        }
+
+        var quantidadeIntegrantes = Math.Clamp(request.QuantidadeIntegrantes, 1, 20);
+        var respostas = new List<BootstrapEquipeConviteResponse>
+        {
+            await PrepararConviteBootstrapAsync(
+                _masterUserService.EquipeOwnerCodigo,
+                EquipePapeis.Owner,
+                precisaFork: false,
+                usaCodespaces: false,
+                fluxoTrabalho: EquipeFluxosTrabalho.LocalOwner,
+                podeCriarConvitesEquipe: true,
+                observacao: "Allan/mantenedor",
+                regenerarDisponiveis: request.RegenerarCodigosDisponiveis)
+        };
+
+        for (var index = 2; index <= quantidadeIntegrantes + 1; index++)
+        {
+            respostas.Add(await PrepararConviteBootstrapAsync(
+                $"EQP-{index:000000}",
+                EquipePapeis.Contributor,
+                precisaFork: true,
+                usaCodespaces: true,
+                fluxoTrabalho: EquipeFluxosTrabalho.ForkCodespaces,
+                podeCriarConvitesEquipe: false,
+                observacao: $"integrante {index - 1}",
+                regenerarDisponiveis: request.RegenerarCodigosDisponiveis));
+        }
+
+        await _auditoriaService.RegistrarAsync(
+            "EQUIPE_BOOTSTRAP_CONVITES",
+            "EquipeConvite",
+            null,
+            $"Executou bootstrap de convites da equipe em {_environment.EnvironmentName}.");
+
+        return Ok(new BootstrapEquipeResponse
+        {
+            Ambiente = _environment.EnvironmentName,
+            Convites = respostas
+        });
+    }
+
     [Authorize(Policy = PoliticasAcesso.GerenciarConvitesEquipe)]
     [HttpPost("convites/{id:int}/revogar")]
     public async Task<ActionResult<EquipeConviteResponse>> RevogarConvite(int id)
@@ -578,6 +630,96 @@ public class EquipeController : ControllerBase
         });
     }
 
+    private async Task<BootstrapEquipeConviteResponse> PrepararConviteBootstrapAsync(
+        string codigoEquipe,
+        string papelEquipe,
+        bool precisaFork,
+        bool usaCodespaces,
+        string fluxoTrabalho,
+        bool podeCriarConvitesEquipe,
+        string observacao,
+        bool regenerarDisponiveis)
+    {
+        var codigoNormalizado = NormalizarCodigoEquipe(codigoEquipe);
+
+        if (await ContaEquipeAtivadaAsync(codigoNormalizado))
+        {
+            return new BootstrapEquipeConviteResponse
+            {
+                CodigoEquipe = codigoNormalizado,
+                PapelEquipe = papelEquipe,
+                Status = "Ativado",
+                Observacao = $"{observacao}: conta ja ativada.",
+                Ativado = true
+            };
+        }
+
+        var convite = await _dbContext.EquipeConvites
+            .SingleOrDefaultAsync(item => item.CodigoEquipe == codigoNormalizado);
+
+        if (convite is not null
+            && !string.Equals(convite.Status, EquipeConviteStatus.Disponivel, StringComparison.OrdinalIgnoreCase))
+        {
+            return new BootstrapEquipeConviteResponse
+            {
+                CodigoEquipe = convite.CodigoEquipe,
+                PapelEquipe = convite.PapelEquipe,
+                Status = convite.Status,
+                Observacao = $"{observacao}: convite existente com status {convite.Status}.",
+                Ativado = string.Equals(convite.Status, EquipeConviteStatus.Usado, StringComparison.OrdinalIgnoreCase)
+            };
+        }
+
+        var codigoAtivacao = convite is null || regenerarDisponiveis
+            ? await GerarCodigoAtivacaoUnicoAsync()
+            : null;
+
+        if (convite is null)
+        {
+            convite = new EquipeConvite
+            {
+                CodigoEquipe = codigoNormalizado,
+                CodigoAtivacaoHash = _codigoService.GerarHash(codigoAtivacao!),
+                Status = EquipeConviteStatus.Disponivel,
+                PapelEquipe = NormalizarPapel(papelEquipe),
+                PrecisaFork = precisaFork,
+                UsaCodespaces = usaCodespaces,
+                FluxoTrabalho = NormalizarFluxo(fluxoTrabalho),
+                PodeCriarConvitesEquipe = podeCriarConvitesEquipe,
+                Observacao = observacao,
+                CriadoEm = DateTime.UtcNow
+            };
+
+            AplicarPadraoOwnerPrincipal(convite);
+            _dbContext.EquipeConvites.Add(convite);
+            await _dbContext.SaveChangesAsync();
+
+            return MapearConviteBootstrap(convite, codigoAtivacao, observacao, criado: true, regenerado: false);
+        }
+
+        convite.PapelEquipe = NormalizarPapel(papelEquipe);
+        convite.PrecisaFork = precisaFork;
+        convite.UsaCodespaces = usaCodespaces;
+        convite.FluxoTrabalho = NormalizarFluxo(fluxoTrabalho);
+        convite.PodeCriarConvitesEquipe = podeCriarConvitesEquipe;
+        convite.Observacao = observacao;
+        AplicarPadraoOwnerPrincipal(convite);
+
+        if (!string.IsNullOrWhiteSpace(codigoAtivacao))
+        {
+            convite.CodigoAtivacaoHash = _codigoService.GerarHash(codigoAtivacao);
+        }
+
+        await _dbContext.SaveChangesAsync();
+
+        return MapearConviteBootstrap(
+            convite,
+            codigoAtivacao,
+            observacao,
+            criado: false,
+            regenerado: !string.IsNullOrWhiteSpace(codigoAtivacao));
+    }
+
     private async Task<(EquipeConvite Convite, string CodigoAtivacao)> CriarConvitePersistidoAsync(
         CriarEquipeConviteRequest request)
     {
@@ -767,6 +909,14 @@ public class EquipeController : ControllerBase
         return await _dbContext.Users.AnyAsync(usuario =>
                 usuario.IdentificadorFuncionario == codigoEquipe
                 || usuario.NormalizedUserName == codigoEquipe)
+            || await _dbContext.EquipeMembros.AnyAsync(membro => membro.CodigoEquipe == codigoEquipe);
+    }
+
+    private async Task<bool> ContaEquipeAtivadaAsync(string codigoEquipe)
+    {
+        return await _dbContext.Users.AnyAsync(usuario =>
+                usuario.IdentificadorFuncionario == codigoEquipe
+                && usuario.Perfil == PerfisAcesso.Equipe)
             || await _dbContext.EquipeMembros.AnyAsync(membro => membro.CodigoEquipe == codigoEquipe);
     }
 
@@ -990,6 +1140,26 @@ public class EquipeController : ControllerBase
             RevogadoEm = convite.RevogadoEm,
             Observacao = convite.Observacao,
             CodigoAtivacao = codigoAtivacao
+        };
+    }
+
+    private static BootstrapEquipeConviteResponse MapearConviteBootstrap(
+        EquipeConvite convite,
+        string? codigoAtivacao,
+        string observacao,
+        bool criado,
+        bool regenerado)
+    {
+        return new BootstrapEquipeConviteResponse
+        {
+            CodigoEquipe = convite.CodigoEquipe,
+            CodigoAtivacao = codigoAtivacao,
+            PapelEquipe = convite.PapelEquipe,
+            Status = convite.Status,
+            Observacao = observacao,
+            Criado = criado,
+            Regenerado = regenerado,
+            Ativado = false
         };
     }
 }

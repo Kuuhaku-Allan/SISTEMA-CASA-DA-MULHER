@@ -43,10 +43,10 @@ Sistema iniciado.
 
 Portas:
 - API:   5001
-- Telas: 5500/projetocasadamulher/telas/
+- Telas:      5500/projetocasadamulher/telas/
+- Equipe:     5500/equipe.html
 - Prototipos: 5500/prototipos/
 
-No GitHub Codespaces, abra a porta 5500 no navegador.
 Para testar a recepcao em ambiente novo:
 1. Abra projetocasadamulher/telas/cadastro.html usando o convite demo recepcao@casamulher.local / REC-2026.
 2. Crie a senha Senha@123.
@@ -55,5 +55,7 @@ Para testar a recepcao em ambiente novo:
 Para parar, pressione Ctrl+C neste terminal.
 
 INFO
+
+bash "${SCRIPT_DIR}/abrir-equipe.sh" --print-only
 
 wait -n "${API_PID}" "${FRONT_PID}"

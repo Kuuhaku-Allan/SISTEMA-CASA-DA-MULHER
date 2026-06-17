@@ -1,56 +1,67 @@
 # Comece aqui - Equipe do Projeto
 
-Este e o ponto de entrada para quem vai ajudar no Sistema Casa da Mulher.
-
-## Link permanente da equipe
-
-Quando o repositorio privado abaixo estiver disponivel, ele sera o ponto fixo de entrada da equipe:
-
-```text
-https://github.com/Sistema-Casa-da-Mulher/ACESSO-EQUIPE
-```
-
-A tela `equipe-ativar.html` deve ser aberta dentro do ambiente local ou Codespaces de cada pessoa. Sem API/banco central sempre ligado, ela nao tem uma URL unica permanente.
-
-Se a pessoa nao sabe por onde comecar, deve abrir o repositorio privado `ACESSO-EQUIPE` e a issue fixada `COMECE AQUI - Acesso da equipe`.
+Este é o ponto de entrada para quem vai ajudar no Sistema Casa da Mulher.
 
 O projeto tem dois mundos separados:
 
-- Sistema institucional: funcionarios reais, recepcao, coordenacao, historico e logs de e-mail.
-- Equipe do projeto: contas `EQP`, testes, Codespaces, Pull Requests e organizacao do desenvolvimento.
+- Sistema institucional: funcionárias reais, recepção, coordenação, histórico e logs.
+- Equipe do projeto: contas `EQP`, testes, Codespaces, protótipos, Pull Requests e organização do desenvolvimento.
 
-Contas `EQP` nao representam funcionarias reais da Casa da Mulher.
+Contas `EQP` não representam funcionárias reais da Casa da Mulher.
 
-## Sou Allan ou mantenedor e uso IDE local
+## Entrada única
 
-Use o repositorio principal normalmente na sua IDE local.
+Use sempre a Área da Equipe.
 
-Fluxo esperado:
+No ambiente local do mantenedor:
 
-1. Trabalhe em uma branch propria.
-2. Rode a API localmente.
-3. Rode as telas locais.
-4. Faca commit e abra Pull Request quando quiser revisao.
+```powershell
+.\casa_da_mulher.cmd equipe
+```
 
-O membro `EQP-000001` e tratado como owner da equipe:
+Esse comando inicia API, banco e front, depois abre:
 
-- nao precisa de fork;
-- nao precisa de Codespaces;
+```text
+http://localhost:5500/equipe.html
+```
+
+No Codespaces, rode a task:
+
+```text
+Casa da Mulher: abrir área da equipe
+```
+
+Se a porta não abrir sozinha, abra a aba `Ports/Portas`, clique na porta `5500` e acesse `/equipe.html`.
+
+## Allan ou mantenedor
+
+Fluxo recomendado:
+
+1. Abra o projeto na sua IDE.
+2. Execute `.\casa_da_mulher.cmd equipe`.
+3. A Área da Equipe abrirá automaticamente.
+4. Se ainda não tiver EQP, execute `.\casa_da_mulher.cmd equipe bootstrap`.
+5. Use o `EQP-000001` e o código gerado para ativar sua conta.
+
+O membro `EQP-000001` é tratado como owner da equipe:
+
+- não precisa de fork;
+- não precisa de Codespaces;
 - usa fluxo `local_owner`;
 - pode gerenciar convites, membros e logs da equipe.
 
 A conta `ADM-000003` continua sendo super admin institucional/de desenvolvimento.
 
-## Ja tenho fork
+## Colaboradora que já tem fork
 
-1. Abra o seu fork no GitHub.
-2. Clique em `Code`.
-3. Clique em `Codespaces`.
-4. Crie ou abra o Codespace no seu fork.
-5. Rode a tarefa `Casa da Mulher: iniciar sistema`.
-6. Acesse a porta `5500`.
-7. Trabalhe em uma branch.
-8. Rode a tarefa `Casa da Mulher: enviar Pull Request`.
+1. Abra seu fork no GitHub.
+2. Abra Codespaces no seu fork.
+3. Rode `Casa da Mulher: iniciar sistema`.
+4. Rode `Casa da Mulher: abrir área da equipe`.
+5. Clique em `Ativar meu EQP`.
+6. Use o ID e o código enviados pelo mantenedor.
+7. Trabalhe em `prototipos/`.
+8. Envie Pull Request.
 
 O Pull Request deve ir para:
 
@@ -58,128 +69,82 @@ O Pull Request deve ir para:
 Sistema-Casa-da-Mulher/SISTEMA-CASA-DA-MULHER
 ```
 
-## Ainda nao tenho fork
+## Colaboradora que ainda não tem fork
 
-1. Entre no repositorio principal:
+1. Entre no repositório principal:
    `https://github.com/Sistema-Casa-da-Mulher/SISTEMA-CASA-DA-MULHER`
 2. Clique em `Fork`.
 3. Crie o fork na sua conta.
-4. Depois abra o Codespace no seu fork, nao no repositorio principal.
+4. Abra Codespaces no seu fork.
+5. Rode `Casa da Mulher: iniciar sistema`.
+6. Rode `Casa da Mulher: abrir área da equipe`.
+7. Clique em `Ativar meu EQP`.
+8. Crie protótipos e envie PR.
 
 Se o painel mostrar `Precisa criar fork`, volte para este passo.
 
-## Quero ativar meu EQP
+## Como ativar meu EQP
 
-Quem gerencia a equipe vai te enviar:
+Quem gerencia a equipe envia individualmente:
 
 - ID `EQP-000000`;
-- codigo de ativacao;
-- link da tela de ativacao.
+- código de ativação;
+- orientação de fork/Codespaces, quando necessário.
 
-Abra:
+Depois:
 
-```text
-projetocasadamulher/telas/equipe-ativar.html
-```
+1. Abra a Área da Equipe.
+2. Clique em `Ativar meu EQP`.
+3. Informe ID, código, nome e senha.
+4. Faça login com o ID `EQP` e a senha criada.
 
-Informe o ID, o codigo, seu nome e crie uma senha.
+Nunca compartilhe seu código de ativação.
 
-Depois disso, entre pela tela normal de login usando o ID `EQP` e a senha criada.
+## Criar protótipo
 
-## Quero abrir Codespaces
-
-Veja o guia completo:
-
-```text
-docs/CODESPACES-PARA-COLABORADORAS.md
-```
-
-Resumo:
-
-1. Abra seu fork.
-2. Crie um Codespace.
-3. Rode `Casa da Mulher: preparar ambiente` se for a primeira vez.
-4. Rode `Casa da Mulher: iniciar sistema`.
-5. Abra a porta `5500`.
-
-## Quero mandar Pull Request
-
-Veja:
-
-```text
-docs/GUIA-RAPIDO-PR.md
-```
-
-No Codespaces, a forma mais simples e rodar a tarefa:
-
-```text
-Casa da Mulher: enviar Pull Request
-```
-
-Ela cria branch quando necessario, faz commit, envia para o seu fork e tenta abrir o PR contra o repositorio principal.
-
-## Quero criar um prototipo
-
-Este e o fluxo recomendado para colaboradoras:
+Este é o fluxo recomendado para colaboradoras:
 
 1. Crie um fork.
 2. Abra Codespaces no fork.
-3. Rode `Casa da Mulher: iniciar sistema`, se precisar testar.
-4. Rode `Casa da Mulher: criar novo prototipo`.
+3. Rode `Casa da Mulher: iniciar sistema`.
+4. Rode `Casa da Mulher: criar novo protótipo`.
 5. Edite apenas a pasta criada em `prototipos/colaboradores/seu-usuario/`.
 6. Abra `prototipos/index.html`.
 7. Rode `Casa da Mulher: enviar Pull Request`.
 8. Mande o link do PR.
 
-PRs vindos de fork sao bloqueados automaticamente se alterarem arquivos fora de `prototipos/`.
+PRs vindos de fork são bloqueados automaticamente se alterarem arquivos fora de `prototipos/`.
 
-O mantenedor revisa o prototipo e decide depois se alguma parte sera integrada em `projetocasadamulher/telas/`.
+## Guias úteis
 
-## Quero validar permissoes EQP/ADM
+- Contas e convites EQP: `docs/EQUIPE-E-CONVITES.md`
+- Codespaces: `docs/CODESPACES-PARA-COLABORADORAS.md`
+- Pull Request: `docs/GUIA-RAPIDO-PR.md`
+- Matriz de permissões: `docs/MATRIZ-PERMISSOES-EQP-ADM.md`
+- Repositório privado da equipe: `docs/ACESSO-EQUIPE-PRIVADO.md`
 
-Consulte:
+## Banco local e URL permanente
 
-```text
-docs/MATRIZ-PERMISSOES-EQP-ADM.md
-```
+Sem API central hospedada, não existe uma URL única permanente para a tela real de ativação.
 
-Com a API local rodando, use a tarefa:
+Cada ambiente local/Codespaces tem:
 
-```text
-Casa da Mulher: validar regras EQP/ADM
-```
+- sua própria URL encaminhada;
+- seu próprio banco local;
+- sua própria API rodando.
 
-## Banco local e atividade central
+Por isso, o link permanente da equipe é o repositório privado `ACESSO-EQUIPE`, e a Área da Equipe abre a tela correta dentro do ambiente de cada pessoa.
 
-Em Codespaces, cada pessoa tem seu proprio banco local de desenvolvimento.
-
-Isso significa:
-
-- ativar um `EQP` no seu Codespace vale para aquele ambiente;
-- outro Codespace nao ve automaticamente esse mesmo banco;
-- isso e normal para desenvolvimento;
-- a atividade central do projeto vem do GitHub: Pull Requests, branches, commits e revisoes.
-
-Para ter `EQP` centralizado para todos no futuro, sera necessario um ambiente de homologacao com API e banco compartilhados.
-
-Antes da entrega final para a Casa da Mulher, o banco de teste deve ser limpo e recriado com dados corretos.
-
-## Deu erro, o que fazer?
+## Deu erro
 
 Verifique nesta ordem:
 
-1. Voce esta no seu fork?
-2. Voce esta logada no GitHub?
-3. A tarefa `Casa da Mulher: detectar fluxo` roda sem erro?
-4. A API abriu na porta `5001`?
-5. As telas abriram na porta `5500`?
-6. O arquivo alterado fica dentro de `projetocasadamulher/telas/`?
-7. Nao foi enviado token, senha, banco local ou arquivo sensivel?
+1. Você está no seu fork, se for colaboradora?
+2. A task `Casa da Mulher: detectar fluxo` roda sem erro?
+3. A API abriu na porta `5001`?
+4. O front abriu na porta `5500`?
+5. Você acessou `/equipe.html`?
+6. O arquivo alterado fica dentro de `prototipos/`, se o PR veio de fork?
+7. Nenhum token, senha, banco local ou dado real foi enviado?
 
 Se ainda falhar, copie a mensagem de erro e mande junto com o link do Codespace ou Pull Request.
-
-## GitHub e login
-
-Estar logada no GitHub para abrir Codespaces nao faz a aplicacao saber automaticamente quem voce e.
-
-Login automatico real com GitHub precisa de OAuth/GitHub App. Nesta etapa, o sistema esta preparado com campos e configuracoes para esse futuro, mas o login por ID/senha continua sendo o fluxo principal e seguro.

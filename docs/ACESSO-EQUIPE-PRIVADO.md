@@ -1,45 +1,63 @@
 # Ponto de entrada privado da equipe
 
-O repositorio principal pode ser publico, mas o acesso real da equipe deve ficar em um repositorio privado da organizacao.
+O repositório principal pode ser público, mas o acesso real da equipe deve ficar em um repositório privado da organização.
 
-Repositorio privado definido:
+Repositório privado definido:
 
 ```text
 Sistema-Casa-da-Mulher/ACESSO-EQUIPE
 ```
 
-Esse repositorio privado deve ser o link permanente da equipe. Ele nao substitui a tela `equipe-ativar.html`; ele explica como cada pessoa abre a tela no ambiente correto.
+Esse repositório privado é o link permanente da equipe. Ele não substitui a aplicação rodando; ele orienta cada pessoa a abrir a Área da Equipe no ambiente correto.
 
-## Por que nao usar um link unico para equipe-ativar.html
+## Por que não usar uma URL única da tela real
 
-A tela `projetocasadamulher/telas/equipe-ativar.html` depende da API e do banco rodando.
+A Área da Equipe depende de API e banco rodando.
 
-Em Codespaces, cada pessoa tera:
+Em Codespaces, cada pessoa tem:
 
-- uma URL temporaria propria;
-- um banco local proprio;
-- um ambiente criado no fork ou no repositorio que ela abriu.
+- uma URL temporária própria;
+- um banco local próprio;
+- um ambiente criado no fork ou no repositório que ela abriu.
 
-Sem uma API/banco central sempre ligado, nao existe uma URL unica permanente para ativacao EQP.
+Sem uma API/banco central sempre ligado, não existe uma URL única permanente para ativação EQP.
 
-Por isso, o link permanente deve apontar para o guia privado `ACESSO-EQUIPE`, e a tela real deve ser aberta dentro do Codespaces/local de cada pessoa.
+Por isso, o link permanente deve apontar para o `ACESSO-EQUIPE`, e a tela real deve ser aberta dentro do Codespaces/local de cada pessoa.
 
-## O que deve ficar no repositorio privado
+## O que deve ficar no repositório privado
 
-- Link do repositorio principal.
-- Guia "Comece Aqui" da equipe.
-- Guia de ativacao EQP.
+- Link do repositório principal.
+- Guia `Comece Aqui` da equipe.
+- Guia de contas e convites EQP.
 - Guia de fork e Codespaces.
 - Guia de Pull Request.
-- Orientacao para area `prototipos/`.
-- Instrucao para abrir `equipe-ativar.html` no ambiente local/Codespaces.
-- Aviso sobre como pedir o codigo EQP.
+- Orientação para `prototipos/`.
+- Comandos para abrir a Área da Equipe.
+- Aviso sobre como pedir o código EQP.
 
-## O que nao deve ficar publico
+## Fluxo correto
 
-Codigos EQP sao individuais e nao devem ser publicados no repositorio principal.
+Para Allan/mantenedor:
 
-Tambem nao publicar:
+```powershell
+.\casa_da_mulher.cmd equipe
+.\casa_da_mulher.cmd equipe bootstrap
+```
+
+Para colaboradoras no Codespaces:
+
+```text
+Casa da Mulher: iniciar sistema
+Casa da Mulher: abrir área da equipe
+```
+
+Depois, a pessoa clica em `Ativar meu EQP`.
+
+## O que não deve ficar público
+
+Códigos EQP são individuais e não devem ser publicados no repositório principal.
+
+Também não publicar:
 
 - senhas;
 - tokens;
@@ -49,4 +67,4 @@ Tambem nao publicar:
 - banco local;
 - dados reais de atendimento.
 
-Codigos EQP devem ser entregues individualmente ou registrados apenas em local privado da equipe.
+Códigos EQP devem ser entregues individualmente ou registrados apenas em local privado da equipe.

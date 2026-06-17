@@ -33,3 +33,4 @@ bash "${SCRIPT_DIR}/detectar-fluxo.sh" || true
 
 echo "==> Ambiente preparado."
 echo "==> Para iniciar, use a tarefa: Casa da Mulher: iniciar sistema"
+echo "==> Depois, use a tarefa: Casa da Mulher: abrir area da equipe"

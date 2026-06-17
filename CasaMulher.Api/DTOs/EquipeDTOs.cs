@@ -26,6 +26,40 @@ public class CriarEquipeConvitesLoteRequest : CriarEquipeConviteRequest
     public int Quantidade { get; set; } = 5;
 }
 
+public class BootstrapEquipeRequest
+{
+    [Range(1, 20)]
+    public int QuantidadeIntegrantes { get; set; } = 5;
+
+    public bool RegenerarCodigosDisponiveis { get; set; } = true;
+}
+
+public class BootstrapEquipeResponse
+{
+    public string Ambiente { get; set; } = string.Empty;
+
+    public IReadOnlyCollection<BootstrapEquipeConviteResponse> Convites { get; set; } = [];
+}
+
+public class BootstrapEquipeConviteResponse
+{
+    public string CodigoEquipe { get; set; } = string.Empty;
+
+    public string? CodigoAtivacao { get; set; }
+
+    public string PapelEquipe { get; set; } = string.Empty;
+
+    public string Status { get; set; } = string.Empty;
+
+    public string Observacao { get; set; } = string.Empty;
+
+    public bool Criado { get; set; }
+
+    public bool Regenerado { get; set; }
+
+    public bool Ativado { get; set; }
+}
+
 public class AtivarEquipeConviteRequest
 {
     [Required]
