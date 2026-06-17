@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redefinir senha EQP - Casa da Mulher</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="config.js" defer></script>
+    <script src="auth.js" defer></script>
+    <script src="app.js" defer></script>
+</head>
+<body>
+    <main id="equipeRedefinirSenhaPage" class="auth-container">
+        <section class="auth-box auth-box-wide">
+            <img src="IMAGENS/logo_oficial.png" alt="Logo Casa da Mulher" class="logo-login">
+            <h1 class="auth-title">Redefinir senha EQP</h1>
+            <p class="auth-subtitle">Use o c&oacute;digo tempor&aacute;rio gerado por um owner para criar uma nova senha.</p>
+
+            <form id="formEquipeRedefinirSenha" class="auth-form" novalidate>
+                <div class="input-grid">
+                    <div class="input-group">
+                        <label for="resetCodigoEquipe">ID EQP</label>
+                        <input type="text" id="resetCodigoEquipe" autocomplete="username" placeholder="EQP-000001" maxlength="20" required>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="resetCodigo">C&oacute;digo</label>
+                        <input type="text" id="resetCodigo" maxlength="40" required>
+                    </div>
+                </div>
+
+                <div class="input-grid">
+                    <div class="input-group">
+                        <label for="resetNovaSenha">Nova senha</label>
+                        <input type="password" id="resetNovaSenha" autocomplete="new-password" minlength="8" required>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="resetConfirmarNovaSenha">Confirmar nova senha</label>
+                        <input type="password" id="resetConfirmarNovaSenha" autocomplete="new-password" minlength="8" required>
+                    </div>
+                </div>
+
+                <div id="mensagemEquipeRedefinirSenha" class="message" aria-live="polite"></div>
+
+                <button type="submit" class="btn-primary">Redefinir senha</button>
+            </form>
+
+            <a class="text-link" href="index.html">Voltar ao login</a>
+        </section>
+    </main>
+</body>
+</html>

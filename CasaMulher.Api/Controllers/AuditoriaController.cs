@@ -24,6 +24,9 @@ public class AuditoriaController : ControllerBase
     public async Task<ActionResult<IEnumerable<AuditoriaEventoResponse>>> Listar()
     {
         var eventos = await _dbContext.AuditoriaEventos
+            .Where(evento =>
+                evento.PerfilFuncionario != PerfisAcesso.Equipe
+                && !evento.Acao.StartsWith("EQUIPE_"))
             .OrderByDescending(evento => evento.CriadoEm)
             .Take(200)
             .ToListAsync();
@@ -41,6 +44,12 @@ public class AuditoriaController : ControllerBase
             return NotFound(new { mensagem = "Evento de auditoria não encontrado." });
         }
 
+        if (evento.PerfilFuncionario == PerfisAcesso.Equipe
+            || evento.Acao.StartsWith("EQUIPE_"))
+        {
+            return NotFound(new { mensagem = "Evento de auditoria nao encontrado." });
+        }
+
         return Ok(Mapear(evento));
     }
 
@@ -49,6 +58,9 @@ public class AuditoriaController : ControllerBase
     {
         var eventos = await _dbContext.AuditoriaEventos
             .Where(evento => evento.UsuarioId == usuarioId || evento.EntidadeId == usuarioId)
+            .Where(evento =>
+                evento.PerfilFuncionario != PerfisAcesso.Equipe
+                && !evento.Acao.StartsWith("EQUIPE_"))
             .OrderByDescending(evento => evento.CriadoEm)
             .Take(200)
             .ToListAsync();

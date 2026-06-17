@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Convites da Equipe - Casa da Mulher</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="config.js" defer></script>
+    <script src="auth.js" defer></script>
+    <script src="app.js" defer></script>
+</head>
+<body>
+    <main id="equipeConvitesPage" class="admin-shell">
+        <header class="admin-header">
+            <div>
+                <img src="IMAGENS/logo_oficial.png" alt="Logo Casa da Mulher" class="logo-admin">
+                <div>
+                    <h1>Convites da equipe</h1>
+                    <p>Gere IDs EQP para integrantes do projeto.</p>
+                </div>
+            </div>
+            <div class="header-actions">
+                <a class="btn-secondary btn-compact button-link" href="equipe-painel.html">Voltar</a>
+                <button type="button" id="btnSairEquipeConvites" class="btn-secondary btn-compact">Sair</button>
+            </div>
+        </header>
+
+        <section id="equipeConvitesRestrito" class="admin-alert hidden">
+            <h2>Acesso restrito ao ADM ou mantenedor da equipe</h2>
+        </section>
+
+        <section id="equipeConvitesConteudo" class="admin-layout">
+            <form id="formEquipeConvite" class="admin-panel" novalidate>
+                <h2>Novo convite EQP</h2>
+
+                <div class="input-group">
+                    <label for="equipeConvitePapel">Papel na equipe</label>
+                    <select id="equipeConvitePapel" required>
+                        <option value="contributor" selected>Contributor</option>
+                        <option value="maintainer">Maintainer</option>
+                        <option value="owner">Owner</option>
+                    </select>
+                </div>
+
+                <label class="checkbox-field">
+                    <input type="checkbox" id="equipeConvitePrecisaFork" checked>
+                    <span>Precisa usar fork no GitHub</span>
+                </label>
+
+                <label class="checkbox-field">
+                    <input type="checkbox" id="equipeConvitePodeCriarConvites">
+                    <span>Pode criar convites da equipe</span>
+                </label>
+
+                <div class="input-group">
+                    <label for="equipeConviteObservacao">Observa&ccedil;&atilde;o</label>
+                    <input type="text" id="equipeConviteObservacao" maxlength="500">
+                </div>
+
+                <button type="submit" class="btn-primary">Criar convite</button>
+            </form>
+
+            <form id="formEquipeConviteLote" class="admin-panel" novalidate>
+                <h2>Criar lote</h2>
+
+                <div class="input-group">
+                    <label for="equipeLoteQuantidade">Quantidade</label>
+                    <input type="number" id="equipeLoteQuantidade" min="1" max="50" value="5" required>
+                </div>
+
+                <div class="input-group">
+                    <label for="equipeLotePapel">Papel na equipe</label>
+                    <select id="equipeLotePapel" required>
+                        <option value="contributor" selected>Contributor</option>
+                        <option value="maintainer">Maintainer</option>
+                        <option value="owner">Owner</option>
+                    </select>
+                </div>
+
+                <label class="checkbox-field">
+                    <input type="checkbox" id="equipeLotePrecisaFork" checked>
+                    <span>Precisa usar fork no GitHub</span>
+                </label>
+
+                <label class="checkbox-field">
+                    <input type="checkbox" id="equipeLotePodeCriarConvites">
+                    <span>Pode criar convites da equipe</span>
+                </label>
+
+                <div class="input-group">
+                    <label for="equipeLoteObservacao">Observa&ccedil;&atilde;o</label>
+                    <input type="text" id="equipeLoteObservacao" maxlength="500">
+                </div>
+
+                <button type="submit" class="btn-primary">Criar lote</button>
+            </form>
+
+            <section id="equipeConvitesGerados" class="admin-panel result-panel hidden">
+                <h2>C&oacute;digos gerados</h2>
+                <p class="section-intro">Copie estes dados agora. O c&oacute;digo em texto puro n&atilde;o aparece novamente na listagem.</p>
+
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID EQP</th>
+                                <th>C&oacute;digo</th>
+                                <th>Papel</th>
+                                <th>A&ccedil;&atilde;o</th>
+                            </tr>
+                        </thead>
+                        <tbody id="listaEquipeConvitesGerados"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="admin-panel table-panel">
+                <div class="table-heading">
+                    <div>
+                        <h2>Convites EQP</h2>
+                        <div id="mensagemEquipeConvites" class="message" aria-live="polite"></div>
+                    </div>
+                    <button type="button" id="btnAtualizarEquipeConvites" class="btn-secondary btn-compact">Atualizar</button>
+                </div>
+
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID EQP</th>
+                                <th>Status</th>
+                                <th>Papel</th>
+                                <th>Fork</th>
+                                <th>Cria convites</th>
+                                <th>Usado por</th>
+                                <th>Criado em</th>
+                                <th>A&ccedil;&otilde;es</th>
+                            </tr>
+                        </thead>
+                        <tbody id="listaEquipeConvites"></tbody>
+                    </table>
+                </div>
+            </section>
+        </section>
+    </main>
+</body>
+</html>

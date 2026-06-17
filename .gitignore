@@ -9,6 +9,7 @@ obj/
 
 CasaMulher.Api/casamulher.db*
 CasaMulher.Api/DataProtectionKeys/
+projetocasadamulher/telas/dev-status.json
 
 .env
 .env.*

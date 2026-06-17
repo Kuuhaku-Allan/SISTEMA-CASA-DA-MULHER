@@ -4,7 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 API_DIR="${REPO_ROOT}/CasaMulher.Api"
-FRONT_DIR="${REPO_ROOT}/projetocasadamulher/telas"
+FRONT_DIR="${REPO_ROOT}"
 
 API_PID=""
 FRONT_PID=""
@@ -21,6 +21,9 @@ cleanup() {
 }
 
 trap cleanup EXIT INT TERM
+
+echo "==> Detectando fluxo GitHub/Codespaces"
+bash "${SCRIPT_DIR}/detectar-fluxo.sh" || true
 
 echo "==> Iniciando API em http://0.0.0.0:5001"
 cd "${API_DIR}"
@@ -40,11 +43,12 @@ Sistema iniciado.
 
 Portas:
 - API:   5001
-- Telas: 5500
+- Telas: 5500/projetocasadamulher/telas/
+- Prototipos: 5500/prototipos/
 
 No GitHub Codespaces, abra a porta 5500 no navegador.
 Para testar a recepcao em ambiente novo:
-1. Abra cadastro.html usando o convite demo recepcao@casamulher.local / REC-2026.
+1. Abra projetocasadamulher/telas/cadastro.html usando o convite demo recepcao@casamulher.local / REC-2026.
 2. Crie a senha Senha@123.
 3. Entre com o ID gerado na tela e a senha criada.
 

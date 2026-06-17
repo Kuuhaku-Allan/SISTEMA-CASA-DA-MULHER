@@ -1,4 +1,5 @@
 using System.Net;
+using System.Security.Claims;
 using CasaMulher.Api.Data;
 using CasaMulher.Api.DTOs;
 using CasaMulher.Api.Models;
@@ -23,6 +24,7 @@ public class ConvitesFuncionariosController : ControllerBase
     private readonly IAuditoriaService _auditoriaService;
     private readonly IEmailService _emailService;
     private readonly IConfiguration _configuration;
+    private readonly IMasterUserService _masterUserService;
 
     public ConvitesFuncionariosController(
         AppDbContext dbContext,
@@ -31,7 +33,8 @@ public class ConvitesFuncionariosController : ControllerBase
         IFuncionarioIdentificadorService identificadorService,
         IAuditoriaService auditoriaService,
         IEmailService emailService,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IMasterUserService masterUserService)
     {
         _dbContext = dbContext;
         _userManager = userManager;
@@ -40,11 +43,17 @@ public class ConvitesFuncionariosController : ControllerBase
         _auditoriaService = auditoriaService;
         _emailService = emailService;
         _configuration = configuration;
+        _masterUserService = masterUserService;
     }
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<FuncionarioConviteResponse>>> Listar()
     {
+        if (!await PodeGerenciarConvitesInstitucionaisAsync())
+        {
+            return Forbid();
+        }
+
         var agora = DateTime.UtcNow;
         var convites = await _dbContext.FuncionariosConvites
             .OrderByDescending(convite => convite.CriadoEm)
@@ -56,6 +65,11 @@ public class ConvitesFuncionariosController : ControllerBase
     [HttpGet("{id:int}")]
     public async Task<ActionResult<FuncionarioConviteResponse>> ObterPorId(int id)
     {
+        if (!await PodeGerenciarConvitesInstitucionaisAsync())
+        {
+            return Forbid();
+        }
+
         var convite = await _dbContext.FuncionariosConvites.FindAsync(id);
 
         if (convite is null)
@@ -69,6 +83,11 @@ public class ConvitesFuncionariosController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<CriarFuncionarioConviteResponse>> Criar(CriarFuncionarioConviteRequest request)
     {
+        if (!await PodeGerenciarConvitesInstitucionaisAsync())
+        {
+            return Forbid();
+        }
+
         var nomeCompleto = request.NomeCompleto.Trim();
         var email = request.Email.Trim();
         var confirmarEmail = request.ConfirmarEmail.Trim();
@@ -89,7 +108,7 @@ public class ConvitesFuncionariosController : ControllerBase
             return BadRequest(new { mensagem = "Os e-mails não conferem." });
         }
 
-        if (!PerfisAcesso.EhValido(perfil))
+        if (!PerfisAcesso.EhFuncionarioInstitucionalValido(perfil))
         {
             return BadRequest(new { mensagem = "Perfil inválido para convite." });
         }
@@ -160,6 +179,11 @@ public class ConvitesFuncionariosController : ControllerBase
     [HttpPatch("{id:int}/cancelar")]
     public async Task<ActionResult<FuncionarioConviteResponse>> Cancelar(int id)
     {
+        if (!await PodeGerenciarConvitesInstitucionaisAsync())
+        {
+            return Forbid();
+        }
+
         var convite = await _dbContext.FuncionariosConvites.FindAsync(id);
 
         if (convite is null)
@@ -200,6 +224,39 @@ public class ConvitesFuncionariosController : ControllerBase
             && !convite.Usado
             && !convite.Cancelado
             && convite.ExpiraEm >= agora);
+    }
+
+    private async Task<bool> PodeGerenciarConvitesInstitucionaisAsync()
+    {
+        var usuarioId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (string.IsNullOrWhiteSpace(usuarioId))
+        {
+            return false;
+        }
+
+        var usuario = await _userManager.FindByIdAsync(usuarioId);
+
+        if (usuario is null || !usuario.Ativo)
+        {
+            return false;
+        }
+
+        if (string.Equals(usuario.Perfil, PerfisAcesso.Adm, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (!string.Equals(usuario.Perfil, PerfisAcesso.Equipe, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        return await _dbContext.EquipeMembros.AnyAsync(membro =>
+            membro.UserId == usuario.Id
+            && membro.Ativo
+            && membro.PapelEquipe == EquipePapeis.Owner
+            && membro.CodigoEquipe == _masterUserService.EquipeOwnerCodigo);
     }
 
     private async Task<string> GerarCodigoUnico()

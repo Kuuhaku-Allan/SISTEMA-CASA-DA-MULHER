@@ -1,0 +1,53 @@
+name: Validar prototipos
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  proteger-forks:
+    name: Bloquear fork fora de prototipos
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.head.repo.full_name != github.repository
+    steps:
+      - name: Validar arquivos alterados
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const pull_number = context.payload.pull_request.number;
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner,
+              repo,
+              pull_number,
+              per_page: 100
+            });
+
+            const foraDePrototipos = files
+              .map((file) => file.filename)
+              .filter((filename) => !filename.startsWith("prototipos/"));
+
+            if (foraDePrototipos.length > 0) {
+              core.setFailed([
+                "PRs de colaboradoras vindos de fork devem enviar prototipos somente em prototipos/.",
+                "Para alterar arquivos principais, combine com o mantenedor.",
+                "",
+                "Arquivos fora de prototipos/:",
+                ...foraDePrototipos.map((filename) => `- ${filename}`)
+              ].join("\n"));
+              return;
+            }
+
+            core.info("PR de fork altera apenas prototipos/.");
+
+  branch-principal:
+    name: Branch do repositorio principal
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - name: Avisar regra
+        run: echo "PR interno do repositorio principal segue a revisao normal."

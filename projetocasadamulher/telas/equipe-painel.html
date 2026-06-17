@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel da Equipe - Casa da Mulher</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="config.js" defer></script>
+    <script src="auth.js" defer></script>
+    <script src="app.js" defer></script>
+</head>
+<body>
+    <main id="equipePainelPage" class="admin-shell">
+        <header class="admin-header">
+            <div>
+                <img src="IMAGENS/logo_oficial.png" alt="Logo Casa da Mulher" class="logo-admin">
+                <div>
+                    <h1>Painel da Equipe</h1>
+                    <p><span id="equipeNome">-</span> &middot; <span id="equipeIdentificador">-</span> &middot; <span id="equipePerfil">-</span></p>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button type="button" id="btnSairEquipePainel" class="btn-secondary btn-compact">Sair</button>
+            </div>
+        </header>
+
+        <section class="team-dashboard">
+            <section class="admin-panel">
+                <h2>Seguran&ccedil;a da conta</h2>
+                <div class="link-list">
+                    <a class="btn-secondary button-link" href="seguranca.html">Seguran&ccedil;a da conta</a>
+                    <a class="btn-secondary button-link" href="trocar-senha.html">Trocar senha</a>
+                    <a class="btn-secondary button-link" href="equipe-redefinir-senha.html">Redefinir senha EQP</a>
+                </div>
+            </section>
+
+            <section class="admin-panel">
+                <h2>Equipe</h2>
+                <div class="link-list">
+                    <a class="btn-primary button-link" href="equipe-membros.html">Membros da equipe</a>
+                    <a class="btn-primary button-link" href="equipe-convites.html">Convites da equipe</a>
+                    <a class="btn-primary button-link" href="equipe-atividade.html">Atividade e logs</a>
+                </div>
+            </section>
+
+            <section class="admin-panel">
+                <h2>Desenvolvimento</h2>
+                <p id="equipeFluxoResumo" class="section-intro">Carregando seu fluxo de trabalho...</p>
+                <div class="link-list">
+                    <a class="btn-secondary button-link" href="../../docs/COMECE-AQUI-EQUIPE.md">Comece aqui</a>
+                    <a class="btn-secondary button-link" href="../../docs/CODESPACES-PARA-COLABORADORAS.md">Guia de Codespaces</a>
+                    <a class="btn-secondary button-link" href="../../docs/GUIA-RAPIDO-PR.md">Guia r&aacute;pido de Pull Request</a>
+                    <a class="btn-secondary button-link" href="https://github.com/Sistema-Casa-da-Mulher/SISTEMA-CASA-DA-MULHER" target="_blank" rel="noopener">Reposit&oacute;rio</a>
+                    <a class="btn-secondary button-link" href="https://github.com/Sistema-Casa-da-Mulher/SISTEMA-CASA-DA-MULHER/pulls" target="_blank" rel="noopener">Pull Requests</a>
+                </div>
+            </section>
+
+            <section class="admin-panel">
+                <h2>Prot&oacute;tipos e contribui&ccedil;&atilde;o</h2>
+                <p class="section-intro">Colaboradoras devem criar rascunhos na &aacute;rea segura de prot&oacute;tipos. O mantenedor revisa antes de integrar no sistema principal.</p>
+                <div class="link-list">
+                    <a class="btn-primary button-link" href="../../prototipos/index.html">Abrir &aacute;rea de prot&oacute;tipos</a>
+                    <a class="btn-secondary button-link" href="../../prototipos/README.md">Criar novo prot&oacute;tipo</a>
+                    <a class="btn-secondary button-link" href="../../docs/CODESPACES-PARA-COLABORADORAS.md">Guia de Codespaces</a>
+                    <a class="btn-secondary button-link" href="../../docs/GUIA-RAPIDO-PR.md">Guia de Pull Request</a>
+                    <a class="btn-secondary button-link" href="equipe-atividade.html">Atividade do projeto</a>
+                </div>
+            </section>
+
+            <section class="admin-panel">
+                <h2>&Aacute;reas do sistema para teste</h2>
+                <div class="link-list">
+                    <a class="btn-primary button-link" href="funcionarios.html">Gerenciar funcion&aacute;rios</a>
+                    <a class="btn-primary button-link" href="convites.html">Convites de funcion&aacute;rios</a>
+                    <a class="btn-primary button-link" href="auditoria.html">Hist&oacute;rico institucional</a>
+                    <a class="btn-primary button-link" href="emails.html">Logs de e-mail institucionais</a>
+                    <a class="btn-primary button-link" href="recepcao.html">Tela de recep&ccedil;&atilde;o</a>
+                </div>
+            </section>
+
+            <section class="admin-panel">
+                <h2>&Aacute;reas futuras</h2>
+                <p class="section-intro">Jur&iacute;dico, assist&ecirc;ncia social, cursos/oficinas e relat&oacute;rios entrar&atilde;o conforme a evolu&ccedil;&atilde;o do sistema.</p>
+            </section>
+
+            <section class="admin-panel">
+                <h2>Ambiente de teste</h2>
+                <p class="section-intro">Contas EQP s&atilde;o identidades da equipe do projeto, n&atilde;o funcion&aacute;rias reais da Casa da Mulher.</p>
+                <div id="mensagemEquipePainel" class="message" aria-live="polite"></div>
+            </section>
+        </section>
+    </main>
+</body>
+</html>

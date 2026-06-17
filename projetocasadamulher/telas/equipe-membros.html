@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Membros da Equipe - Casa da Mulher</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="config.js" defer></script>
+    <script src="auth.js" defer></script>
+    <script src="app.js" defer></script>
+</head>
+<body>
+    <main id="equipeMembrosPage" class="admin-shell">
+        <header class="admin-header">
+            <div>
+                <img src="IMAGENS/logo_oficial.png" alt="Logo Casa da Mulher" class="logo-admin">
+                <div>
+                    <h1>Membros da equipe</h1>
+                    <p>Contas EQP do projeto, separadas dos funcion&aacute;rios reais.</p>
+                </div>
+            </div>
+            <div class="header-actions">
+                <a class="btn-secondary btn-compact button-link" href="equipe-painel.html">Voltar</a>
+                <button type="button" id="btnSairEquipeMembros" class="btn-secondary btn-compact">Sair</button>
+            </div>
+        </header>
+
+        <section class="admin-panel table-panel">
+            <div class="table-heading">
+                <div>
+                    <h2>Equipe EQP</h2>
+                    <div id="mensagemEquipeMembros" class="message" aria-live="polite"></div>
+                </div>
+                <button type="button" id="btnAtualizarEquipeMembros" class="btn-secondary btn-compact">Atualizar</button>
+            </div>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID EQP</th>
+                            <th>Nome</th>
+                            <th>Papel</th>
+                            <th>GitHub</th>
+                            <th>Fork</th>
+                            <th>Codespaces</th>
+                            <th>Fluxo</th>
+                            <th>Status</th>
+                            <th>A&ccedil;&otilde;es</th>
+                        </tr>
+                    </thead>
+                    <tbody id="listaEquipeMembros"></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

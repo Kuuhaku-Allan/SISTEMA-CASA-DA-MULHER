@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Atividade da Equipe - Casa da Mulher</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="config.js" defer></script>
+    <script src="auth.js" defer></script>
+    <script src="app.js" defer></script>
+</head>
+<body>
+    <main id="equipeAtividadePage" class="admin-shell">
+        <header class="admin-header">
+            <div>
+                <img src="IMAGENS/logo_oficial.png" alt="Logo Casa da Mulher" class="logo-admin">
+                <div>
+                    <h1>Atividade do projeto</h1>
+                    <p>Pull Requests do GitHub e logs internos da equipe.</p>
+                </div>
+            </div>
+            <div class="header-actions">
+                <a class="btn-secondary btn-compact button-link" href="equipe-painel.html">Voltar</a>
+                <button type="button" id="btnSairEquipeAtividade" class="btn-secondary btn-compact">Sair</button>
+            </div>
+        </header>
+
+        <section class="admin-panel table-panel">
+            <div class="table-heading">
+                <div>
+                    <h2>GitHub</h2>
+                    <div id="mensagemEquipeAtividade" class="message" aria-live="polite"></div>
+                </div>
+                <button type="button" id="btnAtualizarEquipeAtividade" class="btn-secondary btn-compact">Atualizar</button>
+            </div>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>PR</th>
+                            <th>T&iacute;tulo</th>
+                            <th>Status</th>
+                            <th>Autor</th>
+                            <th>Branch</th>
+                            <th>Fork</th>
+                            <th>Criado</th>
+                            <th>Finalizado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="listaGithubPulls"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="admin-panel table-panel">
+            <div class="table-heading">
+                <h2>Logs da equipe</h2>
+            </div>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Usu&aacute;rio</th>
+                            <th>A&ccedil;&atilde;o</th>
+                            <th>Descri&ccedil;&atilde;o</th>
+                            <th>IP</th>
+                        </tr>
+                    </thead>
+                    <tbody id="listaEquipeLogs"></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

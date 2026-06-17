@@ -24,6 +24,9 @@ public class EmailsController : ControllerBase
     public async Task<ActionResult<IEnumerable<EmailEventoResponse>>> Listar()
     {
         var eventos = await _dbContext.EmailEventos
+            .Where(evento =>
+                !evento.Tipo.StartsWith("Equipe")
+                && !evento.Destinatario.EndsWith("@equipe.local"))
             .OrderByDescending(evento => evento.CriadoEm)
             .Take(200)
             .ToListAsync();
@@ -37,6 +40,11 @@ public class EmailsController : ControllerBase
         var evento = await _dbContext.EmailEventos.FindAsync(id);
 
         if (evento is null)
+        {
+            return NotFound(new { mensagem = "Evento de e-mail não encontrado." });
+        }
+
+        if (evento.Tipo.StartsWith("Equipe") || evento.Destinatario.EndsWith("@equipe.local"))
         {
             return NotFound(new { mensagem = "Evento de e-mail não encontrado." });
         }

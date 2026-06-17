@@ -12,6 +12,12 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
 
     public DbSet<FuncionarioConvite> FuncionariosConvites => Set<FuncionarioConvite>();
 
+    public DbSet<EquipeConvite> EquipeConvites => Set<EquipeConvite>();
+
+    public DbSet<EquipeMembro> EquipeMembros => Set<EquipeMembro>();
+
+    public DbSet<EquipeSenhaReset> EquipeSenhaResets => Set<EquipeSenhaReset>();
+
     public DbSet<AuditoriaEvento> AuditoriaEventos => Set<AuditoriaEvento>();
 
     public DbSet<EmailEvento> EmailEventos => Set<EmailEvento>();
@@ -76,6 +82,114 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
 
             entity.Property(convite => convite.CodigoHash)
                 .HasMaxLength(128)
+                .IsRequired();
+        });
+
+        builder.Entity<EquipeConvite>(entity =>
+        {
+            entity.ToTable("EquipeConvites");
+
+            entity.HasIndex(convite => convite.CodigoEquipe)
+                .IsUnique();
+
+            entity.HasIndex(convite => convite.CodigoAtivacaoHash)
+                .IsUnique();
+
+            entity.HasIndex(convite => convite.Status);
+
+            entity.Property(convite => convite.CodigoEquipe)
+                .HasMaxLength(20)
+                .IsRequired();
+
+            entity.Property(convite => convite.CodigoAtivacaoHash)
+                .HasMaxLength(128)
+                .IsRequired();
+
+            entity.Property(convite => convite.Status)
+                .HasMaxLength(40)
+                .IsRequired();
+
+            entity.Property(convite => convite.CriadoPorUserId)
+                .HasMaxLength(80);
+
+            entity.Property(convite => convite.UsadoPorUserId)
+                .HasMaxLength(80);
+
+            entity.Property(convite => convite.NomeInformado)
+                .HasMaxLength(160);
+
+            entity.Property(convite => convite.PapelEquipe)
+                .HasMaxLength(40)
+                .IsRequired();
+
+            entity.Property(convite => convite.FluxoTrabalho)
+                .HasMaxLength(40)
+                .IsRequired();
+
+            entity.Property(convite => convite.Observacao)
+                .HasMaxLength(500);
+        });
+
+        builder.Entity<EquipeMembro>(entity =>
+        {
+            entity.ToTable("EquipeMembros");
+
+            entity.HasIndex(membro => membro.UserId)
+                .IsUnique();
+
+            entity.HasIndex(membro => membro.CodigoEquipe)
+                .IsUnique();
+
+            entity.Property(membro => membro.UserId)
+                .HasMaxLength(80)
+                .IsRequired();
+
+            entity.Property(membro => membro.CodigoEquipe)
+                .HasMaxLength(20)
+                .IsRequired();
+
+            entity.Property(membro => membro.Nome)
+                .HasMaxLength(160)
+                .IsRequired();
+
+            entity.Property(membro => membro.PapelEquipe)
+                .HasMaxLength(40)
+                .IsRequired();
+
+            entity.Property(membro => membro.FluxoTrabalho)
+                .HasMaxLength(40)
+                .IsRequired();
+
+            entity.Property(membro => membro.GitHubUsername)
+                .HasMaxLength(80);
+
+            entity.Property(membro => membro.GitHubId)
+                .HasMaxLength(80);
+
+            entity.Property(membro => membro.ForkUrl)
+                .HasMaxLength(300);
+        });
+
+        builder.Entity<EquipeSenhaReset>(entity =>
+        {
+            entity.ToTable("EquipeSenhaResets");
+
+            entity.HasIndex(reset => reset.CodigoHash)
+                .IsUnique();
+
+            entity.HasIndex(reset => reset.CodigoEquipe);
+            entity.HasIndex(reset => reset.ExpiraEm);
+
+            entity.Property(reset => reset.CodigoEquipe)
+                .HasMaxLength(20)
+                .IsRequired();
+
+            entity.Property(reset => reset.CodigoHash)
+                .HasMaxLength(128)
+                .IsRequired();
+
+            entity.Property(reset => reset.GeradoPorUserId)
+                .HasMaxLength(80)
                 .IsRequired();
         });
 

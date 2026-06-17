@@ -25,7 +25,13 @@ public class GeradorIdentificadorFuncionarioService : IFuncionarioIdentificadorS
             .Where(convite => convite.IdentificadorFuncionario.StartsWith(prefixoBusca))
             .Select(convite => convite.IdentificadorFuncionario)
             .ToListAsync();
-        var identificadores = identificadoresUsuarios.Concat(identificadoresConvites);
+        var identificadoresConvitesEquipe = await _dbContext.EquipeConvites
+            .Where(convite => convite.CodigoEquipe.StartsWith(prefixoBusca))
+            .Select(convite => convite.CodigoEquipe)
+            .ToListAsync();
+        var identificadores = identificadoresUsuarios
+            .Concat(identificadoresConvites)
+            .Concat(identificadoresConvitesEquipe);
 
         var proximoNumero = identificadores
             .Select(identificador => ExtrairNumero(prefixoBusca, identificador))
@@ -40,8 +46,10 @@ public class GeradorIdentificadorFuncionarioService : IFuncionarioIdentificadorS
                 || usuario.NormalizedUserName == identificador);
             var existeConvite = await _dbContext.FuncionariosConvites.AnyAsync(convite =>
                 convite.IdentificadorFuncionario == identificador);
+            var existeConviteEquipe = await _dbContext.EquipeConvites.AnyAsync(convite =>
+                convite.CodigoEquipe == identificador);
 
-            if (!existeUsuario && !existeConvite)
+            if (!existeUsuario && !existeConvite && !existeConviteEquipe)
             {
                 return identificador;
             }
@@ -59,6 +67,7 @@ public class GeradorIdentificadorFuncionarioService : IFuncionarioIdentificadorS
             PerfisAcesso.Professor => "PRO",
             PerfisAcesso.AssistenteSocial => "SOC",
             PerfisAcesso.Juridico => "JUR",
+            PerfisAcesso.Equipe => "EQP",
             _ => throw new ArgumentException("Perfil inválido para gerar identificador.", nameof(perfil))
         };
     }

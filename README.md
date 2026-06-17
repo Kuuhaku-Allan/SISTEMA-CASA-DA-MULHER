@@ -2,6 +2,29 @@
 
 Projeto em desenvolvimento para o Sistema Casa da Mulher Itaquaquecetuba.
 
+## Comece aqui - Equipe do Projeto
+
+Se voce faz parte da equipe de desenvolvimento/teste, comece por estes guias:
+
+- Guia central da equipe: `docs/COMECE-AQUI-EQUIPE.md`
+- Contas e convites EQP: `docs/EQUIPE-E-CONVITES.md`
+- Codespaces para colaboradoras: `docs/CODESPACES-PARA-COLABORADORAS.md`
+- Enviar Pull Request: `docs/GUIA-RAPIDO-PR.md`
+- Matriz de permissoes EQP/ADM: `docs/MATRIZ-PERMISSOES-EQP-ADM.md`
+- Area segura de prototipos: `prototipos/index.html`
+- Atividade do projeto: `projetocasadamulher/telas/equipe-atividade.html`
+- Ativar EQP: `projetocasadamulher/telas/equipe-ativar.html`
+
+O GitHub concentra a atividade central do projeto. O banco de cada Codespace e local e serve para desenvolvimento.
+
+## Equipe do projeto
+
+Este projeto possui um fluxo separado para integrantes da equipe usando IDs `EQP`.
+
+Os guias ficam em `docs/COMECE-AQUI-EQUIPE.md`.
+
+Codigos de ativacao EQP sao individuais e nao devem ser publicados neste repositorio.
+
 ## Estrutura
 
 - `CasaMulher.Api/`: API ASP.NET Core com autenticação de funcionários por convite.
@@ -43,6 +66,12 @@ Guia completo:
 docs/CODESPACES-PARA-COLABORADORAS.md
 ```
 
+Guia das contas da equipe do projeto:
+
+```text
+docs/EQUIPE-E-CONVITES.md
+```
+
 A `main` é a versão oficial do projeto. Alterações de outras pessoas devem entrar por Pull Request e passar por revisão.
 
 ## Fluxo de autenticação
@@ -65,9 +94,12 @@ REC-000001
 PRO-000001
 SOC-000001
 JUR-000001
+EQP-000001
 ```
 
 Esse prefixo é apenas uma identificação amigável. As permissões continuam vindo das roles do ASP.NET Identity.
+
+IDs `EQP` sao usados apenas pela equipe de desenvolvimento/teste e nao representam funcionarios reais da Casa da Mulher.
 
 ## Convites demo
 

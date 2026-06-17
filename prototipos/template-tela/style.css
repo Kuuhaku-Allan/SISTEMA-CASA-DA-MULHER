@@ -1,0 +1,64 @@
+:root {
+    --bg: #f6f4ef;
+    --panel: #ffffff;
+    --ink: #243130;
+    --muted: #5d6f6b;
+    --brand: #0f766e;
+    --line: #d9ded8;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: Arial, Helvetica, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+}
+
+.prototype-shell {
+    width: min(920px, calc(100% - 32px));
+    margin: 40px auto;
+}
+
+header,
+.panel {
+    padding: 24px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--panel);
+}
+
+.eyebrow {
+    margin: 0 0 8px;
+    color: var(--brand);
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+h1,
+h2 {
+    margin: 0 0 10px;
+}
+
+p {
+    line-height: 1.55;
+    color: var(--muted);
+}
+
+.panel {
+    margin-top: 18px;
+}
+
+button {
+    padding: 10px 14px;
+    border: 0;
+    border-radius: 6px;
+    color: #ffffff;
+    background: var(--brand);
+    font-weight: 700;
+    cursor: pointer;
+}

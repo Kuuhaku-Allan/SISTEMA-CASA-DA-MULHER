@@ -4,7 +4,15 @@ const PERFIS_LABEL = {
     recepcao: "Recepção",
     professor: "Professor",
     as_social: "Assistente Social",
-    juridico: "Jurídico"
+    juridico: "Jurídico",
+    equipe: "Equipe do projeto"
+};
+const PERFIS_FUNCIONARIOS_LABEL = {
+    adm: PERFIS_LABEL.adm,
+    recepcao: PERFIS_LABEL.recepcao,
+    professor: PERFIS_LABEL.professor,
+    as_social: PERFIS_LABEL.as_social,
+    juridico: PERFIS_LABEL.juridico
 };
 
 function setMessage(element, text, type) {
@@ -64,7 +72,14 @@ function redirectAfterLogin(resultado) {
         return;
     }
 
-    if ((resultado.perfil || CasaMulherAuth.getPerfil()) === "recepcao") {
+    const perfil = resultado.perfil || CasaMulherAuth.getPerfil();
+
+    if (perfil === "equipe") {
+        window.location.href = "equipe-painel.html";
+        return;
+    }
+
+    if (perfil === "recepcao") {
         window.location.href = "recepcao.html";
         return;
     }
@@ -128,7 +143,17 @@ function formatAcaoAuditoria(acao) {
         EMAIL_RECUPERACAO_SOLICITADO: "E-mail de recuperação solicitado",
         EMAIL_RECUPERACAO_CONFIRMADO: "E-mail de recuperação confirmado",
         EMAIL_RECUPERACAO_CONFIRMACAO_FALHA: "Falha na confirmação do e-mail de recuperação",
-        EMAIL_RECUPERACAO_REMOVIDO: "E-mail de recuperação removido"
+        EMAIL_RECUPERACAO_REMOVIDO: "E-mail de recuperação removido",
+        EQUIPE_CONVITE_CRIADO: "Convite de equipe criado",
+        EQUIPE_CONVITE_LOTE_CRIADO: "Lote de convites de equipe",
+        EQUIPE_CONVITE_REVOGADO: "Convite de equipe revogado",
+        EQUIPE_CONVITE_CODIGO_REGENERADO: "Código de equipe regenerado",
+        EQUIPE_CONVITE_ATIVADO: "Convite de equipe ativado",
+        EQUIPE_CONVITE_ATIVACAO_FALHA: "Falha ao ativar convite de equipe",
+        EQUIPE_MEMBRO_CRIADO: "Membro de equipe criado",
+        EQUIPE_MEMBRO_ATUALIZADO: "Membro de equipe atualizado",
+        EQUIPE_SENHA_REDEFINICAO_GERADA: "Redefinição EQP gerada",
+        EQUIPE_SENHA_REDEFINIDA: "Senha EQP redefinida"
     };
 
     return acoes[acao] || acao || "-";
@@ -472,6 +497,11 @@ async function setupPainel() {
         return;
     }
 
+    if (usuario.perfil === "equipe") {
+        window.location.href = "equipe-painel.html";
+        return;
+    }
+
     document.getElementById("painelNome").textContent = usuario.nomeCompleto || "-";
     document.getElementById("painelIdentificador").textContent = usuario.identificadorFuncionario || "-";
     document.getElementById("painelEmail").textContent = usuario.email || "-";
@@ -515,7 +545,7 @@ async function setupConvites() {
 
     bindLogoutButton("btnSairConvites");
 
-    const usuario = await CasaMulherAuth.protegerPerfil("adm", {
+    const usuario = await CasaMulherAuth.protegerArea("convites", {
         conteudoElement: conteudo,
         restritoElement: restrito,
         mensagemElement: mensagem
@@ -974,7 +1004,7 @@ async function setupFuncionarios() {
     const mensagem = document.getElementById("mensagemFuncionarios");
     bindLogoutButton("btnSairFuncionarios");
 
-    const usuario = await CasaMulherAuth.protegerPerfil("adm", {
+    const usuario = await CasaMulherAuth.protegerArea("funcionarios", {
         conteudoElement: conteudo,
         restritoElement: restrito,
         mensagemElement: mensagem
@@ -1027,8 +1057,8 @@ async function setupFuncionarios() {
                         <td>${escapeHtml(funcionario.nomeCompleto)}<br><small>${escapeHtml(funcionario.email)}</small></td>
                         <td>
                             <select data-action="perfil" data-id="${funcionario.id}">
-                                ${Object.keys(PERFIS_LABEL).map(function (perfil) {
-                                    return `<option value="${perfil}" ${perfil === funcionario.perfil ? "selected" : ""}>${PERFIS_LABEL[perfil]}</option>`;
+                                ${Object.keys(PERFIS_FUNCIONARIOS_LABEL).map(function (perfil) {
+                                    return `<option value="${perfil}" ${perfil === funcionario.perfil ? "selected" : ""}>${PERFIS_FUNCIONARIOS_LABEL[perfil]}</option>`;
                                 }).join("")}
                             </select>
                         </td>
@@ -1164,7 +1194,7 @@ async function setupAuditoria() {
     const mensagem = document.getElementById("mensagemAuditoria");
     bindLogoutButton("btnSairAuditoria");
 
-    const usuario = await CasaMulherAuth.protegerPerfil("adm", {
+    const usuario = await CasaMulherAuth.protegerArea("auditoria", {
         conteudoElement: conteudo,
         restritoElement: restrito,
         mensagemElement: mensagem
@@ -1243,7 +1273,7 @@ async function setupEmails() {
     const mensagem = document.getElementById("mensagemEmails");
     bindLogoutButton("btnSairEmails");
 
-    const usuario = await CasaMulherAuth.protegerPerfil("adm", {
+    const usuario = await CasaMulherAuth.protegerArea("emails", {
         conteudoElement: conteudo,
         restritoElement: restrito,
         mensagemElement: mensagem
@@ -1307,6 +1337,833 @@ async function setupEmails() {
 
     document.getElementById("btnAtualizarEmails").addEventListener("click", carregarEmails);
     carregarEmails();
+}
+
+function formatEquipePapel(papel) {
+    const papeis = {
+        owner: "Owner",
+        maintainer: "Maintainer",
+        contributor: "Contributor"
+    };
+
+    return papeis[papel] || papel || "-";
+}
+
+function formatEquipeFluxo(fluxo) {
+    const fluxos = {
+        local_owner: "Local / mantenedor",
+        fork_codespaces: "Fork + Codespaces",
+        fork_ok: "Fork detectado",
+        precisa_fork: "Precisa criar fork",
+        org_maintainer: "Mantenedor da organização",
+        desconhecido: "A definir"
+    };
+
+    return fluxos[fluxo] || fluxo || "-";
+}
+
+async function carregarEquipeDevStatus() {
+    try {
+        const response = await fetch(`dev-status.json?t=${Date.now()}`, {
+            cache: "no-store"
+        });
+
+        if (!response.ok) {
+            return null;
+        }
+
+        return await response.json();
+    } catch {
+        return null;
+    }
+}
+
+function descreverEquipeFluxo(membro, devStatus) {
+    if (devStatus && devStatus.fluxo === "local_owner") {
+        return devStatus.recomendacaoFluxo || "Você usa fluxo local/IDE e revisa Pull Requests. Fork e Codespaces não são obrigatórios.";
+    }
+
+    if (membro && membro.fluxoTrabalho === "local_owner") {
+        return "Você usa fluxo local/IDE e revisa Pull Requests. Fork e Codespaces não são obrigatórios.";
+    }
+
+    if (devStatus && devStatus.fluxo === "fork_ok") {
+        const branch = devStatus.branchAtual ? ` Branch atual: ${devStatus.branchAtual}.` : "";
+        return `${devStatus.recomendacaoFluxo || "Fork detectado. Você pode criar protótipos e enviar Pull Request."}${branch}`;
+    }
+
+    if (devStatus && devStatus.fluxo === "precisa_fork") {
+        return devStatus.recomendacaoFluxo || "Crie seu fork primeiro para usar Codespaces com segurança.";
+    }
+
+    if (!membro) {
+        return "Não foi possível detectar seu fluxo automaticamente. Confira o guia da equipe.";
+    }
+
+    if (membro.fluxoTrabalho === "fork_codespaces") {
+        return "Seu fluxo está configurado para fork + Codespaces. Crie protótipos em prototipos/ e envie Pull Request.";
+    }
+
+    if (membro.fluxoTrabalho === "precisa_fork") {
+        return "Crie seu fork primeiro para usar Codespaces com segurança.";
+    }
+
+    return "Vincule/registre seu GitHub para melhorar a detecção automática do fluxo.";
+}
+
+function getEquipeActivationLink(codigoEquipe, codigoAtivacao) {
+    const url = new URL("equipe-ativar.html", window.location.href);
+    url.searchParams.set("id", codigoEquipe || "");
+    url.searchParams.set("codigo", codigoAtivacao || "");
+    return url.toString();
+}
+
+function buildEquipeConviteText(convite) {
+    return [
+        "Seu convite para acessar o Sistema Casa da Mulher como integrante da equipe é:",
+        "",
+        `ID: ${convite.codigoEquipe}`,
+        `Código de ativação: ${convite.codigoAtivacao}`,
+        "",
+        `Acesse: ${getEquipeActivationLink(convite.codigoEquipe, convite.codigoAtivacao)}`,
+        "",
+        "Informe seu nome e crie sua senha.",
+        "Não compartilhe esse código com outras pessoas."
+    ].join("\n");
+}
+
+function buildEquipeResetText(reset) {
+    const url = new URL("equipe-redefinir-senha.html", window.location.href);
+    url.searchParams.set("id", reset.codigoEquipe || "");
+    url.searchParams.set("codigo", reset.codigoRedefinicao || "");
+
+    return [
+        "Sua redefinição de senha da equipe foi gerada:",
+        "",
+        `ID: ${reset.codigoEquipe}`,
+        `Código de redefinição: ${reset.codigoRedefinicao}`,
+        "",
+        `Acesse: ${url.toString()}`,
+        "",
+        "Crie uma nova senha. Este código é individual, temporário e de uso único."
+    ].join("\n");
+}
+
+function setupEquipeAtivar() {
+    const page = document.getElementById("equipeAtivarPage");
+
+    if (!page) {
+        return;
+    }
+
+    const form = document.getElementById("formEquipeAtivar");
+    const mensagem = document.getElementById("mensagemEquipeAtivar");
+    const params = new URLSearchParams(window.location.search);
+    const idParam = params.get("id");
+    const codigoParam = params.get("codigo");
+
+    if (idParam) {
+        document.getElementById("codigoEquipe").value = idParam;
+    }
+
+    if (codigoParam) {
+        document.getElementById("codigoAtivacao").value = codigoParam;
+    }
+
+    form.addEventListener("submit", async function (event) {
+        event.preventDefault();
+
+        if (!form.reportValidity()) {
+            return;
+        }
+
+        const senha = document.getElementById("senhaEquipe").value;
+        const confirmarSenha = document.getElementById("confirmarSenhaEquipe").value;
+
+        if (senha !== confirmarSenha) {
+            setMessage(mensagem, "Senha e confirmação não conferem.", "error");
+            return;
+        }
+
+        setMessage(mensagem, "Ativando conta da equipe...", "info");
+        disableSubmit(form, true);
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/equipe/ativar`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    codigoEquipe: document.getElementById("codigoEquipe").value.trim(),
+                    codigoAtivacao: document.getElementById("codigoAtivacao").value.trim(),
+                    nomeCompleto: document.getElementById("nomeEquipe").value.trim(),
+                    senha,
+                    confirmarSenha
+                })
+            });
+
+            if (!response.ok) {
+                setMessage(mensagem, await readApiMessage(response), "error");
+                return;
+            }
+
+            const resultado = await response.json();
+            sessionStorage.setItem("ultimoIdentificadorFuncionario", resultado.identificadorFuncionario);
+            setMessage(mensagem, `${resultado.mensagem || "Conta ativada."} Seu ID: ${resultado.identificadorFuncionario}`, "success");
+            form.reset();
+
+            setTimeout(function () {
+                window.location.href = "index.html";
+            }, 3000);
+        } catch {
+            setMessage(mensagem, "Não foi possível conectar à API.", "error");
+        } finally {
+            disableSubmit(form, false);
+        }
+    });
+}
+
+async function setupEquipePainel() {
+    const page = document.getElementById("equipePainelPage");
+
+    if (!page) {
+        return;
+    }
+
+    const mensagem = document.getElementById("mensagemEquipePainel");
+    const usuario = await CasaMulherAuth.protegerArea("equipe", {
+        mensagemElement: mensagem
+    });
+
+    if (!usuario) {
+        return;
+    }
+
+    document.getElementById("equipeNome").textContent = usuario.nomeCompleto || "-";
+    document.getElementById("equipeIdentificador").textContent = usuario.identificadorFuncionario || "-";
+    document.getElementById("equipePerfil").textContent = formatPerfil(usuario.perfil);
+
+    CasaMulherAuth.salvarUsuario(usuario);
+    bindLogoutButton("btnSairEquipePainel");
+
+    try {
+        const devStatus = await carregarEquipeDevStatus();
+        const response = await CasaMulherAuth.apiFetch("/api/equipe/membros", {
+            mensagemElement: mensagem
+        });
+        const resumo = document.getElementById("equipeFluxoResumo");
+
+        if (response.ok) {
+            const membros = await response.json();
+            const meuMembro = membros.find(function (membro) {
+                return membro.ehVoce;
+            });
+
+            if (meuMembro && resumo) {
+                resumo.textContent = descreverEquipeFluxo(meuMembro, devStatus);
+            }
+        } else if (resumo && devStatus) {
+            resumo.textContent = descreverEquipeFluxo(null, devStatus);
+        }
+    } catch {
+        setMessage(mensagem, "Não foi possível carregar seu fluxo de trabalho.", "info");
+    }
+}
+
+async function setupEquipeConvites() {
+    const page = document.getElementById("equipeConvitesPage");
+
+    if (!page) {
+        return;
+    }
+
+    const conteudo = document.getElementById("equipeConvitesConteudo");
+    const restrito = document.getElementById("equipeConvitesRestrito");
+    const mensagem = document.getElementById("mensagemEquipeConvites");
+    const formIndividual = document.getElementById("formEquipeConvite");
+    const formLote = document.getElementById("formEquipeConviteLote");
+    const resultPanel = document.getElementById("equipeConvitesGerados");
+    let textosEquipeConvitesGerados = [];
+    bindLogoutButton("btnSairEquipeConvites");
+
+    const usuario = await CasaMulherAuth.protegerArea("equipeConvites", {
+        conteudoElement: conteudo,
+        restritoElement: restrito,
+        mensagemElement: mensagem
+    });
+
+    if (!usuario) {
+        return;
+    }
+
+    function lerConfiguracaoConvite(prefixo) {
+        return {
+            observacao: document.getElementById(`${prefixo}Observacao`).value.trim(),
+            papelEquipe: document.getElementById(`${prefixo}Papel`).value,
+            precisaFork: document.getElementById(`${prefixo}PrecisaFork`).checked,
+            podeCriarConvitesEquipe: document.getElementById(`${prefixo}PodeCriarConvites`).checked
+        };
+    }
+
+    function renderConvitesGerados(convites) {
+        const lista = document.getElementById("listaEquipeConvitesGerados");
+        const itens = Array.isArray(convites) ? convites : [convites];
+        textosEquipeConvitesGerados = itens.map(buildEquipeConviteText);
+
+        lista.innerHTML = itens.map(function (convite, index) {
+            return `
+                <tr>
+                    <td>${escapeHtml(convite.codigoEquipe)}</td>
+                    <td>${escapeHtml(convite.codigoAtivacao)}</td>
+                    <td>${escapeHtml(formatEquipePapel(convite.papelEquipe))}</td>
+                    <td>
+                        <button type="button" class="btn-link" data-copy-equipe="${index}">Copiar texto</button>
+                    </td>
+                </tr>
+            `;
+        }).join("");
+
+        resultPanel.classList.remove("hidden");
+    }
+
+    async function carregarConvitesEquipe() {
+        const lista = document.getElementById("listaEquipeConvites");
+        lista.innerHTML = "<tr><td colspan=\"8\">Carregando...</td></tr>";
+
+        try {
+            const response = await CasaMulherAuth.apiFetch("/api/equipe/convites", {
+                mensagemElement: mensagem
+            });
+
+            if (response.status === 401) {
+                return;
+            }
+
+            if (response.status === 403) {
+                conteudo.classList.add("hidden");
+                restrito.classList.remove("hidden");
+                return;
+            }
+
+            if (!response.ok) {
+                lista.innerHTML = "<tr><td colspan=\"8\">Não foi possível carregar convites da equipe.</td></tr>";
+                return;
+            }
+
+            const convites = await response.json();
+
+            if (convites.length === 0) {
+                lista.innerHTML = "<tr><td colspan=\"8\">Nenhum convite de equipe cadastrado.</td></tr>";
+                return;
+            }
+
+            lista.innerHTML = convites.map(function (convite) {
+                const statusClass = String(convite.status || "").toLowerCase();
+                const podeAlterar = convite.status === "Disponivel";
+                const acoes = podeAlterar
+                    ? `
+                        <button type="button" class="btn-link" data-action="regenerar" data-id="${convite.id}">Regenerar código</button>
+                        <button type="button" class="btn-link-danger" data-action="revogar" data-id="${convite.id}">Revogar</button>
+                    `
+                    : "-";
+
+                return `
+                    <tr>
+                        <td>${escapeHtml(convite.codigoEquipe)}</td>
+                        <td><span class="status-badge status-${escapeHtml(statusClass)}">${escapeHtml(convite.status)}</span></td>
+                        <td>${escapeHtml(formatEquipePapel(convite.papelEquipe))}</td>
+                        <td>${convite.precisaFork ? "Sim" : "Não"}</td>
+                        <td>${convite.podeCriarConvitesEquipe ? "Sim" : "Não"}</td>
+                        <td>${escapeHtml(convite.nomeInformado || "-")}</td>
+                        <td>${formatDateTime(convite.criadoEm)}</td>
+                        <td class="actions-cell">${acoes}</td>
+                    </tr>
+                `;
+            }).join("");
+        } catch {
+            lista.innerHTML = "<tr><td colspan=\"8\">Não foi possível conectar à API.</td></tr>";
+        }
+    }
+
+    formIndividual.addEventListener("submit", async function (event) {
+        event.preventDefault();
+
+        if (!formIndividual.reportValidity()) {
+            return;
+        }
+
+        setMessage(mensagem, "Criando convite da equipe...", "info");
+        disableSubmit(formIndividual, true);
+
+        try {
+            const response = await CasaMulherAuth.apiFetch("/api/equipe/convites", {
+                method: "POST",
+                headers: getAuthHeaders(true),
+                body: lerConfiguracaoConvite("equipeConvite"),
+                mensagemElement: mensagem
+            });
+
+            if (!response.ok) {
+                setMessage(mensagem, await readApiMessage(response), "error");
+                return;
+            }
+
+            const convite = await response.json();
+            renderConvitesGerados(convite);
+            setMessage(mensagem, "Convite de equipe criado. Copie o texto e envie manualmente para a integrante.", "success");
+            formIndividual.reset();
+            document.getElementById("equipeConvitePrecisaFork").checked = true;
+            await carregarConvitesEquipe();
+        } catch {
+            setMessage(mensagem, "Não foi possível conectar à API.", "error");
+        } finally {
+            disableSubmit(formIndividual, false);
+        }
+    });
+
+    formLote.addEventListener("submit", async function (event) {
+        event.preventDefault();
+
+        if (!formLote.reportValidity()) {
+            return;
+        }
+
+        setMessage(mensagem, "Criando lote de convites da equipe...", "info");
+        disableSubmit(formLote, true);
+
+        const dados = Object.assign(lerConfiguracaoConvite("equipeLote"), {
+            quantidade: Number(document.getElementById("equipeLoteQuantidade").value)
+        });
+
+        try {
+            const response = await CasaMulherAuth.apiFetch("/api/equipe/convites/lote", {
+                method: "POST",
+                headers: getAuthHeaders(true),
+                body: dados,
+                mensagemElement: mensagem
+            });
+
+            if (!response.ok) {
+                setMessage(mensagem, await readApiMessage(response), "error");
+                return;
+            }
+
+            const resultado = await response.json();
+            renderConvitesGerados(resultado.convites || []);
+            setMessage(mensagem, "Lote de convites criado. Copie os textos antes de sair desta tela.", "success");
+            formLote.reset();
+            document.getElementById("equipeLoteQuantidade").value = "5";
+            document.getElementById("equipeLotePrecisaFork").checked = true;
+            await carregarConvitesEquipe();
+        } catch {
+            setMessage(mensagem, "Não foi possível conectar à API.", "error");
+        } finally {
+            disableSubmit(formLote, false);
+        }
+    });
+
+    document.getElementById("btnAtualizarEquipeConvites").addEventListener("click", carregarConvitesEquipe);
+
+    document.getElementById("listaEquipeConvitesGerados").addEventListener("click", function (event) {
+        const button = event.target.closest("[data-copy-equipe]");
+
+        if (!button) {
+            return;
+        }
+
+        copyText(textosEquipeConvitesGerados[Number(button.dataset.copyEquipe)] || "", mensagem);
+    });
+
+    document.getElementById("listaEquipeConvites").addEventListener("click", async function (event) {
+        const button = event.target.closest("[data-action]");
+
+        if (!button) {
+            return;
+        }
+
+        const action = button.dataset.action;
+        const id = button.dataset.id;
+        const confirmado = action !== "revogar" || window.confirm("Revogar este convite de equipe?");
+
+        if (!confirmado) {
+            return;
+        }
+
+        button.disabled = true;
+        setMessage(mensagem, action === "regenerar" ? "Regenerando código..." : "Revogando convite...", "info");
+
+        try {
+            const response = await CasaMulherAuth.apiFetch(`/api/equipe/convites/${id}/${action === "regenerar" ? "regenerar-codigo" : "revogar"}`, {
+                method: "POST",
+                headers: getAuthHeaders(false),
+                mensagemElement: mensagem
+            });
+
+            if (!response.ok) {
+                setMessage(mensagem, await readApiMessage(response), "error");
+                return;
+            }
+
+            const resultado = await response.json();
+
+            if (action === "regenerar") {
+                renderConvitesGerados(resultado);
+                setMessage(mensagem, "Código regenerado. Copie o novo texto agora.", "success");
+            } else {
+                setMessage(mensagem, "Convite revogado.", "success");
+            }
+
+            await carregarConvitesEquipe();
+        } catch {
+            setMessage(mensagem, "Não foi possível conectar à API.", "error");
+        } finally {
+            button.disabled = false;
+        }
+    });
+
+    carregarConvitesEquipe();
+}
+
+async function setupEquipeMembros() {
+    const page = document.getElementById("equipeMembrosPage");
+
+    if (!page) {
+        return;
+    }
+
+    const mensagem = document.getElementById("mensagemEquipeMembros");
+    bindLogoutButton("btnSairEquipeMembros");
+
+    const usuario = await CasaMulherAuth.protegerArea("equipe", {
+        mensagemElement: mensagem
+    });
+
+    if (!usuario) {
+        return;
+    }
+
+    async function carregarMembros() {
+        const lista = document.getElementById("listaEquipeMembros");
+        lista.innerHTML = "<tr><td colspan=\"9\">Carregando...</td></tr>";
+
+        try {
+            const response = await CasaMulherAuth.apiFetch("/api/equipe/membros", {
+                mensagemElement: mensagem
+            });
+
+            if (!response.ok) {
+                lista.innerHTML = "<tr><td colspan=\"9\">Não foi possível carregar membros.</td></tr>";
+                return;
+            }
+
+            const membros = await response.json();
+
+            if (membros.length === 0) {
+                lista.innerHTML = "<tr><td colspan=\"9\">Nenhum membro EQP ativado.</td></tr>";
+                return;
+            }
+
+            lista.innerHTML = membros.map(function (membro) {
+                const podeEditar = Boolean(membro.podeEditar);
+                const controls = podeEditar
+                    ? `
+                        <select data-field="papel" data-id="${membro.id}">
+                            <option value="contributor" ${membro.papelEquipe === "contributor" ? "selected" : ""}>Contributor</option>
+                            <option value="maintainer" ${membro.papelEquipe === "maintainer" ? "selected" : ""}>Maintainer</option>
+                            <option value="owner" ${membro.papelEquipe === "owner" ? "selected" : ""}>Owner</option>
+                        </select>
+                        <select data-field="fluxo" data-id="${membro.id}">
+                            <option value="local_owner" ${membro.fluxoTrabalho === "local_owner" ? "selected" : ""}>Local</option>
+                            <option value="fork_codespaces" ${membro.fluxoTrabalho === "fork_codespaces" ? "selected" : ""}>Fork + Codespaces</option>
+                            <option value="precisa_fork" ${membro.fluxoTrabalho === "precisa_fork" ? "selected" : ""}>Precisa fork</option>
+                            <option value="desconhecido" ${membro.fluxoTrabalho === "desconhecido" ? "selected" : ""}>A definir</option>
+                        </select>
+                        <button type="button" class="btn-link" data-action="salvar" data-id="${membro.id}">Salvar</button>
+                        <button type="button" class="btn-link" data-action="reset" data-id="${membro.id}">Gerar redefinição</button>
+                    `
+                    : "-";
+
+                return `
+                    <tr data-member-id="${membro.id}">
+                        <td>${escapeHtml(membro.codigoEquipe)}${membro.ehVoce ? "<br><small>Você</small>" : ""}</td>
+                        <td>${escapeHtml(membro.nome)}</td>
+                        <td>${escapeHtml(formatEquipePapel(membro.papelEquipe))}</td>
+                        <td>${escapeHtml(membro.githubUsername || "-")}</td>
+                        <td>${membro.precisaFork ? "Sim" : "Não"}</td>
+                        <td>${membro.usaCodespaces ? "Sim" : "Não"}</td>
+                        <td>${escapeHtml(formatEquipeFluxo(membro.fluxoTrabalho))}</td>
+                        <td>${membro.ativo ? "Ativo" : "Inativo"}<br><small>${formatDateTime(membro.criadoEm)}</small></td>
+                        <td class="actions-cell">${controls}</td>
+                    </tr>
+                `;
+            }).join("");
+
+            window.__equipeMembrosCache = membros;
+        } catch {
+            lista.innerHTML = "<tr><td colspan=\"9\">Não foi possível conectar à API.</td></tr>";
+        }
+    }
+
+    document.getElementById("btnAtualizarEquipeMembros").addEventListener("click", carregarMembros);
+
+    document.getElementById("listaEquipeMembros").addEventListener("click", async function (event) {
+        const button = event.target.closest("[data-action]");
+
+        if (!button) {
+            return;
+        }
+
+        const id = Number(button.dataset.id);
+        const membro = (window.__equipeMembrosCache || []).find(function (item) {
+            return Number(item.id) === id;
+        });
+
+        if (!membro) {
+            return;
+        }
+
+        button.disabled = true;
+
+        if (button.dataset.action === "reset") {
+            setMessage(mensagem, "Gerando redefinição de senha...", "info");
+
+            try {
+                const response = await CasaMulherAuth.apiFetch(`/api/equipe/membros/${id}/gerar-redefinicao-senha`, {
+                    method: "POST",
+                    headers: getAuthHeaders(false),
+                    mensagemElement: mensagem
+                });
+
+                if (!response.ok) {
+                    setMessage(mensagem, await readApiMessage(response), "error");
+                    return;
+                }
+
+                const reset = await response.json();
+                const texto = buildEquipeResetText(reset);
+                await copyText(texto, mensagem);
+                setMessage(mensagem, "Código de redefinição gerado e copiado.", "success");
+            } catch {
+                setMessage(mensagem, "Não foi possível conectar à API.", "error");
+            } finally {
+                button.disabled = false;
+            }
+
+            return;
+        }
+
+        const row = button.closest("[data-member-id]");
+        const papel = row.querySelector("[data-field='papel']").value;
+        const fluxo = row.querySelector("[data-field='fluxo']").value;
+        const precisaFork = fluxo !== "local_owner";
+        const usaCodespaces = fluxo !== "local_owner";
+
+        setMessage(mensagem, "Atualizando membro...", "info");
+
+        try {
+            const response = await CasaMulherAuth.apiFetch(`/api/equipe/membros/${id}`, {
+                method: "PATCH",
+                headers: getAuthHeaders(true),
+                body: {
+                    papelEquipe: papel,
+                    precisaFork,
+                    usaCodespaces,
+                    fluxoTrabalho: fluxo,
+                    githubUsername: membro.githubUsername,
+                    githubId: membro.githubId,
+                    forkUrl: membro.forkUrl,
+                    podeCriarConvitesEquipe: papel === "owner" || papel === "maintainer",
+                    ativo: membro.ativo
+                },
+                mensagemElement: mensagem
+            });
+
+            if (!response.ok) {
+                setMessage(mensagem, await readApiMessage(response), "error");
+                return;
+            }
+
+            setMessage(mensagem, "Membro atualizado.", "success");
+            await carregarMembros();
+        } catch {
+            setMessage(mensagem, "Não foi possível conectar à API.", "error");
+        } finally {
+            button.disabled = false;
+        }
+    });
+
+    carregarMembros();
+}
+
+async function setupEquipeAtividade() {
+    const page = document.getElementById("equipeAtividadePage");
+
+    if (!page) {
+        return;
+    }
+
+    const mensagem = document.getElementById("mensagemEquipeAtividade");
+    bindLogoutButton("btnSairEquipeAtividade");
+
+    const usuario = await CasaMulherAuth.protegerArea("equipe", {
+        mensagemElement: mensagem
+    });
+
+    if (!usuario) {
+        return;
+    }
+
+    async function carregarGithub() {
+        const lista = document.getElementById("listaGithubPulls");
+        lista.innerHTML = "<tr><td colspan=\"8\">Carregando...</td></tr>";
+
+        try {
+            const response = await CasaMulherAuth.apiFetch("/api/equipe/github/atividade", {
+                mensagemElement: mensagem
+            });
+
+            if (!response.ok) {
+                lista.innerHTML = "<tr><td colspan=\"8\">Não foi possível carregar atividade do GitHub.</td></tr>";
+                return;
+            }
+
+            const data = await response.json();
+            setMessage(mensagem, data.mensagem || "", data.disponivel ? "success" : "info");
+
+            if (!data.pullRequests || data.pullRequests.length === 0) {
+                lista.innerHTML = "<tr><td colspan=\"8\">Nenhum Pull Request retornado agora.</td></tr>";
+                return;
+            }
+
+            lista.innerHTML = data.pullRequests.map(function (pr) {
+                return `
+                    <tr>
+                        <td><a href="${escapeHtml(pr.url)}" target="_blank" rel="noopener">#${pr.numero}</a></td>
+                        <td>${escapeHtml(pr.titulo)}</td>
+                        <td>${escapeHtml(pr.estado)}</td>
+                        <td>${escapeHtml(pr.autor)}</td>
+                        <td>${escapeHtml(pr.branch)}</td>
+                        <td>${pr.veioDeFork ? "Sim" : "Não"}</td>
+                        <td>${formatDateTime(pr.criadoEm)}</td>
+                        <td>${formatDateTime(pr.mergeadoEm || pr.fechadoEm)}</td>
+                    </tr>
+                `;
+            }).join("");
+        } catch {
+            lista.innerHTML = "<tr><td colspan=\"8\">Não foi possível conectar à API.</td></tr>";
+        }
+    }
+
+    async function carregarLogs() {
+        const lista = document.getElementById("listaEquipeLogs");
+        lista.innerHTML = "<tr><td colspan=\"5\">Carregando...</td></tr>";
+
+        try {
+            const response = await CasaMulherAuth.apiFetch("/api/equipe/logs", {
+                mensagemElement: mensagem
+            });
+
+            if (!response.ok) {
+                lista.innerHTML = "<tr><td colspan=\"5\">Não foi possível carregar logs da equipe.</td></tr>";
+                return;
+            }
+
+            const logs = await response.json();
+
+            if (logs.length === 0) {
+                lista.innerHTML = "<tr><td colspan=\"5\">Nenhum log de equipe registrado.</td></tr>";
+                return;
+            }
+
+            lista.innerHTML = logs.map(function (evento) {
+                return `
+                    <tr>
+                        <td>${formatDateTime(evento.criadoEm)}</td>
+                        <td>${escapeHtml(evento.identificadorFuncionario || "-")}</td>
+                        <td>${escapeHtml(formatAcaoAuditoria(evento.acao))}</td>
+                        <td>${escapeHtml(evento.descricao || "-")}</td>
+                        <td>${escapeHtml(evento.ipOrigem || "-")}</td>
+                    </tr>
+                `;
+            }).join("");
+        } catch {
+            lista.innerHTML = "<tr><td colspan=\"5\">Não foi possível conectar à API.</td></tr>";
+        }
+    }
+
+    document.getElementById("btnAtualizarEquipeAtividade").addEventListener("click", async function () {
+        await carregarGithub();
+        await carregarLogs();
+    });
+
+    await carregarGithub();
+    await carregarLogs();
+}
+
+function setupEquipeRedefinirSenha() {
+    const page = document.getElementById("equipeRedefinirSenhaPage");
+
+    if (!page) {
+        return;
+    }
+
+    const form = document.getElementById("formEquipeRedefinirSenha");
+    const mensagem = document.getElementById("mensagemEquipeRedefinirSenha");
+    const params = new URLSearchParams(window.location.search);
+
+    document.getElementById("resetCodigoEquipe").value = params.get("id") || "";
+    document.getElementById("resetCodigo").value = params.get("codigo") || "";
+
+    form.addEventListener("submit", async function (event) {
+        event.preventDefault();
+
+        if (!form.reportValidity()) {
+            return;
+        }
+
+        const novaSenha = document.getElementById("resetNovaSenha").value;
+        const confirmarNovaSenha = document.getElementById("resetConfirmarNovaSenha").value;
+
+        if (novaSenha !== confirmarNovaSenha) {
+            setMessage(mensagem, "Nova senha e confirmação não conferem.", "error");
+            return;
+        }
+
+        setMessage(mensagem, "Redefinindo senha...", "info");
+        disableSubmit(form, true);
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/equipe/redefinir-senha`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    codigoEquipe: document.getElementById("resetCodigoEquipe").value.trim(),
+                    codigoRedefinicao: document.getElementById("resetCodigo").value.trim(),
+                    novaSenha,
+                    confirmarNovaSenha
+                })
+            });
+
+            if (!response.ok) {
+                setMessage(mensagem, await readApiMessage(response), "error");
+                return;
+            }
+
+            setMessage(mensagem, "Senha redefinida. Faça login com seu ID EQP.", "success");
+            form.reset();
+
+            setTimeout(function () {
+                window.location.href = "index.html";
+            }, 2500);
+        } catch {
+            setMessage(mensagem, "Não foi possível conectar à API.", "error");
+        } finally {
+            disableSubmit(form, false);
+        }
+    });
 }
 
 async function setupSeguranca() {
@@ -1532,6 +2389,12 @@ setupCadastro();
 setupLogin();
 setupPainel();
 setupConvites();
+setupEquipeAtivar();
+setupEquipePainel();
+setupEquipeConvites();
+setupEquipeMembros();
+setupEquipeAtividade();
+setupEquipeRedefinirSenha();
 setupSeguranca();
 setupTrocarSenha();
 setupRedefinirSenha();
