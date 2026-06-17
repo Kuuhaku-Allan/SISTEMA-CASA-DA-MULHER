@@ -11,12 +11,38 @@ Este portal e somente para equipe de desenvolvimento/homologacao. Ele nao hosped
 
 O portal usa OAuth GitHub para identificar a pessoa e usa a API Contents do GitHub para ler/gravar o JSON privado. O token de escrita fica somente em variavel de ambiente do Render.
 
-## Criar o Web Service
+## Criar o Web Service com Docker
+
+O repositorio possui um `Dockerfile` na raiz. No Render, use Docker e deixe:
+
+```text
+Root Directory:
+(vazio)
+
+Dockerfile Path:
+Dockerfile
+```
+
+O Dockerfile publica:
+
+```text
+CasaMulher.Api/CasaMulher.Api.csproj
+```
+
+e inicia:
+
+```text
+dotnet CasaMulher.Api.dll --urls http://0.0.0.0:${PORT}
+```
+
+O nome do projeto e do `.dll` batem com o projeto real: `CasaMulher.Api.csproj` gera `CasaMulher.Api.dll`.
+
+## Alternativa sem Docker
 
 1. No Render, crie `New > Web Service`.
 2. Conecte o repositorio `Sistema-Casa-da-Mulher/SISTEMA-CASA-DA-MULHER`.
 3. Use a branch desejada, normalmente `main` depois do merge.
-4. Configure:
+4. Se optar por runtime nativo em vez de Docker, configure:
 
 ```bash
 Build Command:

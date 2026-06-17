@@ -39,9 +39,11 @@
    docs/HOMOLOGACAO-PORTAL-EQP-RENDER.md
    ```
 
-8. Colocar o link do portal Render no README do `ACESSO-EQUIPE`.
+8. No Render, usar o `Dockerfile` da raiz do repositorio e deixar `Root Directory` vazio.
 
-9. Confirmar bootstrap inicial:
+9. Colocar o link do portal Render no README do `ACESSO-EQUIPE`.
+
+10. Confirmar bootstrap inicial:
 
    - `EQP-000001` + `ADM-000003` reservado para `Kuuhaku-Allan`;
    - `EQP-000002` + `ADM-000004` disponivel;
@@ -49,17 +51,17 @@
    - `EQP-000004` + `ADM-000006` disponivel;
    - `EQP-000005` + `ADM-000007` disponivel.
 
-10. Orientar cada pessoa:
+11. Orientar cada pessoa:
 
     - entrar com GitHub no portal;
     - ativar seu EQP;
     - usar senha propria deste projeto;
     - sincronizar local/Codespaces depois da ativacao.
 
-11. Confirmar que colaboradoras trabalham primeiro em:
+12. Confirmar que colaboradoras trabalham primeiro em:
 
     ```text
     prototipos/
     ```
 
-12. Confirmar que PR de fork fora de `prototipos/` esta bloqueado pelo workflow `validar-prototipos.yml`.
+13. Confirmar que PR de fork fora de `prototipos/` esta bloqueado pelo workflow `validar-prototipos.yml`.
