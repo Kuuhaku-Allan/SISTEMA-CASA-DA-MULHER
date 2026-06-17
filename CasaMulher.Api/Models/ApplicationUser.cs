@@ -31,4 +31,6 @@ public class ApplicationUser : IdentityUser
     public DateTime? PasskeyReconfirmadoEm { get; set; }
 
     public ICollection<PasskeyCredential> PasskeyCredentials { get; set; } = new List<PasskeyCredential>();
+
+    public ICollection<UserLoginIdentifier> LoginIdentifiers { get; set; } = new List<UserLoginIdentifier>();
 }

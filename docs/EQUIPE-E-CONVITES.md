@@ -2,201 +2,139 @@
 
 Este documento descreve o fluxo de contas da equipe do projeto/faculdade no Sistema Casa da Mulher.
 
-## O que é o ID EQP
+## O que e o ID EQP
 
 IDs no formato `EQP-000001`, `EQP-000002` e assim por diante identificam integrantes da equipe de desenvolvimento/teste.
 
-Eles não representam funcionárias reais da Casa da Mulher. A conta EQP existe para apoiar desenvolvimento, homologação, revisão de telas, testes de fluxo e organização do projeto.
+Eles nao representam funcionarias reais da Casa da Mulher. A conta EQP existe para apoiar desenvolvimento, homologacao, revisao de telas, testes de fluxo e organizacao do projeto.
 
-## Entrada correta
+Cada EQP ativado pelo portal tambem recebe um ADM pareado para o ambiente de desenvolvimento/homologacao.
 
-Não peça para a pessoa procurar arquivos manualmente.
+## Fonte central
 
-Use sempre:
-
-```text
-Área da Equipe -> Ativar meu EQP
-```
-
-No Windows local:
-
-```powershell
-.\casa_da_mulher.cmd equipe
-```
-
-No Codespaces:
+A fonte privada versionada fica em:
 
 ```text
-Casa da Mulher: abrir área da equipe
+Sistema-Casa-da-Mulher/ACESSO-EQUIPE
+data/equipe-db.json
 ```
 
-## Gerar convites iniciais
+O portal central le e grava esse JSON via GitHub API. O repositorio principal guarda apenas codigo, docs e exemplo seguro.
 
-Para preparar o primeiro acesso do mantenedor e os primeiros convites de colaboradoras:
+## IDs iniciais
 
-```powershell
-.\casa_da_mulher.cmd equipe bootstrap
-```
-
-Esse comando:
-
-- inicia API, banco e front;
-- aplica migrations;
-- abre a Área da Equipe;
-- cria ou atualiza os convites `EQP-000001` a `EQP-000006`;
-- reserva `EQP-000001` para Allan/mantenedor;
-- imprime os códigos recém-criados ou regenerados no console.
-
-Guarde esses códigos em local privado. Não faça commit deles.
-
-Regras do bootstrap:
-
-- não recria convite que já existe;
-- não sobrescreve conta ativada;
-- se `EQP-000001` já estiver ativado, mostra isso no console;
-- código em texto puro só aparece na criação ou regeneração;
-- código cru não é salvo no banco, apenas hash.
-
-## Criar convite pela tela
-
-Abra a Área da Equipe, faça login como owner/super admin e entre em:
-
-```text
-Convites da equipe
-```
-
-Você pode:
-
-- criar convite individual;
-- criar lote;
-- criar os convites iniciais;
-- regenerar código de convite disponível;
-- revogar convite disponível;
-- copiar instrução de ativação.
-
-Ao criar ou regenerar, o sistema mostra:
-
-- ID EQP;
-- código de ativação em texto puro;
-- texto pronto para copiar.
-
-O código em texto puro aparece apenas nesse momento.
+- `EQP-000001` fica reservado para `Kuuhaku-Allan`.
+- `EQP-000001` usa o ADM existente `ADM-000003`.
+- Convites iniciais disponiveis:
+  - `EQP-000002` + `ADM-000004`
+  - `EQP-000003` + `ADM-000005`
+  - `EQP-000004` + `ADM-000006`
+  - `EQP-000005` + `ADM-000007`
+- O proximo lote comeca em `EQP-000006` + `ADM-000008`.
 
 ## Ativar conta EQP
 
 A integrante deve:
 
-1. Abrir a Área da Equipe.
-2. Clicar em `Ativar meu EQP`.
-3. Informar ID EQP, código de ativação, nome e senha.
-4. Fazer login normalmente com o ID EQP e a senha criada.
+1. Abrir o portal central do Render.
+2. Entrar com GitHub.
+3. Escolher um convite disponivel ou reservado para seu GitHub.
+4. Informar nome e senha criada somente para este projeto.
+5. Confirmar a ativacao.
+6. Abrir seu ambiente local/Codespaces.
+7. Sincronizar a equipe.
+8. Fazer login com EQP ou ADM pareado.
 
-Depois da ativação, o convite vira `Usado` e não pode ser reutilizado.
+Depois da ativacao, o convite vira `usado` e nao pode ser reutilizado.
 
-## Primeiro owner da equipe
+## Sincronizar no ambiente local
 
-O convite `EQP-000001` recebe tratamento especial:
+Windows:
 
-- `PapelEquipe = owner`;
-- `PrecisaFork = false`;
-- `UsaCodespaces = false`;
-- `FluxoTrabalho = local_owner`;
-- `PodeCriarConvitesEquipe = true`.
-
-Use esse ID para o mantenedor.
-
-## Área autenticada da equipe
-
-A Área da Equipe aponta para:
-
-- Painel da equipe;
-- Convites da equipe;
-- Membros da equipe;
-- Atividade e logs;
-- Protótipos;
-- Guias da equipe.
-
-Membro comum vê a área da equipe, mas não recebe ações perigosas. Owner/super admin gerenciam membros, papéis, convites e redefinições de senha.
-
-## Protótipos e Pull Requests
-
-Colaboradoras devem criar telas novas primeiro em:
-
-```text
-prototipos/
+```powershell
+.\casa_da_mulher.cmd equipe sync
 ```
 
-PRs vindos de fork são bloqueados se alterarem arquivos fora de `prototipos/`.
+Codespaces:
 
-## Separação do institucional
+```text
+Casa da Mulher: sincronizar equipe
+```
 
-EQP não deve aparecer como funcionária real.
+A sincronizacao:
 
-O back-end filtra contas, convites e logs de equipe nestas áreas:
+- le `data/equipe-db.json` do `ACESSO-EQUIPE`;
+- cria/atualiza usuarios ASP.NET Identity no banco local;
+- vincula EQP e ADM ao mesmo usuario;
+- importa `passwordHash`, `securityStamp` e `concurrencyStamp`;
+- permite login com EQP ou ADM pareado.
 
-- Gerenciar Funcionários;
-- Convites de funcionários;
-- Histórico/Auditoria institucional;
-- Logs de e-mail institucionais.
+## Redefinir a propria senha
 
-Eventos de equipe ficam em logs próprios, acessados pela Área da Equipe.
+No portal central:
 
-## Redefinição de senha EQP sem e-mail
-
-Convite EQP não usa e-mail nesta fase. Para reset de senha:
-
-1. Owner/super admin abre a Área da Equipe.
-2. Entra em `Membros da equipe`.
-3. Clica em `Gerar redefinição`.
-4. O sistema gera um código temporário de uso único.
-5. A integrante abre a Área da Equipe.
-6. Clica em `Redefinir senha EQP`.
-7. Informa ID EQP, código e nova senha.
+1. Entre com GitHub.
+2. Use a opcao `Ja ativei, quero redefinir minha senha`.
+3. Informe a nova senha do projeto.
+4. Sincronize novamente no ambiente local/Codespaces.
 
 Regras:
 
-- código expira;
-- código usado não funciona de novo;
-- código revogado/expirado é recusado;
-- código fica salvo apenas como hash;
-- auditoria registra geração e uso.
+- usuario comum so redefine a propria senha;
+- owner nao precisa enviar codigo por e-mail;
+- senha nunca e salva em texto puro;
+- o JSON privado guarda apenas hash compativel com ASP.NET Identity.
 
-## GitHub, OAuth e atividade
+## Owner e convites
 
-Estar logado no GitHub para abrir Codespaces não identifica automaticamente o usuário dentro da aplicação.
+O owner GitHub configurado pode criar convites pelo portal:
 
-Login automático real com GitHub precisa de OAuth/GitHub App. Nesta etapa, o login normal por ID/senha continua funcionando e a estrutura para GitHub fica preparada.
+- `POST /api/portal-eqp/admin/criar-convite`
+- `POST /api/portal-eqp/admin/criar-lote`
+- `GET /api/portal-eqp/admin/db`
 
-Não commitar `ClientSecret`, PAT, senha ou token.
+O owner tambem pode manter uma allowlist em `equipe-db.json`:
 
-## Banco local em Codespaces
-
-Cada Codespace/fork tem seu próprio banco local de desenvolvimento.
-
-Isso significa:
-
-- ativar um `EQP` no Codespace de uma pessoa não ativa automaticamente em outro Codespace;
-- esse comportamento é esperado para desenvolvimento;
-- a fonte central de atividade do projeto é o GitHub;
-- para um controle central de `EQP`, será necessário ambiente de homologação com API e banco compartilhados.
-
-## Endpoints principais
-
-```text
-GET  /api/equipe/convites
-POST /api/equipe/convites
-POST /api/equipe/convites/lote
-POST /api/equipe/convites/bootstrap
-POST /api/equipe/convites/{id}/revogar
-POST /api/equipe/convites/{id}/regenerar-codigo
-POST /api/equipe/ativar
-GET  /api/equipe/membros
-PATCH /api/equipe/membros/{id}
-POST /api/equipe/membros/{id}/gerar-redefinicao-senha
-POST /api/equipe/redefinir-senha
-GET  /api/equipe/logs
-GET  /api/equipe/github/status
-GET  /api/equipe/github/atividade
+```json
+"allowlistGitHub": [
+  "Kuuhaku-Allan"
+]
 ```
 
-O endpoint de bootstrap só responde em `Development` ou `Staging`.
+## Endpoints do portal
+
+```text
+GET  /api/portal-eqp/status
+GET  /api/portal-eqp/github/login
+GET  /api/portal-eqp/github/callback
+GET  /api/portal-eqp/me
+GET  /api/portal-eqp/convites-disponiveis
+POST /api/portal-eqp/ativar
+POST /api/portal-eqp/redefinir-minha-senha
+POST /api/portal-eqp/admin/criar-convite
+POST /api/portal-eqp/admin/criar-lote
+GET  /api/portal-eqp/admin/db
+POST /api/equipe/sincronizar-github-db
+```
+
+## Separacao do institucional
+
+EQP nao deve aparecer como funcionaria real.
+
+O back-end filtra contas, convites e logs de equipe nestas areas:
+
+- Gerenciar Funcionarios;
+- Convites de funcionarios;
+- Historico/Auditoria institucional;
+- Logs de e-mail institucionais.
+
+Eventos de equipe ficam em logs proprios, acessados pela Area da Equipe e pelo `equipe-events.ndjson` privado.
+
+## Seguranca
+
+- Nao use senha pessoal sua ou de outro servico.
+- Nao publique senha, token, Client Secret ou hash.
+- Nao publique dados reais da Casa da Mulher.
+- Nao exponha `GITHUB_EQP_WRITE_TOKEN` no front-end.
+- Cada GitHub pode ativar apenas um EQP.
+- Convite usado nao volta a disponivel sem acao do owner.

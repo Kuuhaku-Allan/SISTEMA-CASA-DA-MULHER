@@ -1,70 +1,72 @@
 # Ponto de entrada privado da equipe
 
-O repositório principal pode ser público, mas o acesso real da equipe deve ficar em um repositório privado da organização.
+O repositorio principal pode ser publico, mas o controle real da equipe deve ficar no repositorio privado da organizacao.
 
-Repositório privado definido:
+Repositorio privado definido:
 
 ```text
 Sistema-Casa-da-Mulher/ACESSO-EQUIPE
 ```
 
-Esse repositório privado é o link permanente da equipe. Ele não substitui a aplicação rodando; ele orienta cada pessoa a abrir a Área da Equipe no ambiente correto.
+Esse repositorio privado e o ponto fixo da equipe e tambem guarda a fonte versionada dos convites/membros EQP.
 
-## Por que não usar uma URL única da tela real
+## O que fica no ACESSO-EQUIPE
 
-A Área da Equipe depende de API e banco rodando.
+```text
+data/equipe-db.json
+data/equipe-events.ndjson
+data/equipe-db.example.json
+data/README.md
+README.md
+```
 
-Em Codespaces, cada pessoa tem:
+- `data/equipe-db.json`: fonte de verdade dos convites EQP, ADMs pareados e membros ativados.
+- `data/equipe-events.ndjson`: log de eventos do portal.
+- `README.md`: instrucoes para a equipe e link do portal Render quando estiver publicado.
 
-- uma URL temporária própria;
-- um banco local próprio;
-- um ambiente criado no fork ou no repositório que ela abriu.
+## Portal central
 
-Sem uma API/banco central sempre ligado, não existe uma URL única permanente para ativação EQP.
+O portal central roda no Render e hospeda somente a ativacao EQP:
 
-Por isso, o link permanente deve apontar para o `ACESSO-EQUIPE`, e a tela real deve ser aberta dentro do Codespaces/local de cada pessoa.
+- `/equipe.html`
+- `/equipe-ativar.html`
+- `/api/portal-eqp/*`
 
-## O que deve ficar no repositório privado
-
-- Link do repositório principal.
-- Guia `Comece Aqui` da equipe.
-- Guia de contas e convites EQP.
-- Guia de fork e Codespaces.
-- Guia de Pull Request.
-- Orientação para `prototipos/`.
-- Comandos para abrir a Área da Equipe.
-- Aviso sobre como pedir o código EQP.
+Ele nao hospeda o sistema inteiro e nao usa Neon/PostgreSQL como fonte da equipe. O estado fica no JSON privado do `ACESSO-EQUIPE`.
 
 ## Fluxo correto
 
-Para Allan/mantenedor:
+1. Pessoa abre o link do portal Render.
+2. Entra com GitHub.
+3. Ativa um EQP disponivel ou reservado.
+4. Recebe o ADM pareado automaticamente.
+5. Abre o ambiente local/Codespaces.
+6. Sincroniza a equipe.
+7. Faz login com EQP ou ADM pareado.
+
+Windows:
 
 ```powershell
-.\casa_da_mulher.cmd equipe
-.\casa_da_mulher.cmd equipe bootstrap
+.\casa_da_mulher.cmd equipe sync
 ```
 
-Para colaboradoras no Codespaces:
+Codespaces:
 
 ```text
-Casa da Mulher: iniciar sistema
-Casa da Mulher: abrir área da equipe
+Casa da Mulher: sincronizar equipe
 ```
 
-Depois, a pessoa clica em `Ativar meu EQP`.
+## Seguranca
 
-## O que não deve ficar público
-
-Códigos EQP são individuais e não devem ser publicados no repositório principal.
-
-Também não publicar:
+Nao publicar no repositorio principal:
 
 - senhas;
 - tokens;
+- hashes reais;
 - `ClientSecret`;
 - PAT GitHub;
 - `appsettings` real;
 - banco local;
 - dados reais de atendimento.
 
-Códigos EQP devem ser entregues individualmente ou registrados apenas em local privado da equipe.
+O token `GITHUB_EQP_WRITE_TOKEN` deve existir somente no back-end do portal Render.

@@ -45,6 +45,7 @@ function Show-Help {
     Write-Host "  .\casa_da_mulher.cmd serve off"
     Write-Host "  .\casa_da_mulher.cmd equipe"
     Write-Host "  .\casa_da_mulher.cmd equipe bootstrap"
+    Write-Host "  .\casa_da_mulher.cmd equipe sync"
     Write-Host "  .\casa_da_mulher.cmd status"
     Write-Host "  .\casa_da_mulher.cmd update"
     Write-Host ""
@@ -371,6 +372,60 @@ function Invoke-EquipeBootstrap {
     Write-Host "Use o EQP-000001 para o mantenedor. Entregue os demais códigos individualmente."
 }
 
+function Invoke-EquipeSync {
+    Write-Info "Sincronizando equipe a partir do ACESSO-EQUIPE..."
+
+    if (-not (Test-HttpUrl $StatusApiUrl)) {
+        Write-Warn "API desligada. Subindo sistema antes de sincronizar."
+        Start-System -OpenUrl $EquipeUrl
+    }
+
+    $json = $null
+    $gh = Get-Command gh -ErrorAction SilentlyContinue
+
+    if ($gh) {
+        try {
+            Write-Info "Lendo data/equipe-db.json pelo gh CLI..."
+            $contentBase64 = (& $gh.Source api "repos/Sistema-Casa-da-Mulher/ACESSO-EQUIPE/contents/data/equipe-db.json" --jq ".content") -join ""
+            $contentBase64 = $contentBase64 -replace "\s", ""
+
+            if (-not [string]::IsNullOrWhiteSpace($contentBase64)) {
+                $json = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($contentBase64))
+            }
+        } catch {
+            Write-Warn "Nao foi possivel ler com gh CLI. Vou tentar via token de leitura configurado na API."
+        }
+    } else {
+        Write-Warn "gh CLI nao encontrado. Vou tentar via GITHUB_EQP_READ_TOKEN/GITHUB_EQP_WRITE_TOKEN configurado na API."
+    }
+
+    try {
+        if ($json) {
+            $resultado = Invoke-RestMethod `
+                -Uri "$ApiUrl/api/equipe/sincronizar-github-db" `
+                -Method Post `
+                -ContentType "application/json" `
+                -Body $json `
+                -TimeoutSec 60
+        } else {
+            $resultado = Invoke-RestMethod `
+                -Uri "$ApiUrl/api/equipe/sincronizar-github-db" `
+                -Method Post `
+                -ContentType "application/json" `
+                -Body "{}" `
+                -TimeoutSec 60
+        }
+    } catch {
+        throw "Nao foi possivel sincronizar a equipe. Confirme login no gh CLI ou configure GITHUB_EQP_READ_TOKEN."
+    }
+
+    Write-Ok $resultado.mensagem
+    Write-Host "Membros importados:      $($resultado.membrosImportados)"
+    Write-Host "Usuarios criados:        $($resultado.usuariosCriados)"
+    Write-Host "Usuarios atualizados:    $($resultado.usuariosAtualizados)"
+    Write-Host "Identificadores criados: $($resultado.identificadoresCriados)"
+}
+
 function Show-Status {
     Assert-ProjectRoot
     $apiOnline = Test-HttpUrl $StatusApiUrl
@@ -447,6 +502,9 @@ try {
 
                     Start-System -OpenUrl $EquipeUrl
                     Invoke-EquipeBootstrap -QuantidadeIntegrantes $quantidadeIntegrantes
+                }
+                "sync" {
+                    Invoke-EquipeSync
                 }
                 default {
                     Show-Help

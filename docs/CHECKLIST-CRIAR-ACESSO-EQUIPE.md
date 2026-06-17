@@ -1,6 +1,6 @@
 # Checklist - criar ACESSO-EQUIPE
 
-1. Criar repositório privado:
+1. Criar repositorio privado:
 
    ```text
    Sistema-Casa-da-Mulher/ACESSO-EQUIPE
@@ -8,49 +8,58 @@
 
 2. Adicionar apenas pessoas autorizadas da equipe.
 
-3. Copiar o conteúdo de:
+3. Criar estrutura privada:
+
+   ```text
+   data/equipe-db.json
+   data/equipe-events.ndjson
+   data/equipe-db.example.json
+   data/README.md
+   ```
+
+4. Copiar o conteudo de:
 
    ```text
    docs/templates/README-ACESSO-EQUIPE.md
    ```
 
-   para o `README.md` do repositório privado.
+   para o `README.md` do repositorio privado.
 
-4. Criar uma issue no repositório privado com o conteúdo de:
+5. Criar uma issue no repositorio privado com o conteudo de:
 
    ```text
    docs/templates/ISSUE-COMECE-AQUI-EQUIPE.md
    ```
 
-5. Fixar essa issue no repositório privado.
+6. Fixar essa issue no repositorio privado.
 
-6. No ambiente local do mantenedor, abrir a Área da Equipe:
+7. Configurar o portal Render conforme:
 
-   ```powershell
-   .\casa_da_mulher.cmd equipe
+   ```text
+   docs/HOMOLOGACAO-PORTAL-EQP-RENDER.md
    ```
 
-7. Gerar os convites iniciais EQP:
+8. Colocar o link do portal Render no README do `ACESSO-EQUIPE`.
 
-   ```powershell
-   .\casa_da_mulher.cmd equipe bootstrap
-   ```
+9. Confirmar bootstrap inicial:
 
-8. Entregar individualmente para cada pessoa:
+   - `EQP-000001` + `ADM-000003` reservado para `Kuuhaku-Allan`;
+   - `EQP-000002` + `ADM-000004` disponivel;
+   - `EQP-000003` + `ADM-000005` disponivel;
+   - `EQP-000004` + `ADM-000006` disponivel;
+   - `EQP-000005` + `ADM-000007` disponivel.
 
-   - ID EQP;
-   - código de ativação;
-   - link do repositório privado `ACESSO-EQUIPE`;
-   - orientação para abrir a Área da Equipe.
+10. Orientar cada pessoa:
 
-9. Nunca publicar códigos EQP no repositório principal.
+    - entrar com GitHub no portal;
+    - ativar seu EQP;
+    - usar senha propria deste projeto;
+    - sincronizar local/Codespaces depois da ativacao.
 
-10. Confirmar que colaboradoras trabalham primeiro em:
+11. Confirmar que colaboradoras trabalham primeiro em:
 
     ```text
     prototipos/
     ```
 
-11. Confirmar que PR de fork fora de `prototipos/` está bloqueado pelo workflow `validar-prototipos.yml`.
-
-12. Confirmar que o README e a issue fixada não mandam abrir arquivos manualmente; devem dizer para abrir a Área da Equipe e clicar em `Ativar meu EQP`.
+12. Confirmar que PR de fork fora de `prototipos/` esta bloqueado pelo workflow `validar-prototipos.yml`.

@@ -28,6 +28,8 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
 
     public DbSet<PasskeyReconfirmacao> PasskeyReconfirmacoes => Set<PasskeyReconfirmacao>();
 
+    public DbSet<UserLoginIdentifier> UserLoginIdentifiers => Set<UserLoginIdentifier>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -51,6 +53,33 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
 
             entity.Property(user => user.EmailRecuperacao)
                 .HasMaxLength(256);
+        });
+
+        builder.Entity<UserLoginIdentifier>(entity =>
+        {
+            entity.ToTable("UserLoginIdentifiers");
+
+            entity.HasIndex(identifier => identifier.Identificador)
+                .IsUnique();
+
+            entity.HasIndex(identifier => identifier.UserId);
+
+            entity.Property(identifier => identifier.UserId)
+                .HasMaxLength(80)
+                .IsRequired();
+
+            entity.Property(identifier => identifier.Identificador)
+                .HasMaxLength(20)
+                .IsRequired();
+
+            entity.Property(identifier => identifier.Tipo)
+                .HasMaxLength(20)
+                .IsRequired();
+
+            entity.HasOne(identifier => identifier.User)
+                .WithMany(user => user.LoginIdentifiers)
+                .HasForeignKey(identifier => identifier.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         builder.Entity<FuncionarioConvite>(entity =>

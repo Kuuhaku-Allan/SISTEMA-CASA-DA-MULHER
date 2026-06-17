@@ -1,55 +1,42 @@
 # COMECE AQUI - Acesso da equipe
 
-Esta issue deve ficar fixada no repositório privado `Sistema-Casa-da-Mulher/ACESSO-EQUIPE`.
+Esta issue deve ficar fixada no repositorio privado `Sistema-Casa-da-Mulher/ACESSO-EQUIPE`.
 
-Códigos EQP são individuais. Não publique códigos, senhas, tokens ou dados reais.
+Nao publique senhas, tokens, hashes, Client Secrets ou dados reais.
 
-## Primeiro passo para Allan/mantenedor
+## Primeiro passo
 
-1. Abra o projeto na sua IDE.
-2. Execute:
+1. Abra o link do portal central EQP no Render.
+2. Entre com GitHub.
+3. Ative seu EQP.
+4. Crie uma senha propria para este projeto.
+5. Abra seu ambiente local/Codespaces.
+6. Sincronize a equipe.
+7. Faca login com EQP ou ADM pareado.
 
-   ```powershell
-   .\casa_da_mulher.cmd equipe
-   ```
+## Sincronizar
 
-3. Se ainda não tiver EQP, execute:
+Windows:
 
-   ```powershell
-   .\casa_da_mulher.cmd equipe bootstrap
-   ```
+```powershell
+.\casa_da_mulher.cmd equipe sync
+```
 
-4. Use o `EQP-000001` e o código gerado para ativar sua conta.
+Codespaces:
 
-## Primeiro passo para quem já tem fork
+```text
+Casa da Mulher: sincronizar equipe
+```
 
-1. Abra seu fork no Codespaces.
-2. Rode `Casa da Mulher: iniciar sistema`.
-3. Rode `Casa da Mulher: abrir área da equipe`.
-4. Clique em `Ativar meu EQP`.
-5. Use o ID e o código enviados pelo mantenedor.
-6. Trabalhe em `prototipos/` e envie Pull Request.
+## O que e EQP
 
-## Primeiro passo para quem ainda não tem fork
+EQP e o acesso da equipe do projeto. Ele serve para desenvolvimento, testes, prototipos e revisao.
 
-1. Abra o repositório principal.
-2. Clique em `Fork`.
-3. Crie o fork na sua conta.
-4. Abra Codespaces no seu fork.
-5. Rode `Casa da Mulher: iniciar sistema`.
-6. Rode `Casa da Mulher: abrir área da equipe`.
-7. Clique em `Ativar meu EQP`.
-8. Crie protótipos e envie Pull Request.
-
-## O que é EQP
-
-EQP é o acesso da equipe do projeto. Ele serve para desenvolvimento, testes, protótipos e revisão.
-
-EQP não representa funcionária real da Casa da Mulher.
+EQP nao representa funcionaria real da Casa da Mulher.
 
 ## Links principais
 
-- Repositório principal:
+- Repositorio principal:
   https://github.com/Sistema-Casa-da-Mulher/SISTEMA-CASA-DA-MULHER
 
 - Comece Aqui:
@@ -64,12 +51,12 @@ EQP não representa funcionária real da Casa da Mulher.
 - Pull Request:
   https://github.com/Sistema-Casa-da-Mulher/SISTEMA-CASA-DA-MULHER/blob/main/docs/GUIA-RAPIDO-PR.md
 
-## Como pedir acesso EQP
+## Se ainda nao tem fork
 
-Peça ao mantenedor:
-
-- seu ID EQP;
-- seu código de ativação;
-- orientação sobre fork/Codespaces.
-
-Nunca compartilhe seu código EQP com outras pessoas.
+1. Abra o repositorio principal.
+2. Clique em `Fork`.
+3. Crie o fork na sua conta.
+4. Abra Codespaces no seu fork.
+5. Rode `Casa da Mulher: iniciar sistema`.
+6. Rode `Casa da Mulher: sincronizar equipe`.
+7. Crie prototipos e envie Pull Request.

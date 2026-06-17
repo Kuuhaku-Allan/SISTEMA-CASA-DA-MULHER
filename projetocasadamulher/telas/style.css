@@ -52,6 +52,10 @@ select {
     max-width: 560px;
 }
 
+.portal-eqp-box {
+    max-width: 720px;
+}
+
 .logo-login {
     display: block;
     width: 190px;
@@ -426,6 +430,61 @@ select {
     margin-bottom: 0;
 }
 
+.portal-section {
+    display: grid;
+    gap: 14px;
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px solid #e4e8ec;
+    text-align: left;
+}
+
+.invite-list {
+    display: grid;
+    gap: 10px;
+}
+
+.invite-card {
+    width: 100%;
+    min-height: 74px;
+    display: grid;
+    gap: 4px;
+    padding: 12px 14px;
+    border: 1px solid #cfd7df;
+    border-radius: 6px;
+    background: #ffffff;
+    color: #24313d;
+    cursor: pointer;
+    font: inherit;
+    text-align: left;
+}
+
+.invite-card:hover,
+.invite-card:focus {
+    border-color: #18726b;
+    outline: 3px solid rgba(24, 114, 107, 0.12);
+}
+
+.invite-card strong {
+    color: #18726b;
+    font-size: 1rem;
+}
+
+.copy-panel {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    align-items: center;
+    padding: 10px;
+    border: 1px solid #dbe5ea;
+    border-radius: 6px;
+    background: #f6faf9;
+}
+
+.copy-panel code {
+    overflow-wrap: anywhere;
+}
+
 .admin-panel,
 .admin-alert {
     padding: 20px;
@@ -651,6 +710,10 @@ small,
     }
 
     .action-row {
+        grid-template-columns: 1fr;
+    }
+
+    .copy-panel {
         grid-template-columns: 1fr;
     }
 }

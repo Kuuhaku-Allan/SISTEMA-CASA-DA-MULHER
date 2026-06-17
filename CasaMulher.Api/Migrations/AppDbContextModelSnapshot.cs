@@ -634,6 +634,46 @@ namespace CasaMulher.Api.Migrations
                     b.ToTable("PasskeyReconfirmacoes", (string)null);
                 });
 
+            modelBuilder.Entity("CasaMulher.Api.Models.UserLoginIdentifier", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("Ativo")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("AtualizadoEm")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CriadoEm")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Identificador")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Identificador")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("UserLoginIdentifiers", (string)null);
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
                 {
                     b.Property<string>("Id")
@@ -773,6 +813,17 @@ namespace CasaMulher.Api.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("CasaMulher.Api.Models.UserLoginIdentifier", b =>
+                {
+                    b.HasOne("CasaMulher.Api.Models.ApplicationUser", "User")
+                        .WithMany("LoginIdentifiers")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -826,6 +877,8 @@ namespace CasaMulher.Api.Migrations
 
             modelBuilder.Entity("CasaMulher.Api.Models.ApplicationUser", b =>
                 {
+                    b.Navigation("LoginIdentifiers");
+
                     b.Navigation("PasskeyCredentials");
                 });
 #pragma warning restore 612, 618

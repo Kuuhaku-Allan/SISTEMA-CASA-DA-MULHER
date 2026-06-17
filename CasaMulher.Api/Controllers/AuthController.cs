@@ -1196,6 +1196,16 @@ public class AuthController : ControllerBase
 
         var identificadorNormalizado = identificador.ToUpperInvariant();
 
+        var alias = await _dbContext.UserLoginIdentifiers
+            .Where(item => item.Ativo && item.Identificador.ToUpper() == identificadorNormalizado)
+            .OrderBy(item => item.Id)
+            .FirstOrDefaultAsync();
+
+        if (alias is not null)
+        {
+            return await _userManager.FindByIdAsync(alias.UserId);
+        }
+
         return await _dbContext.Users.SingleOrDefaultAsync(usuario =>
             usuario.NormalizedUserName == identificadorNormalizado
             || usuario.IdentificadorFuncionario.ToUpper() == identificadorNormalizado);

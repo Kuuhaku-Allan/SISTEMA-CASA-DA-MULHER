@@ -10,6 +10,8 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 
@@ -216,6 +218,8 @@ builder.Services.AddScoped<IEmailRecuperacaoEmailService, EmailRecuperacaoEmailS
 builder.Services.AddSingleton<IRedefinicaoSenhaThrottleService, InMemoryRedefinicaoSenhaThrottleService>();
 builder.Services.AddMemoryCache();
 builder.Services.AddHttpClient<IEquipeGithubService, EquipeGithubService>();
+builder.Services.AddHttpClient<IEquipeDbGitHubService, EquipeDbGitHubService>();
+builder.Services.AddScoped<EquipeDbSyncService>();
 
 // WebAuthn / Passkey — Fido2 v3 é instanciado diretamente (sem extension method)
 var fido2Origin = builder.Environment.IsDevelopment()
@@ -252,6 +256,12 @@ else
 }
 
 builder.Services.AddControllers();
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -304,14 +314,28 @@ if (runDemoSeed)
     await AuthDbSeeder.SeedAsync(app.Services);
 }
 
+app.UseForwardedHeaders();
 app.UseHttpsRedirection();
 
+var telasPath = Path.GetFullPath(Path.Combine(app.Environment.ContentRootPath, "..", "projetocasadamulher", "telas"));
+
+if (Directory.Exists(telasPath))
+{
+    var telasFileProvider = new PhysicalFileProvider(telasPath);
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = telasFileProvider
+    });
+}
+
+app.UseStaticFiles();
 app.UseRouting();
 app.UseCors("FrontendLocal");
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapGet("/", () => Results.Redirect("/equipe.html"));
 app.MapControllers();
 
 app.Run();
