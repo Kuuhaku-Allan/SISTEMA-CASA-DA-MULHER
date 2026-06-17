@@ -21,6 +21,15 @@
       "problemMatcher": []
     },
     {
+      "label": "Casa da Mulher: abrir área da equipe",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "scripts/codespaces/abrir-equipe.sh"
+      ],
+      "problemMatcher": []
+    },
+    {
       "label": "Casa da Mulher: detectar fluxo",
       "type": "shell",
       "command": "bash",

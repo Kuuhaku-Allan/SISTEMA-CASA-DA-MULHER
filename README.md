@@ -4,18 +4,30 @@ Projeto em desenvolvimento para o Sistema Casa da Mulher Itaquaquecetuba.
 
 ## Comece aqui - Equipe do Projeto
 
-Se voce faz parte da equipe de desenvolvimento/teste, comece por estes guias:
+Se você faz parte da equipe de desenvolvimento/teste, comece pela Área da Equipe:
+
+```powershell
+.\casa_da_mulher.cmd equipe
+```
+
+Para gerar o primeiro owner e convites iniciais:
+
+```powershell
+.\casa_da_mulher.cmd equipe bootstrap
+```
+
+Guias principais:
 
 - Guia central da equipe: `docs/COMECE-AQUI-EQUIPE.md`
 - Contas e convites EQP: `docs/EQUIPE-E-CONVITES.md`
 - Codespaces para colaboradoras: `docs/CODESPACES-PARA-COLABORADORAS.md`
 - Enviar Pull Request: `docs/GUIA-RAPIDO-PR.md`
-- Matriz de permissoes EQP/ADM: `docs/MATRIZ-PERMISSOES-EQP-ADM.md`
-- Area segura de prototipos: `prototipos/index.html`
+- Matriz de permissões EQP/ADM: `docs/MATRIZ-PERMISSOES-EQP-ADM.md`
+- Área segura de protótipos: `prototipos/index.html`
+- Área da Equipe: `equipe.html`
 - Atividade do projeto: `projetocasadamulher/telas/equipe-atividade.html`
-- Ativar EQP: `projetocasadamulher/telas/equipe-ativar.html`
 
-O GitHub concentra a atividade central do projeto. O banco de cada Codespace e local e serve para desenvolvimento.
+O GitHub concentra a atividade central do projeto. O banco de cada Codespace é local e serve para desenvolvimento.
 
 ## Equipe do projeto
 
@@ -23,7 +35,7 @@ Este projeto possui um fluxo separado para integrantes da equipe usando IDs `EQP
 
 Os guias ficam em `docs/COMECE-AQUI-EQUIPE.md`.
 
-Codigos de ativacao EQP sao individuais e nao devem ser publicados neste repositorio.
+Códigos de ativação EQP são individuais e não devem ser publicados neste repositório.
 
 ## Estrutura
 
@@ -56,9 +68,10 @@ Resumo:
 1. A colaboradora faz fork do repositório.
 2. Abre um Codespace no próprio fork.
 3. Roda a tarefa `Casa da Mulher: iniciar sistema`.
-4. Edita os arquivos em `projetocasadamulher/telas/`.
-5. Roda a tarefa `Casa da Mulher: enviar Pull Request`.
-6. O Pull Request vai para revisão na branch `main`.
+4. Roda a tarefa `Casa da Mulher: abrir área da equipe`.
+5. Cria protótipos em `prototipos/`.
+6. Roda a tarefa `Casa da Mulher: enviar Pull Request`.
+7. O Pull Request vai para revisão na branch `main`.
 
 Guia completo:
 

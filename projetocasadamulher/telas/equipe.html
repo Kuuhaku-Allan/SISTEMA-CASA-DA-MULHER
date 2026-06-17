@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Área da Equipe - Casa da Mulher</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="config.js" defer></script>
+</head>
+<body>
+    <main class="admin-shell">
+        <header class="admin-header">
+            <div>
+                <img src="IMAGENS/logo_oficial.png" alt="Logo Casa da Mulher" class="logo-admin">
+                <div>
+                    <h1>Área da Equipe</h1>
+                    <p>Entrada única para ativação EQP, login, protótipos e guias do projeto.</p>
+                </div>
+            </div>
+            <div class="header-actions">
+                <a class="btn-primary btn-compact button-link" href="equipe-ativar.html">Ativar meu EQP</a>
+                <a class="btn-secondary btn-compact button-link" href="index.html">Login</a>
+            </div>
+        </header>
+
+        <section class="team-dashboard">
+            <section class="admin-panel">
+                <h2>Começar</h2>
+                <p class="section-intro">Esta área é da equipe do projeto. Use dados fictícios e códigos EQP individuais.</p>
+                <div class="link-list">
+                    <a class="btn-primary button-link" href="equipe-ativar.html">Ativar meu EQP</a>
+                    <a class="btn-secondary button-link" href="index.html">Fazer login</a>
+                    <a class="btn-secondary button-link" href="equipe-redefinir-senha.html">Redefinir senha EQP</a>
+                </div>
+            </section>
+
+            <section class="admin-panel">
+                <h2>Área autenticada</h2>
+                <p class="section-intro">Depois do login, use o painel para acessar recursos permitidos ao seu perfil.</p>
+                <div class="link-list">
+                    <a class="btn-primary button-link" href="equipe-painel.html">Painel da equipe</a>
+                    <a class="btn-secondary button-link" href="equipe-convites.html">Convites da equipe</a>
+                    <a class="btn-secondary button-link" href="equipe-membros.html">Membros da equipe</a>
+                    <a class="btn-secondary button-link" href="equipe-atividade.html">Atividade e logs</a>
+                </div>
+            </section>
+
+            <section class="admin-panel">
+                <h2>Protótipos</h2>
+                <p class="section-intro">Colaboradoras trabalham primeiro na área segura de protótipos e enviam Pull Request.</p>
+                <div class="link-list">
+                    <a class="btn-primary button-link" href="../../prototipos/index.html">Abrir protótipos</a>
+                    <a class="btn-secondary button-link" href="https://github.com/Sistema-Casa-da-Mulher/SISTEMA-CASA-DA-MULHER/blob/main/docs/GUIA-RAPIDO-PR.md" target="_blank" rel="noopener">Guia de Pull Request</a>
+                    <a class="btn-secondary button-link" href="https://github.com/Sistema-Casa-da-Mulher/SISTEMA-CASA-DA-MULHER/pulls" target="_blank" rel="noopener">Pull Requests no GitHub</a>
+                </div>
+            </section>
+
+            <section class="admin-panel">
+                <h2>Guias da equipe</h2>
+                <p class="section-intro">O repositório privado ACESSO-EQUIPE é o ponto fixo. A tela real abre no ambiente local ou Codespaces.</p>
+                <div class="link-list">
+                    <a class="btn-primary button-link" href="https://github.com/Sistema-Casa-da-Mulher/ACESSO-EQUIPE" target="_blank" rel="noopener">Abrir ACESSO-EQUIPE</a>
+                    <a class="btn-secondary button-link" href="https://github.com/Sistema-Casa-da-Mulher/SISTEMA-CASA-DA-MULHER/blob/main/docs/COMECE-AQUI-EQUIPE.md" target="_blank" rel="noopener">Comece aqui</a>
+                    <a class="btn-secondary button-link" href="https://github.com/Sistema-Casa-da-Mulher/SISTEMA-CASA-DA-MULHER/blob/main/docs/EQUIPE-E-CONVITES.md" target="_blank" rel="noopener">Contas e convites EQP</a>
+                    <a class="btn-secondary button-link" href="https://github.com/Sistema-Casa-da-Mulher/SISTEMA-CASA-DA-MULHER/blob/main/docs/CODESPACES-PARA-COLABORADORAS.md" target="_blank" rel="noopener">Codespaces</a>
+                </div>
+            </section>
+
+            <section class="admin-panel">
+                <h2>Ambiente</h2>
+                <p class="section-intro">A API precisa estar rodando para ativar EQP, fazer login e acessar painéis protegidos.</p>
+                <dl class="profile-list compact-list">
+                    <div>
+                        <dt>API detectada</dt>
+                        <dd id="equipeApiBase">Carregando...</dd>
+                    </div>
+                    <div>
+                        <dt>Atalho local</dt>
+                        <dd><code>.\casa_da_mulher.cmd equipe</code></dd>
+                    </div>
+                    <div>
+                        <dt>Bootstrap local</dt>
+                        <dd><code>.\casa_da_mulher.cmd equipe bootstrap</code></dd>
+                    </div>
+                    <div>
+                        <dt>Codespaces</dt>
+                        <dd>Use a task <code>Casa da Mulher: abrir área da equipe</code>.</dd>
+                    </div>
+                </dl>
+            </section>
+
+            <section class="admin-panel">
+                <h2>Cuidados</h2>
+                <ul class="steps-list">
+                    <li>Não publique código EQP, senha, token ou dado real.</li>
+                    <li>Cada código de ativação é individual.</li>
+                    <li>EQP não representa funcionária real da Casa da Mulher.</li>
+                    <li>Use este atalho em vez de procurar HTML manualmente.</li>
+                </ul>
+            </section>
+        </section>
+    </main>
+
+    <script>
+        window.addEventListener("DOMContentLoaded", function () {
+            const apiBase = document.getElementById("equipeApiBase");
+
+            if (apiBase) {
+                apiBase.textContent = window.API_BASE_URL || "http://localhost:5001";
+            }
+        });
+    </script>
+</body>
+</html>

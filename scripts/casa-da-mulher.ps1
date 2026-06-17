@@ -8,14 +8,15 @@ $ErrorActionPreference = "Stop"
 $ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $ApiProject = Join-Path $ProjectRoot "CasaMulher.Api\CasaMulher.Api.csproj"
 $ApiDir = Join-Path $ProjectRoot "CasaMulher.Api"
-$FrontDir = Join-Path $ProjectRoot "projetocasadamulher\telas"
+$FrontDir = $ProjectRoot
 $RuntimeDir = Join-Path $ProjectRoot ".runtime"
 $ApiPidFile = Join-Path $RuntimeDir "api.pid"
 $FrontPidFile = Join-Path $RuntimeDir "front.pid"
 $ApiUrl = "http://localhost:5001"
 $FrontUrl = "http://localhost:5500"
 $StatusApiUrl = "$ApiUrl/swagger/index.html"
-$StatusFrontUrl = "$FrontUrl/index.html"
+$StatusFrontUrl = "$FrontUrl/projetocasadamulher/telas/index.html"
+$EquipeUrl = "$FrontUrl/equipe.html"
 
 function Write-Info {
     param([string]$Message)
@@ -42,13 +43,19 @@ function Show-Help {
     Write-Host "Uso:"
     Write-Host "  .\casa_da_mulher.cmd serve on"
     Write-Host "  .\casa_da_mulher.cmd serve off"
+    Write-Host "  .\casa_da_mulher.cmd equipe"
+    Write-Host "  .\casa_da_mulher.cmd equipe bootstrap"
     Write-Host "  .\casa_da_mulher.cmd status"
     Write-Host "  .\casa_da_mulher.cmd update"
     Write-Host ""
 }
 
 function Assert-ProjectRoot {
-    if (-not (Test-Path $ApiProject) -or -not (Test-Path (Join-Path $FrontDir "index.html"))) {
+    $temApi = Test-Path $ApiProject
+    $temIndexRaiz = Test-Path (Join-Path $ProjectRoot "index.html")
+    $temIndexTelas = Test-Path (Join-Path $ProjectRoot "projetocasadamulher\telas\index.html")
+
+    if (-not $temApi -or -not $temIndexRaiz -or -not $temIndexTelas) {
         throw "Este comando precisa estar dentro da raiz do projeto Sistema Casa da Mulher."
     }
 }
@@ -289,6 +296,8 @@ function Start-Front {
 }
 
 function Start-System {
+    param([string]$OpenUrl = $StatusFrontUrl)
+
     Assert-ProjectRoot
     Ensure-RuntimeDir
     Get-RequiredCommand -Name "dotnet" -InstallMessage ".NET SDK não encontrado. Instale o .NET 8 SDK e tente novamente." | Out-Null
@@ -307,8 +316,59 @@ function Start-System {
     Start-Front
 
     Write-Info "Abrindo navegador..."
-    Start-Process $StatusFrontUrl
+    Start-Process $OpenUrl
     Write-Ok "Sistema ligado."
+    Write-Host ""
+    Write-Host "Links principais:"
+    Write-Host "  Área da Equipe: $EquipeUrl"
+    Write-Host "  Ativar EQP:     $FrontUrl/projetocasadamulher/telas/equipe-ativar.html"
+    Write-Host "  Login:          $StatusFrontUrl"
+    Write-Host "  Protótipos:     $FrontUrl/prototipos/index.html"
+}
+
+function Invoke-EquipeBootstrap {
+    param([int]$QuantidadeIntegrantes = 5)
+
+    $body = @{
+        quantidadeIntegrantes = $QuantidadeIntegrantes
+        regenerarCodigosDisponiveis = $true
+    } | ConvertTo-Json
+
+    Write-Info "Gerando/atualizando convites iniciais EQP..."
+
+    try {
+        $resultado = Invoke-RestMethod `
+            -Uri "$ApiUrl/api/equipe/convites/bootstrap" `
+            -Method Post `
+            -ContentType "application/json" `
+            -Body $body `
+            -TimeoutSec 30
+    } catch {
+        throw "Não foi possível executar o bootstrap EQP. Confirme se a API está ligada em $ApiUrl."
+    }
+
+    Write-Host ""
+    Write-Host "Convites iniciais EQP ($($resultado.ambiente))"
+    Write-Host "Guarde estes códigos em local privado. Não faça commit deles."
+    Write-Host ""
+    Write-Host ("{0,-12} {1,-12} {2,-12} {3}" -f "ID", "Código", "Papel", "Observação")
+    Write-Host ("{0,-12} {1,-12} {2,-12} {3}" -f "--", "------", "-----", "----------")
+
+    foreach ($convite in $resultado.convites) {
+        $codigo = if ($convite.codigoAtivacao) { $convite.codigoAtivacao } else { "(não exibido)" }
+        $observacao = $convite.observacao
+
+        if ($convite.criado) {
+            $observacao = "$observacao - criado agora"
+        } elseif ($convite.regenerado) {
+            $observacao = "$observacao - código regenerado agora"
+        }
+
+        Write-Host ("{0,-12} {1,-12} {2,-12} {3}" -f $convite.codigoEquipe, $codigo, $convite.papelEquipe, $observacao)
+    }
+
+    Write-Host ""
+    Write-Host "Use o EQP-000001 para o mantenedor. Entregue os demais códigos individualmente."
 }
 
 function Show-Status {
@@ -368,6 +428,26 @@ try {
             switch ($secondary) {
                 "on" { Start-System }
                 "off" { Stop-System }
+                default {
+                    Show-Help
+                    exit 1
+                }
+            }
+        }
+        "equipe" {
+            switch ($secondary) {
+                "" { Start-System -OpenUrl $EquipeUrl }
+                "on" { Start-System -OpenUrl $EquipeUrl }
+                "bootstrap" {
+                    $quantidadeIntegrantes = 5
+
+                    if ($CommandArgs.Count -gt 2) {
+                        [int]::TryParse($CommandArgs[2], [ref]$quantidadeIntegrantes) | Out-Null
+                    }
+
+                    Start-System -OpenUrl $EquipeUrl
+                    Invoke-EquipeBootstrap -QuantidadeIntegrantes $quantidadeIntegrantes
+                }
                 default {
                     Show-Help
                     exit 1

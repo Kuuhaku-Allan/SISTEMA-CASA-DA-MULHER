@@ -1418,6 +1418,10 @@ function getEquipeActivationLink(codigoEquipe, codigoAtivacao) {
     return url.toString();
 }
 
+function getEquipeHomeLink() {
+    return new URL("equipe.html", window.location.href).toString();
+}
+
 function buildEquipeConviteText(convite) {
     return [
         "Seu convite para acessar o Sistema Casa da Mulher como integrante da equipe é:",
@@ -1425,10 +1429,27 @@ function buildEquipeConviteText(convite) {
         `ID: ${convite.codigoEquipe}`,
         `Código de ativação: ${convite.codigoAtivacao}`,
         "",
-        `Acesse: ${getEquipeActivationLink(convite.codigoEquipe, convite.codigoAtivacao)}`,
+        `Abra a Área da Equipe: ${getEquipeHomeLink()}`,
+        "Clique em Ativar meu EQP e informe o ID e o código acima.",
+        "",
+        `Link direto de ativação: ${getEquipeActivationLink(convite.codigoEquipe, convite.codigoAtivacao)}`,
         "",
         "Informe seu nome e crie sua senha.",
         "Não compartilhe esse código com outras pessoas."
+    ].join("\n");
+}
+
+function buildEquipeActivationInstruction() {
+    return [
+        "Para ativar seu acesso EQP:",
+        "",
+        `1. Abra a Área da Equipe: ${getEquipeHomeLink()}`,
+        "2. Clique em Ativar meu EQP.",
+        "3. Informe o ID EQP e o código individual enviados pelo mantenedor.",
+        "4. Informe seu nome e crie sua senha.",
+        "5. Depois faça login com seu ID EQP e a senha criada.",
+        "",
+        "Não compartilhe seu código EQP com outras pessoas."
     ].join("\n");
 }
 
@@ -1584,6 +1605,8 @@ async function setupEquipeConvites() {
     const formIndividual = document.getElementById("formEquipeConvite");
     const formLote = document.getElementById("formEquipeConviteLote");
     const resultPanel = document.getElementById("equipeConvitesGerados");
+    const btnCriarConvitesIniciais = document.getElementById("btnCriarConvitesIniciais");
+    const btnCopiarInstrucaoEquipe = document.getElementById("btnCopiarInstrucaoEquipe");
     let textosEquipeConvitesGerados = [];
     bindLogoutButton("btnSairEquipeConvites");
 
@@ -1609,16 +1632,31 @@ async function setupEquipeConvites() {
     function renderConvitesGerados(convites) {
         const lista = document.getElementById("listaEquipeConvitesGerados");
         const itens = Array.isArray(convites) ? convites : [convites];
-        textosEquipeConvitesGerados = itens.map(buildEquipeConviteText);
+        textosEquipeConvitesGerados = itens.map(function (convite) {
+            if (convite.codigoAtivacao) {
+                return buildEquipeConviteText(convite);
+            }
+
+            return [
+                `ID: ${convite.codigoEquipe}`,
+                `Status: ${convite.status || "sem código novo"}`,
+                convite.observacao || "Código em texto puro não disponível. Regenere o código se o convite ainda estiver disponível."
+            ].join("\n");
+        });
 
         lista.innerHTML = itens.map(function (convite, index) {
+            const codigoAtivacao = convite.codigoAtivacao || "(não exibido)";
+            const botaoCopiar = convite.codigoAtivacao
+                ? `<button type="button" class="btn-link" data-copy-equipe="${index}">Copiar texto</button>`
+                : `<button type="button" class="btn-link" data-copy-equipe="${index}">Copiar resumo</button>`;
+
             return `
                 <tr>
                     <td>${escapeHtml(convite.codigoEquipe)}</td>
-                    <td>${escapeHtml(convite.codigoAtivacao)}</td>
+                    <td>${escapeHtml(codigoAtivacao)}</td>
                     <td>${escapeHtml(formatEquipePapel(convite.papelEquipe))}</td>
                     <td>
-                        <button type="button" class="btn-link" data-copy-equipe="${index}">Copiar texto</button>
+                        ${botaoCopiar}
                     </td>
                 </tr>
             `;
@@ -1764,6 +1802,41 @@ async function setupEquipeConvites() {
     });
 
     document.getElementById("btnAtualizarEquipeConvites").addEventListener("click", carregarConvitesEquipe);
+
+    btnCriarConvitesIniciais?.addEventListener("click", async function () {
+        btnCriarConvitesIniciais.disabled = true;
+        setMessage(mensagem, "Criando ou regenerando convites iniciais...", "info");
+
+        try {
+            const response = await CasaMulherAuth.apiFetch("/api/equipe/convites/bootstrap", {
+                method: "POST",
+                headers: getAuthHeaders(true),
+                body: {
+                    quantidadeIntegrantes: 5,
+                    regenerarCodigosDisponiveis: true
+                },
+                mensagemElement: mensagem
+            });
+
+            if (!response.ok) {
+                setMessage(mensagem, await readApiMessage(response), "error");
+                return;
+            }
+
+            const resultado = await response.json();
+            renderConvitesGerados(resultado.convites || []);
+            setMessage(mensagem, "Convites iniciais preparados. Copie os códigos gerados agora.", "success");
+            await carregarConvitesEquipe();
+        } catch {
+            setMessage(mensagem, "Não foi possível conectar à API.", "error");
+        } finally {
+            btnCriarConvitesIniciais.disabled = false;
+        }
+    });
+
+    btnCopiarInstrucaoEquipe?.addEventListener("click", function () {
+        copyText(buildEquipeActivationInstruction(), mensagem);
+    });
 
     document.getElementById("listaEquipeConvitesGerados").addEventListener("click", function (event) {
         const button = event.target.closest("[data-copy-equipe]");
