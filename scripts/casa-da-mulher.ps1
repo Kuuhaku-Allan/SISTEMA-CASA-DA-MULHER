@@ -265,8 +265,8 @@ function Start-Api {
 
     Write-Info "Subindo API em $ApiUrl..."
     $process = Start-Process -FilePath $dotnet `
-        -ArgumentList @("run", "--project", "CasaMulher.Api\CasaMulher.Api.csproj", "--environment", "Development", "--urls", $ApiUrl) `
-        -WorkingDirectory $ProjectRoot `
+        -ArgumentList @("run", "--project", "CasaMulher.Api.csproj", "--environment", "Development", "--urls", $ApiUrl) `
+        -WorkingDirectory $ApiDir `
         -WindowStyle Hidden `
         -RedirectStandardOutput $apiOut `
         -RedirectStandardError $apiErr `
@@ -314,6 +314,7 @@ function Start-System {
     Restore-Api
     Update-Database
     Start-Api
+    Invoke-EquipeSync -BestEffort | Out-Null
     Start-Front
 
     Write-Info "Abrindo navegador..."
@@ -373,11 +374,19 @@ function Invoke-EquipeBootstrap {
 }
 
 function Invoke-EquipeSync {
+    param([switch]$BestEffort)
+
     Write-Info "Sincronizando equipe a partir do ACESSO-EQUIPE..."
 
     if (-not (Test-HttpUrl $StatusApiUrl)) {
+        if ($BestEffort) {
+            Write-Warn "A API ainda não está disponível. A sincronização automática tentará novamente em breve."
+            return $false
+        }
+
         Write-Warn "API desligada. Subindo sistema antes de sincronizar."
         Start-System -OpenUrl $EquipeUrl
+        return $true
     }
 
     $json = $null
@@ -393,10 +402,10 @@ function Invoke-EquipeSync {
                 $json = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($contentBase64))
             }
         } catch {
-            Write-Warn "Nao foi possivel ler com gh CLI. Vou tentar via token de leitura configurado na API."
+            Write-Warn "Não foi possível ler com gh CLI. Vou tentar pela própria API."
         }
     } else {
-        Write-Warn "gh CLI nao encontrado. Vou tentar via GITHUB_EQP_READ_TOKEN/GITHUB_EQP_WRITE_TOKEN configurado na API."
+        Write-Warn "gh CLI não encontrado. Vou tentar via GITHUB_EQP_READ_TOKEN/GITHUB_EQP_WRITE_TOKEN configurado na API."
     }
 
     try {
@@ -416,14 +425,22 @@ function Invoke-EquipeSync {
                 -TimeoutSec 60
         }
     } catch {
-        throw "Nao foi possivel sincronizar a equipe. Confirme login no gh CLI ou configure GITHUB_EQP_READ_TOKEN."
+        $mensagem = "Não foi possível sincronizar a equipe. Confirme o login no gh CLI ou configure GITHUB_EQP_READ_TOKEN."
+
+        if ($BestEffort) {
+            Write-Warn "$mensagem A sincronização automática tentará novamente em breve."
+            return $false
+        }
+
+        throw $mensagem
     }
 
     Write-Ok $resultado.mensagem
     Write-Host "Membros importados:      $($resultado.membrosImportados)"
-    Write-Host "Usuarios criados:        $($resultado.usuariosCriados)"
-    Write-Host "Usuarios atualizados:    $($resultado.usuariosAtualizados)"
+    Write-Host "Usuários criados:        $($resultado.usuariosCriados)"
+    Write-Host "Usuários atualizados:    $($resultado.usuariosAtualizados)"
     Write-Host "Identificadores criados: $($resultado.identificadoresCriados)"
+    return $true
 }
 
 function Show-Status {

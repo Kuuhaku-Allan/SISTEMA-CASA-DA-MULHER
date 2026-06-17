@@ -10,19 +10,19 @@ Nao publique senhas, tokens, hashes, Client Secrets ou dados reais.
 2. Entre com GitHub.
 3. Ative seu EQP.
 4. Crie uma senha propria para este projeto.
-5. Abra seu ambiente local/Codespaces.
-6. Sincronize a equipe.
+5. Abra seu ambiente local ou Codespaces.
+6. Aguarde a sincronização automática da API.
 7. Faca login com EQP ou ADM pareado.
 
 ## Sincronizar
 
-Windows:
+A API sincroniza na inicialização e repete a atualização a cada minuto. Para forçar no Windows:
 
 ```powershell
 .\casa_da_mulher.cmd equipe sync
 ```
 
-Codespaces:
+Para forçar no Codespaces:
 
 ```text
 Casa da Mulher: sincronizar equipe
@@ -58,5 +58,5 @@ EQP nao representa funcionaria real da Casa da Mulher.
 3. Crie o fork na sua conta.
 4. Abra Codespaces no seu fork.
 5. Rode `Casa da Mulher: iniciar sistema`.
-6. Rode `Casa da Mulher: sincronizar equipe`.
+6. Aguarde a sincronização automática da API.
 7. Crie prototipos e envie Pull Request.

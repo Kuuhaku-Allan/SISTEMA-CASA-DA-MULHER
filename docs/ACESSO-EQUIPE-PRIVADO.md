@@ -40,17 +40,17 @@ Ele nao hospeda o sistema inteiro e nao usa Neon/PostgreSQL como fonte da equipe
 2. Entra com GitHub.
 3. Ativa um EQP disponivel ou reservado.
 4. Recebe o ADM pareado automaticamente.
-5. Abre o ambiente local/Codespaces.
-6. Sincroniza a equipe.
+5. Abre o ambiente local ou Codespaces.
+6. A API sincroniza a equipe automaticamente.
 7. Faz login com EQP ou ADM pareado.
 
-Windows:
+Para forçar a sincronização no Windows:
 
 ```powershell
 .\casa_da_mulher.cmd equipe sync
 ```
 
-Codespaces:
+Para forçar a sincronização no Codespaces:
 
 ```text
 Casa da Mulher: sincronizar equipe

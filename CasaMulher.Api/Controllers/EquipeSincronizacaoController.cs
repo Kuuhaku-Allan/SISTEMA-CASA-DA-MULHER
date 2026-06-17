@@ -32,7 +32,7 @@ public class EquipeSincronizacaoController : ControllerBase
     {
         if (!_environment.IsDevelopment() && !_environment.IsStaging())
         {
-            return NotFound(new { mensagem = "Sincronizacao EQP disponivel apenas em Development/Staging." });
+            return NotFound(new { mensagem = "Sincronização EQP disponível apenas em Development/Staging." });
         }
 
         var document = await LerDocumentoOpcionalAsync(cancellationToken);

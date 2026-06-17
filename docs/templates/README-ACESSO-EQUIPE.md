@@ -18,19 +18,19 @@ Fluxo:
 2. Ativar um EQP disponivel ou reservado.
 3. Criar uma senha propria para este projeto.
 4. Receber o ADM pareado automaticamente.
-5. Abrir ambiente local/Codespaces.
-6. Sincronizar a equipe.
+5. Abrir ambiente local ou Codespaces.
+6. Aguardar a sincronização automática da API.
 7. Fazer login com EQP ou ADM pareado.
 
-## Sincronizar depois da ativacao
+## Sincronizar depois da ativação
 
-Windows:
+A API sincroniza na inicialização e repete a atualização a cada minuto. Para forçar no Windows:
 
 ```powershell
 .\casa_da_mulher.cmd equipe sync
 ```
 
-Codespaces:
+Para forçar no Codespaces:
 
 ```text
 Casa da Mulher: sincronizar equipe

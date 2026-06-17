@@ -65,17 +65,17 @@ Prototipos:     https://SEU-CODESPACE-5500.app.github.dev/prototipos/index.html
 
 Nao use senha pessoal. Nao compartilhe senha.
 
-## 5. Sincronizar equipe no Codespaces
+## 5. Sincronização da equipe no Codespaces
 
-Depois de ativar ou redefinir senha no portal, rode:
+A sincronização começa automaticamente com a API e é repetida a cada minuto. Para forçar uma atualização imediata, rode:
 
 ```text
 Casa da Mulher: sincronizar equipe
 ```
 
-Essa task le `ACESSO-EQUIPE/data/equipe-db.json` usando seu login do `gh` no Codespaces e importa sua conta para o banco local.
+Essa task lê `ACESSO-EQUIPE/data/equipe-db.json` usando seu login do `gh` no Codespaces e importa sua conta para o banco local.
 
-Depois da sincronizacao, faca login com:
+Depois da sincronização, faça login com:
 
 ```text
 EQP-000000

@@ -29,21 +29,21 @@ O portal central serve para:
 
 ## Depois de ativar
 
-Depois que seu EQP for ativado no portal, abra seu ambiente local/Codespaces e sincronize.
+Depois que seu EQP for ativado no portal, abra seu ambiente local ou Codespaces. A API sincroniza a equipe automaticamente na inicialização e repete a atualização a cada minuto.
 
-Windows:
+Para forçar uma atualização imediata no Windows:
 
 ```powershell
 .\casa_da_mulher.cmd equipe sync
 ```
 
-Codespaces:
+No Codespaces, a task manual continua disponível:
 
 ```text
 Casa da Mulher: sincronizar equipe
 ```
 
-Depois da sincronizacao, o login normal do sistema aceita tanto o EQP quanto o ADM pareado com a senha criada no portal.
+Depois da sincronização, o login normal do sistema aceita tanto o EQP quanto o ADM pareado com a senha criada no portal.
 
 ## Entrada local
 
@@ -74,7 +74,7 @@ Fluxo recomendado:
 1. Abra o projeto na sua IDE.
 2. Use o portal central para ativar `EQP-000001`.
 3. Esse EQP fica pareado com `ADM-000003`.
-4. No ambiente local, execute `.\casa_da_mulher.cmd equipe sync`.
+4. Inicie o ambiente local; a sincronização acontece automaticamente.
 5. Faca login com `EQP-000001` ou `ADM-000003`.
 
 O membro `EQP-000001` e tratado como owner da equipe:
@@ -91,7 +91,7 @@ O membro `EQP-000001` e tratado como owner da equipe:
 3. Rode `Casa da Mulher: iniciar sistema`.
 4. Rode `Casa da Mulher: abrir area da equipe`.
 5. Ative seu EQP pelo portal central do Render.
-6. Rode `Casa da Mulher: sincronizar equipe`.
+6. Aguarde a sincronização automática da API.
 7. Faca login com seu EQP ou ADM pareado.
 8. Trabalhe em `prototipos/`.
 9. Envie Pull Request.
@@ -112,7 +112,7 @@ Sistema-Casa-da-Mulher/SISTEMA-CASA-DA-MULHER
 5. Rode `Casa da Mulher: iniciar sistema`.
 6. Rode `Casa da Mulher: abrir area da equipe`.
 7. Ative seu EQP pelo portal central do Render.
-8. Rode `Casa da Mulher: sincronizar equipe`.
+8. Aguarde a sincronização automática da API.
 9. Crie prototipos e envie PR.
 
 ## Criar prototipo
@@ -145,7 +145,7 @@ Verifique nesta ordem:
 
 1. Voce entrou com GitHub no portal central?
 2. Seu GitHub esta na organizacao ou na allowlist do `equipe-db.json`?
-3. Voce rodou `equipe sync` depois de ativar/redefinir senha?
+3. A API ficou ligada por até um minuto depois de ativar ou redefinir a senha? Se necessário, force com `equipe sync`.
 4. A API abriu na porta `5001`?
 5. O front abriu na porta `5500`?
 6. O arquivo alterado fica dentro de `prototipos/`, se o PR veio de fork?

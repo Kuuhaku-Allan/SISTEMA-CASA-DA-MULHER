@@ -35,7 +35,7 @@ public class EquipeGithubService : IEquipeGithubService
             OwnerUsername = ownerUsername,
             Mensagem = oauthConfigurado
                 ? "OAuth GitHub configurado para ambiente atual."
-                : "OAuth GitHub nao configurado. Login por ID e senha continua disponivel."
+                : "OAuth GitHub não configurado. O login por ID e senha continua disponível."
         };
     }
 
@@ -88,7 +88,7 @@ public class EquipeGithubService : IEquipeGithubService
         }
         catch
         {
-            return CriarFallback("Nao foi possivel consultar o GitHub agora. O painel continua disponivel com login por ID e senha.");
+            return CriarFallback("Não foi possível consultar o GitHub agora. O painel continua disponível com login por ID e senha.");
         }
     }
 

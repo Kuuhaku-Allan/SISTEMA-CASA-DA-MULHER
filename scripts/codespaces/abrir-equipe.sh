@@ -46,7 +46,7 @@ printf 'Ativar EQP:     %s/projetocasadamulher/telas/equipe-ativar.html\n' "${BA
 printf 'Login:          %s/projetocasadamulher/telas/index.html\n' "${BASE_URL}"
 printf 'Prototipos:     %s/prototipos/index.html\n' "${BASE_URL}"
 printf '\n'
-printf 'Depois de ativar EQP, rode a task "Casa da Mulher: sincronizar equipe".\n'
+printf 'A sincronização EQP acontece automaticamente a cada minuto enquanto a API estiver ligada.\n'
 printf '\n'
 printf 'Se o navegador nao abrir sozinho:\n'
 printf '1. Abra a aba Ports/Portas.\n'

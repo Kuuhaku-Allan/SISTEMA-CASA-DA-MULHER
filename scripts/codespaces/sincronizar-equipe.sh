@@ -36,7 +36,7 @@ wait_for_api() {
 }
 
 if ! wait_for_api; then
-  finish_best_effort "API nao respondeu em ${API_URL}."
+  finish_best_effort "A API não respondeu em ${API_URL}."
 fi
 
 TMP_JSON="$(mktemp)"
@@ -49,7 +49,7 @@ if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
   printf '==> Lendo %s em %s pelo gh CLI\n' "${DB_PATH}" "${DB_REPO}"
 
   if ! gh api "repos/${DB_REPO}/contents/${DB_PATH}" --jq '.content' | tr -d '\r\n ' | base64 -d > "${TMP_JSON}"; then
-    finish_best_effort "Nao foi possivel ler o JSON privado com gh CLI."
+    finish_best_effort "Não foi possível ler o JSON privado com gh CLI."
   fi
 
   printf '==> Importando membros para o banco local\n'
@@ -62,10 +62,10 @@ if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
   exit 0
 fi
 
-warn "gh CLI nao autenticado. Tentando sincronizar pela API com token de ambiente."
+warn "gh CLI não autenticado. Tentando sincronizar pela API com token de ambiente."
 curl -fsS \
   -X POST \
   -H 'Content-Type: application/json' \
   -d '{}' \
-  "${API_URL}/api/equipe/sincronizar-github-db" || finish_best_effort "Sincronizacao falhou. Entre com gh auth login ou configure GITHUB_EQP_READ_TOKEN."
+  "${API_URL}/api/equipe/sincronizar-github-db" || finish_best_effort "A sincronização falhou. Entre com gh auth login ou configure GITHUB_EQP_READ_TOKEN."
 printf '\n'

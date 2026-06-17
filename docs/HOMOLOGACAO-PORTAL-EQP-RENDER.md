@@ -114,14 +114,16 @@ Esse token e usado pelo back-end para atualizar `data/equipe-db.json` e `data/eq
 3. Escolhe um EQP disponivel ou reservado para ela.
 4. Informa nome e senha do projeto.
 5. Portal grava o hash compatvel com ASP.NET Identity no JSON privado.
-6. Pessoa abre o ambiente local/Codespaces.
-7. Sincroniza:
+6. Pessoa abre o ambiente local ou Codespaces.
+7. A API sincroniza automaticamente na inicialização e a cada minuto.
+
+Para forçar uma atualização imediata no Windows:
 
 ```powershell
 .\casa_da_mulher.cmd equipe sync
 ```
 
-No Codespaces, use a task:
+No Codespaces, use a task manual:
 
 ```text
 Casa da Mulher: sincronizar equipe

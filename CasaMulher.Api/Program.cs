@@ -69,6 +69,7 @@ builder.Services
         options.Lockout.MaxFailedAccessAttempts = 5;
         options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(10);
     })
+    .AddErrorDescriber<PortugueseIdentityErrorDescriber>()
     .AddEntityFrameworkStores<AppDbContext>()
     .AddDefaultTokenProviders();
 
@@ -220,6 +221,12 @@ builder.Services.AddMemoryCache();
 builder.Services.AddHttpClient<IEquipeGithubService, EquipeGithubService>();
 builder.Services.AddHttpClient<IEquipeDbGitHubService, EquipeDbGitHubService>();
 builder.Services.AddScoped<EquipeDbSyncService>();
+
+if (builder.Environment.IsDevelopment()
+    && builder.Configuration.GetValue("EquipeSync:Automatico", true))
+{
+    builder.Services.AddHostedService<EquipeDbAutoSyncHostedService>();
+}
 
 // WebAuthn / Passkey — Fido2 v3 é instanciado diretamente (sem extension method)
 var fido2Origin = builder.Environment.IsDevelopment()

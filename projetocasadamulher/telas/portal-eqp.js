@@ -36,14 +36,14 @@
     function extractMessage(body, status) {
         if (body && typeof body === "object") {
             const errors = Array.isArray(body.erros) ? ` ${body.erros.join(" ")}` : "";
-            return `${body.mensagem || "Operacao nao concluida."}${errors}`;
+            return `${body.mensagem || "Operação não concluída."}${errors}`;
         }
 
         if (typeof body === "string" && body.trim()) {
             return body.trim();
         }
 
-        return `Operacao nao concluida (${status}).`;
+        return `Operação não concluída (${status}).`;
     }
 
     function setMessage(element, text, type) {
@@ -104,7 +104,7 @@
             return status;
         } catch (error) {
             statusElements.forEach((element) => {
-                setMessage(element, `Nao foi possivel consultar o portal: ${error.message}`, "error");
+                setMessage(element, `Não foi possível consultar o portal: ${error.message}`, "error");
             });
             return null;
         }
@@ -144,17 +144,17 @@
 
             const githubUsername = me.gitHubUsername || me.githubUsername || "";
             userName.textContent = `@${githubUsername}`;
-            userStatus.textContent = me.autorizado ? "Autorizado" : "Nao autorizado";
+            userStatus.textContent = me.autorizado ? "Autorizado" : "Não autorizado";
 
             if (!me.autorizado) {
-                setMessage($("portalEqpActivationMessage"), "Seu GitHub ainda nao esta autorizado na organizacao/allowlist.", "error");
+                setMessage($("portalEqpActivationMessage"), "Seu GitHub ainda não está autorizado na organização ou na lista de acesso.", "error");
                 return;
             }
 
             if (me.membro) {
                 renderMember(me.membro);
                 show(memberBox, true);
-                setMessage($("portalEqpResetMessage"), "Voce pode redefinir apenas a sua propria senha.", "info");
+                setMessage($("portalEqpResetMessage"), "Você pode redefinir apenas a sua própria senha.", "info");
                 return;
             }
 
@@ -203,7 +203,7 @@
         if (!Array.isArray(convites) || convites.length === 0) {
             const empty = document.createElement("p");
             empty.className = "hint";
-            empty.textContent = "Nenhum convite disponivel para o seu GitHub agora.";
+            empty.textContent = "Nenhum convite disponível para o seu GitHub agora.";
             container.append(empty);
             return;
         }
@@ -220,7 +220,7 @@
             adm.textContent = `ADM pareado: ${convite.admId}`;
             status.textContent = convite.reservadoParaGitHub
                 ? `Reservado para @${convite.reservadoParaGitHub}`
-                : "Disponivel";
+                : "Disponível";
             card.append(eqp, adm, status);
             card.addEventListener("click", () => selectInvite(convite));
             container.append(card);
@@ -231,7 +231,7 @@
         $("portalEqpId").value = convite.eqpId || "";
         $("portalAdmId").value = convite.admId || "";
         show($("portalEqpActivationBox"), true);
-        setMessage($("portalEqpActivationMessage"), "Informe seu nome e uma senha criada so para este projeto.", "info");
+        setMessage($("portalEqpActivationMessage"), "Informe seu nome e uma senha criada só para este projeto.", "info");
     }
 
     function setupForms() {
@@ -261,7 +261,7 @@
                 await navigator.clipboard.writeText(command);
                 copyButton.textContent = "Copiado";
                 setTimeout(() => {
-                    copyButton.textContent = "Copiar";
+                    copyButton.textContent = "Copiar comando";
                 }, 1600);
             });
         }
@@ -289,7 +289,7 @@
                 body: JSON.stringify(body)
             });
 
-            setMessage(message, `Seu acesso foi ativado: ${membro.eqpId} / ${membro.admId}. Agora sincronize a equipe no seu ambiente.`, "success");
+            setMessage(message, `Seu acesso foi ativado: ${membro.eqpId} / ${membro.admId}. O ambiente local será atualizado automaticamente em até um minuto.`, "success");
             await loadPortal();
         } catch (error) {
             setMessage(message, error.message, "error");
@@ -320,7 +320,7 @@
                 body: JSON.stringify(body)
             });
 
-            setMessage(message, `Senha redefinida para ${membro.eqpId}. Sincronize a equipe novamente no seu ambiente.`, "success");
+            setMessage(message, `Senha redefinida para ${membro.eqpId}. O ambiente local será atualizado automaticamente em até um minuto.`, "success");
         } catch (error) {
             setMessage(message, error.message, "error");
         } finally {

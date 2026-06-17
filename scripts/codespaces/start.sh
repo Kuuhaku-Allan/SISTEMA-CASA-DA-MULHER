@@ -37,7 +37,7 @@ cd "${FRONT_DIR}"
 python3 -m http.server 5500 --bind 0.0.0.0 &
 FRONT_PID=$!
 
-echo "==> Tentando sincronizar equipe (se houver acesso ao ACESSO-EQUIPE)"
+echo "==> Tentando sincronizar a equipe (se houver acesso ao ACESSO-EQUIPE)"
 bash "${SCRIPT_DIR}/sincronizar-equipe.sh" --best-effort || true
 
 cat <<'INFO'
@@ -48,13 +48,13 @@ Portas:
 - API:   5001
 - Telas:      5500/projetocasadamulher/telas/
 - Equipe:     5500/equipe.html
-- Prototipos: 5500/prototipos/
+- Protótipos: 5500/prototipos/
 
-Sincronizacao da equipe:
-- Windows:    .\casa_da_mulher.cmd equipe sync
-- Codespaces: task "Casa da Mulher: sincronizar equipe"
+Sincronização da equipe:
+- Automática: na inicialização e a cada minuto enquanto a API estiver ligada
+- Manual:     task "Casa da Mulher: sincronizar equipe"
 
-Para testar a recepcao em ambiente novo:
+Para testar a recepção em ambiente novo:
 1. Abra projetocasadamulher/telas/cadastro.html usando o convite demo recepcao@casamulher.local / REC-2026.
 2. Crie a senha Senha@123.
 3. Entre com o ID gerado na tela e a senha criada.

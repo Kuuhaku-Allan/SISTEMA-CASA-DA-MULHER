@@ -55,7 +55,7 @@ public class EquipeDbSyncService
                 if (!createResult.Succeeded)
                 {
                     throw new InvalidOperationException(
-                        $"Nao foi possivel criar usuario para {membro.EqpId}: {string.Join("; ", createResult.Errors.Select(e => e.Description))}");
+                        $"Não foi possível criar usuário para {membro.EqpId}: {string.Join("; ", createResult.Errors.Select(e => e.Description))}");
                 }
 
                 criouUsuario = true;
@@ -69,7 +69,7 @@ public class EquipeDbSyncService
                 if (!updateResult.Succeeded)
                 {
                     throw new InvalidOperationException(
-                        $"Nao foi possivel atualizar usuario para {membro.EqpId}: {string.Join("; ", updateResult.Errors.Select(e => e.Description))}");
+                        $"Não foi possível atualizar usuário para {membro.EqpId}: {string.Join("; ", updateResult.Errors.Select(e => e.Description))}");
                 }
 
                 response.UsuariosAtualizados++;
@@ -94,7 +94,7 @@ public class EquipeDbSyncService
             }
         }
 
-        response.Mensagem = $"Sincronizacao concluida com {response.MembrosImportados} membro(s).";
+        response.Mensagem = $"Sincronização concluída com {response.MembrosImportados} membro(s).";
         return response;
     }
 

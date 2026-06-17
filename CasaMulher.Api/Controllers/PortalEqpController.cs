@@ -74,7 +74,7 @@ public class PortalEqpController : ControllerBase
     {
         if (!OAuthConfigurado())
         {
-            return BadRequest(new { mensagem = "OAuth GitHub nao configurado para o portal EQP." });
+            return BadRequest(new { mensagem = "OAuth GitHub não configurado para o portal EQP." });
         }
 
         var state = Convert.ToHexString(RandomNumberGenerator.GetBytes(24));
@@ -145,7 +145,7 @@ public class PortalEqpController : ControllerBase
     public IActionResult GitHubLogout()
     {
         Response.Cookies.Delete(AuthCookieName);
-        return Ok(new { mensagem = "Sessao GitHub encerrada." });
+        return Ok(new { mensagem = "Sessão GitHub encerrada." });
     }
 
     [AllowAnonymous]
@@ -208,7 +208,7 @@ public class PortalEqpController : ControllerBase
     {
         if (request.Senha != request.ConfirmarSenha)
         {
-            return BadRequest(new { mensagem = "Senha e confirmacao nao conferem." });
+            return BadRequest(new { mensagem = "Senha e confirmação não conferem." });
         }
 
         var acesso = await ObterAcessoAutorizadoAsync(cancellationToken);
@@ -232,12 +232,12 @@ public class PortalEqpController : ControllerBase
 
             if (!await UsuarioAutorizadoAsync(acesso.Ticket!, document, cancellationToken))
             {
-                return StatusCode(StatusCodes.Status403Forbidden, new { mensagem = "GitHub nao autorizado para ativar EQP." });
+                return StatusCode(StatusCodes.Status403Forbidden, new { mensagem = "GitHub não autorizado para ativar EQP." });
             }
 
             if (EncontrarMembroDoGitHub(document, acesso.Ticket!) is not null)
             {
-                return BadRequest(new { mensagem = "Voce ja ativou seu EQP." });
+                return BadRequest(new { mensagem = "Você já ativou seu EQP." });
             }
 
             var eqpId = NormalizarId(request.EqpId);
@@ -246,14 +246,14 @@ public class PortalEqpController : ControllerBase
 
             if (convite is null || !ConvitePodeAparecerParaUsuario(convite, acesso.Ticket.GitHubUsername))
             {
-                return BadRequest(new { mensagem = "Convite EQP indisponivel para este GitHub." });
+                return BadRequest(new { mensagem = "Convite EQP indisponível para este GitHub." });
             }
 
             if (document.Membros.Any(membro =>
                     string.Equals(membro.EqpId, convite.EqpId, StringComparison.OrdinalIgnoreCase)
                     || string.Equals(membro.AdmId, convite.AdmId, StringComparison.OrdinalIgnoreCase)))
             {
-                return BadRequest(new { mensagem = "Este EQP/ADM ja foi ativado." });
+                return BadRequest(new { mensagem = "Este EQP/ADM já foi ativado." });
             }
 
             var agora = DateTime.UtcNow;
@@ -296,7 +296,7 @@ public class PortalEqpController : ControllerBase
                     GitHubId = acesso.Ticket.GitHubId,
                     GitHubUsername = acesso.Ticket.GitHubUsername,
                     Descricao = $"Ativou {convite.EqpId} com ADM pareado."
-                }, $"Registra evento de ativacao {convite.EqpId}", cancellationToken);
+                }, $"Registra evento de ativação {convite.EqpId}", cancellationToken);
 
                 return Ok(MapearMembro(membro));
             }
@@ -316,7 +316,7 @@ public class PortalEqpController : ControllerBase
     {
         if (request.NovaSenha != request.ConfirmarSenha)
         {
-            return BadRequest(new { mensagem = "Nova senha e confirmacao nao conferem." });
+            return BadRequest(new { mensagem = "Nova senha e confirmação não conferem." });
         }
 
         var ticket = ObterTicket();
@@ -341,7 +341,7 @@ public class PortalEqpController : ControllerBase
 
             if (membro is null)
             {
-                return BadRequest(new { mensagem = "Seu GitHub ainda nao possui EQP ativado." });
+                return BadRequest(new { mensagem = "Seu GitHub ainda não possui EQP ativado." });
             }
 
             var agora = DateTime.UtcNow;
@@ -366,8 +366,8 @@ public class PortalEqpController : ControllerBase
                     AdmId = membro.AdmId,
                     GitHubId = ticket.GitHubId,
                     GitHubUsername = ticket.GitHubUsername,
-                    Descricao = "Usuario redefiniu a propria senha no portal EQP."
-                }, $"Registra redefinicao de senha {membro.EqpId}", cancellationToken);
+                    Descricao = "Usuário redefiniu a própria senha no portal EQP."
+                }, $"Registra redefinição de senha {membro.EqpId}", cancellationToken);
 
                 return Ok(MapearMembro(membro));
             }
@@ -395,7 +395,7 @@ public class PortalEqpController : ControllerBase
 
         return result.Result is not null
             ? new ActionResult<PortalEqpConviteResponse>(result.Result)
-            : StatusCode(StatusCodes.Status500InternalServerError, new { mensagem = "Nao foi possivel criar convite." });
+            : StatusCode(StatusCodes.Status500InternalServerError, new { mensagem = "Não foi possível criar convite." });
     }
 
     [AllowAnonymous]
@@ -486,7 +486,7 @@ public class PortalEqpController : ControllerBase
                         GitHubId = acesso.Ticket!.GitHubId,
                         GitHubUsername = acesso.Ticket.GitHubUsername,
                         Descricao = $"Convite {convite.EqpId} criado pelo owner."
-                    }, $"Registra criacao de convite {convite.EqpId}", cancellationToken);
+                    }, $"Registra criação de convite {convite.EqpId}", cancellationToken);
                 }
 
                 return Ok(criados.Select(MapearConvite).ToList());
@@ -514,7 +514,7 @@ public class PortalEqpController : ControllerBase
 
         if (!await UsuarioAutorizadoAsync(ticket, arquivo.Document, cancellationToken))
         {
-            return (StatusCode(StatusCodes.Status403Forbidden, new { mensagem = "GitHub nao autorizado para o portal EQP." }), ticket, arquivo.Document);
+            return (StatusCode(StatusCodes.Status403Forbidden, new { mensagem = "GitHub não autorizado para o portal EQP." }), ticket, arquivo.Document);
         }
 
         return (null, ticket, arquivo.Document);
@@ -527,14 +527,14 @@ public class PortalEqpController : ControllerBase
 
         if (ticket is null)
         {
-            return (Unauthorized(new { mensagem = "Entre com GitHub para acessar a area owner." }), null, null);
+            return (Unauthorized(new { mensagem = "Entre com GitHub para acessar a área do owner." }), null, null);
         }
 
         var arquivo = await _equipeDbService.LerAsync(cancellationToken);
 
         if (!EhOwner(ticket, arquivo.Document))
         {
-            return (StatusCode(StatusCodes.Status403Forbidden, new { mensagem = "Somente o owner pode executar esta acao." }), ticket, arquivo.Document);
+            return (StatusCode(StatusCodes.Status403Forbidden, new { mensagem = "Somente o owner pode executar esta ação." }), ticket, arquivo.Document);
         }
 
         return (null, ticket, arquivo.Document);
@@ -552,7 +552,7 @@ public class PortalEqpController : ControllerBase
             {
                 return BadRequest(new
                 {
-                    mensagem = "A senha nao atende a politica do sistema.",
+                    mensagem = "A senha não atende à política do sistema.",
                     erros = resultado.Errors.Select(error => error.Description)
                 });
             }
@@ -597,7 +597,7 @@ public class PortalEqpController : ControllerBase
 
         if (string.IsNullOrWhiteSpace(payload.AccessToken))
         {
-            throw new InvalidOperationException("GitHub nao retornou access_token.");
+            throw new InvalidOperationException("O GitHub não retornou o access_token.");
         }
 
         return payload.AccessToken;
@@ -642,7 +642,7 @@ public class PortalEqpController : ControllerBase
         var pertenceOrg = await VerificarOrganizacaoAsync(ticket, org, cancellationToken);
 
         _logger.LogInformation(
-            "Portal EQP autorizacao GitHub {GitHub}: org {Org}, autorizado={Autorizado}.",
+            "Autorização GitHub no portal EQP para {GitHub}: organização {Org}, autorizado={Autorizado}.",
             ticket.GitHubUsername,
             org,
             pertenceOrg);
@@ -884,7 +884,7 @@ public class PortalEqpController : ControllerBase
         }
         catch (EquipeDbGitHubException ex)
         {
-            _logger.LogWarning(ex, "Nao foi possivel registrar evento {Tipo} para {EqpId}.", evento.Tipo, evento.EqpId);
+            _logger.LogWarning(ex, "Não foi possível registrar o evento {Tipo} para {EqpId}.", evento.Tipo, evento.EqpId);
         }
     }
 
@@ -924,12 +924,12 @@ public class PortalEqpController : ControllerBase
     {
         if (!oauthConfigurado)
         {
-            return "OAuth GitHub nao configurado. O portal fica em modo diagnostico.";
+            return "OAuth GitHub não configurado. O portal está em modo de diagnóstico.";
         }
 
         if (!escritaConfigurada)
         {
-            return "Token de escrita nao configurado. Ativacao e reset ficam bloqueados.";
+            return "Token de escrita não configurado. A ativação e a redefinição de senha ficam bloqueadas.";
         }
 
         return "Portal EQP configurado.";

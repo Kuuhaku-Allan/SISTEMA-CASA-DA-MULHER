@@ -41,27 +41,29 @@ A integrante deve:
 3. Escolher um convite disponivel ou reservado para seu GitHub.
 4. Informar nome e senha criada somente para este projeto.
 5. Confirmar a ativacao.
-6. Abrir seu ambiente local/Codespaces.
-7. Sincronizar a equipe.
+6. Abrir seu ambiente local ou Codespaces.
+7. Aguardar a sincronização automática da API.
 8. Fazer login com EQP ou ADM pareado.
 
 Depois da ativacao, o convite vira `usado` e nao pode ser reutilizado.
 
 ## Sincronizar no ambiente local
 
-Windows:
+A API sincroniza na inicialização e repete a atualização a cada minuto.
+
+Para forçar a sincronização no Windows:
 
 ```powershell
 .\casa_da_mulher.cmd equipe sync
 ```
 
-Codespaces:
+Para forçar a sincronização no Codespaces:
 
 ```text
 Casa da Mulher: sincronizar equipe
 ```
 
-A sincronizacao:
+A sincronização:
 
 - le `data/equipe-db.json` do `ACESSO-EQUIPE`;
 - cria/atualiza usuarios ASP.NET Identity no banco local;

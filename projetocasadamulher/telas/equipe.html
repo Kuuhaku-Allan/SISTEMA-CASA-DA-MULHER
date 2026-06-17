@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Area da Equipe - Casa da Mulher</title>
+    <title>Área da Equipe - Casa da Mulher</title>
     <link rel="stylesheet" href="style.css">
     <script src="config.js" defer></script>
     <script src="portal-eqp.js" defer></script>
@@ -14,7 +14,7 @@
             <div>
                 <img src="IMAGENS/logo_oficial.png" alt="Logo Casa da Mulher" class="logo-admin">
                 <div>
-                    <h1>Area da Equipe</h1>
+                    <h1>Área da Equipe</h1>
                     <p>Portal central para ativar EQP, sincronizar acessos e acessar os guias do projeto.</p>
                 </div>
             </div>
@@ -27,26 +27,30 @@
         <section class="team-dashboard">
             <section class="admin-panel">
                 <h2>Portal EQP</h2>
-                <p class="section-intro">Este portal e apenas para equipe de desenvolvimento/homologacao. Use uma senha propria deste projeto.</p>
+                <p class="section-intro">Este portal é apenas para a equipe de desenvolvimento e homologação. Use uma senha própria deste projeto.</p>
                 <div class="link-list">
                     <a class="btn-primary button-link" href="api/portal-eqp/github/login" data-portal-login>Entrar com GitHub</a>
                     <a class="btn-secondary button-link" href="equipe-ativar.html">Ativar meu EQP</a>
-                    <a class="btn-secondary button-link" href="equipe-ativar.html#redefinir">Ja ativei, redefinir senha</a>
+                    <a class="btn-secondary button-link" href="equipe-ativar.html#redefinir">Já ativei, redefinir senha</a>
                 </div>
                 <div id="portalEquipeStatus" class="message info" aria-live="polite">Verificando portal...</div>
             </section>
 
             <section class="admin-panel">
                 <h2>Depois de ativar</h2>
-                <p class="section-intro">Abra seu ambiente local ou Codespaces e sincronize o JSON privado da equipe antes de fazer login.</p>
+                <p class="section-intro">Ao iniciar o ambiente local ou Codespaces, o acesso é sincronizado automaticamente e atualizado a cada minuto.</p>
                 <dl class="profile-list compact-list">
                     <div>
                         <dt>Windows</dt>
-                        <dd><code>.\casa_da_mulher.cmd equipe sync</code></dd>
+                        <dd>Inicie normalmente com <code>.\casa_da_mulher.cmd equipe</code>.</dd>
                     </div>
                     <div>
                         <dt>Codespaces</dt>
-                        <dd>Task <code>Casa da Mulher: sincronizar equipe</code></dd>
+                        <dd>A sincronização começa junto com a API.</dd>
+                    </div>
+                    <div>
+                        <dt>Atualização manual</dt>
+                        <dd>Use <code>.\casa_da_mulher.cmd equipe sync</code> apenas para forçar a atualização.</dd>
                     </div>
                     <div>
                         <dt>Login</dt>
@@ -57,18 +61,18 @@
 
             <section class="admin-panel">
                 <h2>Guias da equipe</h2>
-                <p class="section-intro">Os guias ficam no repositorio principal e o controle privado da equipe fica no ACESSO-EQUIPE.</p>
+                <p class="section-intro">Os guias ficam no repositório principal e o controle privado da equipe fica no ACESSO-EQUIPE.</p>
                 <div class="link-list">
                     <a class="btn-primary button-link" href="https://github.com/Sistema-Casa-da-Mulher/ACESSO-EQUIPE" target="_blank" rel="noopener">ACESSO-EQUIPE</a>
-                    <a class="btn-secondary button-link" href="https://github.com/Sistema-Casa-da-Mulher/SISTEMA-CASA-DA-MULHER" target="_blank" rel="noopener">Repositorio principal</a>
+                    <a class="btn-secondary button-link" href="https://github.com/Sistema-Casa-da-Mulher/SISTEMA-CASA-DA-MULHER" target="_blank" rel="noopener">Repositório principal</a>
                     <a class="btn-secondary button-link" href="https://github.com/Sistema-Casa-da-Mulher/SISTEMA-CASA-DA-MULHER/blob/main/docs/COMECE-AQUI-EQUIPE.md" target="_blank" rel="noopener">Comece aqui</a>
                     <a class="btn-secondary button-link" href="https://github.com/Sistema-Casa-da-Mulher/SISTEMA-CASA-DA-MULHER/blob/main/docs/CODESPACES-PARA-COLABORADORAS.md" target="_blank" rel="noopener">Codespaces</a>
                 </div>
             </section>
 
             <section class="admin-panel">
-                <h2>Area autenticada local</h2>
-                <p class="section-intro">Depois da sincronizacao, use o login normal do sistema para entrar nos paineis de equipe.</p>
+                <h2>Área autenticada local</h2>
+                <p class="section-intro">Depois da sincronização, use o login normal do sistema para entrar nos painéis da equipe.</p>
                 <div class="link-list">
                     <a class="btn-primary button-link" href="index.html">Login local</a>
                     <a class="btn-secondary button-link" href="equipe-painel.html">Painel da equipe</a>
@@ -78,10 +82,10 @@
             </section>
 
             <section class="admin-panel">
-                <h2>Prototipos</h2>
-                <p class="section-intro">Colaboradoras continuam trabalhando primeiro em prototipos e enviando Pull Request.</p>
+                <h2>Protótipos</h2>
+                <p class="section-intro">Colaboradoras continuam trabalhando primeiro em protótipos e enviando Pull Requests.</p>
                 <div class="link-list">
-                    <a class="btn-primary button-link" href="../../prototipos/index.html">Abrir prototipos</a>
+                    <a class="btn-primary button-link" href="../../prototipos/index.html">Abrir protótipos</a>
                     <a class="btn-secondary button-link" href="https://github.com/Sistema-Casa-da-Mulher/SISTEMA-CASA-DA-MULHER/blob/main/docs/GUIA-RAPIDO-PR.md" target="_blank" rel="noopener">Guia de Pull Request</a>
                     <a class="btn-secondary button-link" href="https://github.com/Sistema-Casa-da-Mulher/SISTEMA-CASA-DA-MULHER/pulls" target="_blank" rel="noopener">Pull Requests no GitHub</a>
                 </div>
@@ -90,10 +94,10 @@
             <section class="admin-panel">
                 <h2>Cuidados</h2>
                 <ul class="steps-list">
-                    <li>Nao use senha pessoal sua ou de outro servico.</li>
-                    <li>Nao publique token, senha, hash ou dados reais.</li>
+                    <li>Não use sua senha pessoal ou a senha de outro serviço.</li>
+                    <li>Não publique token, senha, hash ou dados reais.</li>
                     <li>Cada GitHub pode ativar apenas um EQP.</li>
-                    <li>EQP/ADM da equipe nao representa funcionaria real da Casa da Mulher.</li>
+                    <li>EQP/ADM da equipe não representa uma funcionária real da Casa da Mulher.</li>
                 </ul>
             </section>
         </section>

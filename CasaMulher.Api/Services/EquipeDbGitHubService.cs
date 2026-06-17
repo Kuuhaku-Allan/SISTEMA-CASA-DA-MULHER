@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 
@@ -17,19 +18,23 @@ public class EquipeDbGitHubService : IEquipeDbGitHubService
 
     private readonly HttpClient _httpClient;
     private readonly IConfiguration _configuration;
+    private readonly IWebHostEnvironment _environment;
     private readonly ILogger<EquipeDbGitHubService> _logger;
 
     public EquipeDbGitHubService(
         HttpClient httpClient,
         IConfiguration configuration,
+        IWebHostEnvironment environment,
         ILogger<EquipeDbGitHubService> logger)
     {
         _httpClient = httpClient;
         _configuration = configuration;
+        _environment = environment;
         _logger = logger;
     }
 
-    public bool LeituraConfigurada => !string.IsNullOrWhiteSpace(ObterTokenLeitura());
+    public bool LeituraConfigurada =>
+        !string.IsNullOrWhiteSpace(ObterTokenLeitura()) || _environment.IsDevelopment();
 
     public bool EscritaConfigurada => !string.IsNullOrWhiteSpace(ObterTokenEscrita());
 
@@ -85,7 +90,7 @@ public class EquipeDbGitHubService : IEquipeDbGitHubService
     {
         if (!EscritaConfigurada)
         {
-            throw new EquipeDbGitHubException(403, "GITHUB_EQP_WRITE_TOKEN nao configurado.");
+            throw new EquipeDbGitHubException(403, "GITHUB_EQP_WRITE_TOKEN não configurado.");
         }
 
         NormalizarDocumento(document);
@@ -102,7 +107,7 @@ public class EquipeDbGitHubService : IEquipeDbGitHubService
     {
         if (!EscritaConfigurada)
         {
-            throw new EquipeDbGitHubException(403, "GITHUB_EQP_WRITE_TOKEN nao configurado.");
+            throw new EquipeDbGitHubException(403, "GITHUB_EQP_WRITE_TOKEN não configurado.");
         }
 
         var arquivoAtual = await LerArquivoTextoAsync(EventsPath, ObterTokenEscrita(), cancellationToken);
@@ -125,7 +130,12 @@ public class EquipeDbGitHubService : IEquipeDbGitHubService
     {
         if (string.IsNullOrWhiteSpace(token))
         {
-            throw new EquipeDbGitHubException(403, "Token GitHub nao configurado para leitura.");
+            if (_environment.IsDevelopment())
+            {
+                return await LerArquivoTextoViaGhAsync(path, cancellationToken);
+            }
+
+            throw new EquipeDbGitHubException(403, "Token GitHub não configurado para leitura.");
         }
 
         using var request = CriarRequest(HttpMethod.Get, ConteudoUrl(path), token);
@@ -149,7 +159,7 @@ public class EquipeDbGitHubService : IEquipeDbGitHubService
 
         if (payload is null || !string.Equals(payload.Type, "file", StringComparison.OrdinalIgnoreCase))
         {
-            throw new EquipeDbGitHubException(422, $"Conteudo GitHub invalido para {path}.");
+            throw new EquipeDbGitHubException(422, $"Conteúdo GitHub inválido para {path}.");
         }
 
         var base64 = payload.Content.Replace("\n", string.Empty, StringComparison.Ordinal)
@@ -168,7 +178,7 @@ public class EquipeDbGitHubService : IEquipeDbGitHubService
     {
         if (string.IsNullOrWhiteSpace(token))
         {
-            throw new EquipeDbGitHubException(403, "Token GitHub nao configurado para escrita.");
+            throw new EquipeDbGitHubException(403, "Token GitHub não configurado para escrita.");
         }
 
         var body = new Dictionary<string, object?>
@@ -213,6 +223,70 @@ public class EquipeDbGitHubService : IEquipeDbGitHubService
         request.Headers.UserAgent.ParseAdd("CasaMulherPortalEqp/1.0");
         request.Headers.Add("X-GitHub-Api-Version", "2022-11-28");
         return request;
+    }
+
+    private async Task<(string Content, string Sha)?> LerArquivoTextoViaGhAsync(
+        string path,
+        CancellationToken cancellationToken)
+    {
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = "gh",
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true
+        };
+
+        startInfo.ArgumentList.Add("api");
+        startInfo.ArgumentList.Add($"repos/{RepoOwner}/{RepoName}/contents/{path}");
+
+        try
+        {
+            using var process = Process.Start(startInfo)
+                ?? throw new InvalidOperationException("Não foi possível iniciar o gh CLI.");
+            var outputTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
+            var errorTask = process.StandardError.ReadToEndAsync(cancellationToken);
+
+            await process.WaitForExitAsync(cancellationToken);
+            var output = await outputTask;
+            var error = await errorTask;
+
+            if (process.ExitCode != 0)
+            {
+                if (error.Contains("HTTP 404", StringComparison.OrdinalIgnoreCase))
+                {
+                    return null;
+                }
+
+                throw new EquipeDbGitHubException(
+                    503,
+                    $"O gh CLI não conseguiu ler {path}. Confirme o acesso ao repositório privado.");
+            }
+
+            var payload = JsonSerializer.Deserialize<GitHubContentResponse>(output, JsonOptions);
+
+            if (payload is null || !string.Equals(payload.Type, "file", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new EquipeDbGitHubException(422, $"Conteúdo GitHub inválido para {path}.");
+            }
+
+            var base64 = payload.Content.Replace("\n", string.Empty, StringComparison.Ordinal)
+                .Replace("\r", string.Empty, StringComparison.Ordinal);
+            var bytes = Convert.FromBase64String(base64);
+            return (Encoding.UTF8.GetString(bytes), payload.Sha);
+        }
+        catch (EquipeDbGitHubException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Não foi possível ler {Path} pelo gh CLI.", path);
+            throw new EquipeDbGitHubException(
+                503,
+                "O gh CLI não está disponível ou autenticado. Execute gh auth login e tente novamente.");
+        }
     }
 
     private string ConteudoUrl(string path)
