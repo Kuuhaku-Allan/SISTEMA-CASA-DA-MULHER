@@ -765,10 +765,28 @@ public class AuthController : ControllerBase
     [AllowAnonymous]
     [EnableRateLimiting(RateLimitPolicies.PasskeyLoginIniciar)]
     [HttpPost("passkey/login/iniciar")]
-    public async Task<ActionResult<PasskeyLoginIniciarResponse>> PasskeyLoginIniciar()
+    public async Task<ActionResult<PasskeyLoginIniciarResponse>> PasskeyLoginIniciar(PasskeyLoginIniciarRequest request)
     {
-        // Busca todas as credenciais cadastradas (sem filtrar por usuário — login discoverable)
+        if (string.IsNullOrWhiteSpace(request.Identificador))
+        {
+            return BadRequest(new { mensagem = "Informe seu ID antes de usar a chave de acesso." });
+        }
+
+        var contextoLogin = await EncontrarContextoParaLogin(new LoginRequest
+        {
+            Identificador = request.Identificador,
+            Email = string.Empty,
+            Senha = string.Empty
+        });
+
+        if (contextoLogin is null || !contextoLogin.Usuario.Ativo)
+        {
+            return BadRequest(new { mensagem = "ID inválido ou sem chave de acesso cadastrada." });
+        }
+
+        // Limita a autenticação às chaves da identidade informada.
         var todasCredenciais = await _dbContext.PasskeyCredentials
+            .Where(c => c.UserId == contextoLogin.Usuario.Id)
             .Select(c => c.CredentialId)
             .ToListAsync();
 
@@ -776,7 +794,7 @@ public class AuthController : ControllerBase
         {
             return BadRequest(new
             {
-                mensagem = "Nenhuma chave de acesso cadastrada. Entre com ID e senha e ative uma chave em Segurança."
+                mensagem = "Este ID não possui chave de acesso cadastrada. Entre com ID e senha e ative uma chave em Segurança."
             });
         }
 
@@ -797,7 +815,9 @@ public class AuthController : ControllerBase
             ChallengeBytes = options.Challenge,
             Tipo = "Login",
             OptionsJson = optionsJson,
-            UserId = null,
+            UserId = contextoLogin.Usuario.Id,
+            ContextoPerfil = contextoLogin.Perfil,
+            ContextoIdentificador = contextoLogin.Identificador,
             CriadoEm = DateTime.UtcNow,
             ExpiracaoEm = DateTime.UtcNow.Add(PasskeyChallengeValidade)
         });
@@ -829,6 +849,13 @@ public class AuthController : ControllerBase
         if (challenge is null || challenge.ExpiracaoEm < DateTime.UtcNow)
         {
             return BadRequest(new { mensagem = "Sessão de login expirada ou inválida. Tente novamente." });
+        }
+
+        if (string.IsNullOrWhiteSpace(challenge.UserId)
+            || string.IsNullOrWhiteSpace(challenge.ContextoPerfil)
+            || string.IsNullOrWhiteSpace(challenge.ContextoIdentificador))
+        {
+            return BadRequest(new { mensagem = "O contexto deste login expirou. Inicie novamente com seu ID." });
         }
 
         AssertionOptions assertionOptions;
@@ -866,7 +893,9 @@ public class AuthController : ControllerBase
             .Include(c => c.User)
             .SingleOrDefaultAsync(c => c.CredentialId == rawId);
 
-        if (credencial is null || credencial.User is null)
+        if (credencial is null
+            || credencial.User is null
+            || !string.Equals(credencial.UserId, challenge.UserId, StringComparison.Ordinal))
         {
             await _auditoriaService.RegistrarAsync(
                 "PASSKEY_LOGIN_FALHA",
@@ -954,8 +983,6 @@ public class AuthController : ControllerBase
                 usuario.Id,
                 $"Reconfirmação de credenciais solicitada para {usuario.IdentificadorFuncionario} ({descricaoMotivoReconfirmacao}).");
 
-            var roles = await _userManager.GetRolesAsync(usuario);
-
             return Ok(new PasskeyLoginConcluirResponse
             {
                 RequerReconfirmacao = true,
@@ -963,8 +990,8 @@ public class AuthController : ControllerBase
                 ReconfirmacaoId = reconfirmacaoId,
                 NomeCompleto = usuario.NomeCompleto,
                 Email = usuario.Email ?? string.Empty,
-                Perfil = usuario.Perfil,
-                IdentificadorFuncionario = usuario.IdentificadorFuncionario,
+                Perfil = challenge.ContextoPerfil,
+                IdentificadorFuncionario = challenge.ContextoIdentificador,
                 DoisFatoresObrigatorio = usuario.DoisFatoresObrigatorio,
                 DoisFatoresAtivado = usuario.TwoFactorEnabled,
                 TemDoisFatores = usuario.TwoFactorEnabled,
@@ -972,7 +999,9 @@ public class AuthController : ControllerBase
             });
         }
 
-        var rolesLogin = await _userManager.GetRolesAsync(usuario);
+        var rolesLogin = SelecionarRolesDaSessao(
+            await _userManager.GetRolesAsync(usuario),
+            challenge.ContextoPerfil);
 
         await _auditoriaService.RegistrarAsync(
             "PASSKEY_LOGIN_SUCESSO",
@@ -980,7 +1009,11 @@ public class AuthController : ControllerBase
             usuario.Id,
             $"Login por passkey concluído para {usuario.IdentificadorFuncionario}.");
 
-        var jwtLoginPasskey = GerarJwt(usuario, rolesLogin);
+        var jwtLoginPasskey = GerarJwt(
+            usuario,
+            rolesLogin,
+            challenge.ContextoPerfil,
+            challenge.ContextoIdentificador);
 
         return Ok(new PasskeyLoginConcluirResponse
         {
@@ -988,8 +1021,8 @@ public class AuthController : ControllerBase
             ExpiraEm = jwtLoginPasskey.ExpiraEm,
             NomeCompleto = usuario.NomeCompleto,
             Email = usuario.Email ?? string.Empty,
-            Perfil = usuario.Perfil,
-            IdentificadorFuncionario = usuario.IdentificadorFuncionario,
+            Perfil = challenge.ContextoPerfil,
+            IdentificadorFuncionario = challenge.ContextoIdentificador,
             DoisFatoresObrigatorio = usuario.DoisFatoresObrigatorio,
             DoisFatoresAtivado = usuario.TwoFactorEnabled,
             TemDoisFatores = usuario.TwoFactorEnabled,
@@ -1025,7 +1058,8 @@ public class AuthController : ControllerBase
             Senha = request.Senha
         };
 
-        var usuario = await EncontrarUsuarioParaLogin(requestComIdentificador);
+        var contextoLogin = await EncontrarContextoParaLogin(requestComIdentificador);
+        var usuario = contextoLogin?.Usuario;
 
         if (usuario is null || !usuario.Ativo || usuario.Id != reconfirmacao.UserId)
         {
@@ -1098,7 +1132,9 @@ public class AuthController : ControllerBase
         _dbContext.PasskeyReconfirmacoes.Remove(reconfirmacao);
         await _dbContext.SaveChangesAsync();
 
-        var roles = await _userManager.GetRolesAsync(usuario);
+        var roles = SelecionarRolesDaSessao(
+            await _userManager.GetRolesAsync(usuario),
+            contextoLogin!.Perfil);
 
         await _auditoriaService.RegistrarAsync(
             "PASSKEY_RECONFIRMADA",
@@ -1106,7 +1142,11 @@ public class AuthController : ControllerBase
             usuario.Id,
             $"Credenciais reconfirmadas com sucesso para login por passkey de {usuario.IdentificadorFuncionario}.");
 
-        var jwtReconfirmacao = GerarJwt(usuario, roles);
+        var jwtReconfirmacao = GerarJwt(
+            usuario,
+            roles,
+            contextoLogin.Perfil,
+            contextoLogin.Identificador);
 
         return Ok(new PasskeyLoginConcluirResponse
         {
@@ -1114,8 +1154,8 @@ public class AuthController : ControllerBase
             ExpiraEm = jwtReconfirmacao.ExpiraEm,
             NomeCompleto = usuario.NomeCompleto,
             Email = usuario.Email ?? string.Empty,
-            Perfil = usuario.Perfil,
-            IdentificadorFuncionario = usuario.IdentificadorFuncionario,
+            Perfil = contextoLogin.Perfil,
+            IdentificadorFuncionario = contextoLogin.Identificador,
             DoisFatoresObrigatorio = usuario.DoisFatoresObrigatorio,
             DoisFatoresAtivado = usuario.TwoFactorEnabled,
             TemDoisFatores = usuario.TwoFactorEnabled,

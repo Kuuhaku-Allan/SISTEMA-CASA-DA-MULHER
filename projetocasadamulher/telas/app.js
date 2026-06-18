@@ -2519,8 +2519,18 @@ function setupPasskeyLogin() {
     btn.addEventListener("click", async () => {
         try {
             btn.disabled = true;
+            const identificador = document.getElementById("identificador")?.value.trim() || "";
+
+            if (!identificador) {
+                throw new Error("Informe seu ID antes de usar a chave de acesso.");
+            }
+
             setMessage(msg, "Iniciando login com chave de acesso...", "");
-            const resInit = await fetch(`${API_BASE_URL}/api/auth/passkey/login/iniciar`, { method: "POST" });
+            const resInit = await fetch(`${API_BASE_URL}/api/auth/passkey/login/iniciar`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ identificador })
+            });
             if (!resInit.ok) throw new Error(await readApiMessage(resInit));
             const initData = await resInit.json();
             const options = initData.publicKeyOptions;

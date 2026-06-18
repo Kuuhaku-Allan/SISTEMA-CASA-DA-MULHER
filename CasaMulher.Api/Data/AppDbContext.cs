@@ -299,6 +299,12 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             entity.Property(c => c.UserId)
                 .HasMaxLength(80);
 
+            entity.Property(c => c.ContextoPerfil)
+                .HasMaxLength(20);
+
+            entity.Property(c => c.ContextoIdentificador)
+                .HasMaxLength(20);
+
             entity.Property(c => c.OptionsJson)
                 .IsRequired();
         });

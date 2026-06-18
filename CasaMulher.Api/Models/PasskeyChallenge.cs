@@ -19,8 +19,12 @@ public class PasskeyChallenge
     /// </summary>
     public string OptionsJson { get; set; } = string.Empty;
 
-    /// <summary>Preenchido para Registro; nulo para Login (usuário ainda desconhecido).</summary>
+    /// <summary>Usuário vinculado ao registro ou ao ID informado no login.</summary>
     public string? UserId { get; set; }
+
+    public string? ContextoPerfil { get; set; }
+
+    public string? ContextoIdentificador { get; set; }
 
     public DateTime CriadoEm { get; set; } = DateTime.UtcNow;
 

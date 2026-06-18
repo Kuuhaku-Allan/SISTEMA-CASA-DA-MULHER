@@ -32,6 +32,11 @@ public sealed class PasskeyLoginIniciarResponse
     public JsonNode? PublicKeyOptions { get; set; }
 }
 
+public sealed class PasskeyLoginIniciarRequest
+{
+    public string Identificador { get; set; } = string.Empty;
+}
+
 public sealed class PasskeyLoginConcluirRequest
 {
     public string ChallengeId { get; set; } = string.Empty;

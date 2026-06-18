@@ -314,7 +314,6 @@ function Start-System {
     Restore-Api
     Update-Database
     Start-Api
-    Invoke-EquipeSync -BestEffort | Out-Null
     Start-Front
 
     Write-Info "Abrindo navegador..."
