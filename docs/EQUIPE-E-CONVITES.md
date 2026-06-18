@@ -25,6 +25,7 @@ O portal central le e grava esse JSON via GitHub API. O repositorio principal gu
 
 - `EQP-000001` fica reservado para `Kuuhaku-Allan`.
 - `EQP-000001` usa o ADM existente `ADM-000003`.
+- O login `EQP-000001` abre o contexto da equipe; o login `ADM-000003` abre o contexto administrativo.
 - Convites iniciais disponiveis:
   - `EQP-000002` + `ADM-000004`
   - `EQP-000003` + `ADM-000005`

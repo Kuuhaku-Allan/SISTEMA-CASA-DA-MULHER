@@ -65,6 +65,19 @@
         };
     }
 
+    function getPainelUrl(usuario) {
+        const perfil = usuario?.perfil || getPerfil();
+        return perfil === "equipe" ? "equipe-painel.html" : "painel.html";
+    }
+
+    function atualizarLinksPainel(usuario) {
+        const painelUrl = getPainelUrl(usuario);
+
+        document.querySelectorAll("[data-painel-link]").forEach(function (link) {
+            link.setAttribute("href", painelUrl);
+        });
+    }
+
     function estaLogado() {
         return Boolean(getToken()) && !sessaoExpirada();
     }
@@ -188,6 +201,7 @@
         localStorage.setItem("doisFatoresObrigatorio", String(Boolean(usuario.doisFatoresObrigatorio)));
         localStorage.setItem("doisFatoresAtivado", String(Boolean(usuario.doisFatoresAtivado)));
         localStorage.setItem("deveTrocarSenha", String(Boolean(usuario.deveTrocarSenha)));
+        atualizarLinksPainel(usuario);
     }
 
     function getAuthHeaders(includeJson) {
@@ -343,6 +357,7 @@
         estaLogado,
         getAuthHeaders,
         getPerfil,
+        getPainelUrl,
         getToken,
         getUsuario,
         limparSessao,
@@ -357,4 +372,6 @@
         salvarUsuario,
         sessaoExpirada
     };
+
+    atualizarLinksPainel(getUsuario());
 })();

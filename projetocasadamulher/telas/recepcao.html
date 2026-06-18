@@ -159,7 +159,7 @@
 
                 if (!CasaMulherAuth.podeAcessar("recepcao")) {
                     alert("Voc\u00ea n\u00e3o tem permiss\u00e3o para acessar a recep\u00e7\u00e3o.");
-                    window.location.href = "painel.html";
+                    window.location.href = CasaMulherAuth.getPainelUrl(usuario);
                     return null;
                 }
 
@@ -579,7 +579,7 @@
                 </div>
             </div>
             <div class="header-actions">
-                <a class="btn-secondary btn-compact button-link" href="painel.html">Voltar</a>
+                <a class="btn-secondary btn-compact button-link" href="painel.html" data-painel-link>Voltar</a>
                 <button type="button" id="btnSairRecepcao" class="btn-secondary btn-compact">Sair</button>
             </div>
         </header>

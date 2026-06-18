@@ -204,7 +204,8 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<ActionResult<AuthResponse>> Login(LoginRequest request)
     {
-        var usuario = await EncontrarUsuarioParaLogin(request);
+        var contextoLogin = await EncontrarContextoParaLogin(request);
+        var usuario = contextoLogin?.Usuario;
 
         if (usuario is null || !usuario.Ativo)
         {
@@ -270,14 +271,16 @@ public class AuthController : ControllerBase
             await _userManager.ResetAccessFailedCountAsync(usuario);
         }
 
-        var roles = await _userManager.GetRolesAsync(usuario);
+        var roles = SelecionarRolesDaSessao(
+            await _userManager.GetRolesAsync(usuario),
+            contextoLogin!.Perfil);
 
         if (usuario.TwoFactorEnabled)
         {
-            return Ok(GerarRespostaDoisFatores(usuario, roles));
+            return Ok(GerarRespostaDoisFatores(usuario, contextoLogin.Perfil, contextoLogin.Identificador));
         }
 
-        return Ok(GerarAuthResponse(usuario, roles));
+        return Ok(GerarAuthResponse(usuario, roles, contextoLogin.Perfil, contextoLogin.Identificador));
     }
 
     [AllowAnonymous]
@@ -391,7 +394,8 @@ public class AuthController : ControllerBase
     [HttpPost("login-2fa")]
     public async Task<ActionResult<AuthResponse>> LoginDoisFatores(LoginDoisFatoresRequest request)
     {
-        var usuario = await ObterUsuarioDoLoginTemporario(request.LoginTemporario);
+        var contextoLogin = await ObterContextoDoLoginTemporario(request.LoginTemporario);
+        var usuario = contextoLogin?.Usuario;
 
         if (usuario is null || !usuario.Ativo || !usuario.TwoFactorEnabled)
         {
@@ -450,8 +454,10 @@ public class AuthController : ControllerBase
             await _userManager.ResetAccessFailedCountAsync(usuario);
         }
 
-        var roles = await _userManager.GetRolesAsync(usuario);
-        return Ok(GerarAuthResponse(usuario, roles));
+        var roles = SelecionarRolesDaSessao(
+            await _userManager.GetRolesAsync(usuario),
+            contextoLogin!.Perfil);
+        return Ok(GerarAuthResponse(usuario, roles, contextoLogin.Perfil, contextoLogin.Identificador));
     }
 
     [Authorize]
@@ -555,8 +561,8 @@ public class AuthController : ControllerBase
             Email = usuario.Email ?? string.Empty,
             EmailRecuperacao = usuario.EmailRecuperacao,
             EmailRecuperacaoConfirmado = usuario.EmailRecuperacaoConfirmado,
-            Perfil = usuario.Perfil,
-            IdentificadorFuncionario = usuario.IdentificadorFuncionario,
+            Perfil = User.FindFirstValue("perfil") ?? usuario.Perfil,
+            IdentificadorFuncionario = User.FindFirstValue("identificadorFuncionario") ?? usuario.IdentificadorFuncionario,
             DoisFatoresObrigatorio = usuario.DoisFatoresObrigatorio,
             DoisFatoresAtivado = usuario.TwoFactorEnabled,
             DeveTrocarSenha = usuario.DeveTrocarSenha
@@ -957,7 +963,7 @@ public class AuthController : ControllerBase
                 ReconfirmacaoId = reconfirmacaoId,
                 NomeCompleto = usuario.NomeCompleto,
                 Email = usuario.Email ?? string.Empty,
-                Perfil = roles.FirstOrDefault() ?? usuario.Perfil,
+                Perfil = usuario.Perfil,
                 IdentificadorFuncionario = usuario.IdentificadorFuncionario,
                 DoisFatoresObrigatorio = usuario.DoisFatoresObrigatorio,
                 DoisFatoresAtivado = usuario.TwoFactorEnabled,
@@ -982,7 +988,7 @@ public class AuthController : ControllerBase
             ExpiraEm = jwtLoginPasskey.ExpiraEm,
             NomeCompleto = usuario.NomeCompleto,
             Email = usuario.Email ?? string.Empty,
-            Perfil = rolesLogin.FirstOrDefault() ?? usuario.Perfil,
+            Perfil = usuario.Perfil,
             IdentificadorFuncionario = usuario.IdentificadorFuncionario,
             DoisFatoresObrigatorio = usuario.DoisFatoresObrigatorio,
             DoisFatoresAtivado = usuario.TwoFactorEnabled,
@@ -1108,7 +1114,7 @@ public class AuthController : ControllerBase
             ExpiraEm = jwtReconfirmacao.ExpiraEm,
             NomeCompleto = usuario.NomeCompleto,
             Email = usuario.Email ?? string.Empty,
-            Perfil = roles.FirstOrDefault() ?? usuario.Perfil,
+            Perfil = usuario.Perfil,
             IdentificadorFuncionario = usuario.IdentificadorFuncionario,
             DoisFatoresObrigatorio = usuario.DoisFatoresObrigatorio,
             DoisFatoresAtivado = usuario.TwoFactorEnabled,
@@ -1175,7 +1181,7 @@ public class AuthController : ControllerBase
         return HttpContext.Connection.RemoteIpAddress?.ToString() ?? "ip-desconhecido";
     }
 
-    private async Task<ApplicationUser?> EncontrarUsuarioParaLogin(LoginRequest request)
+    private async Task<LoginContexto?> EncontrarContextoParaLogin(LoginRequest request)
     {
         var identificador = request.Identificador.Trim();
 
@@ -1191,7 +1197,10 @@ public class AuthController : ControllerBase
 
         if (identificador.Contains('@'))
         {
-            return await _userManager.FindByEmailAsync(identificador);
+            var usuarioPorEmail = await _userManager.FindByEmailAsync(identificador);
+            return usuarioPorEmail is null
+                ? null
+                : new LoginContexto(usuarioPorEmail, usuarioPorEmail.Perfil, usuarioPorEmail.IdentificadorFuncionario);
         }
 
         var identificadorNormalizado = identificador.ToUpperInvariant();
@@ -1203,12 +1212,74 @@ public class AuthController : ControllerBase
 
         if (alias is not null)
         {
-            return await _userManager.FindByIdAsync(alias.UserId);
+            var usuarioPorAlias = await _userManager.FindByIdAsync(alias.UserId);
+
+            if (usuarioPorAlias is null)
+            {
+                return null;
+            }
+
+            return new LoginContexto(
+                usuarioPorAlias,
+                ObterPerfilDoContexto(alias.Tipo, alias.Identificador, usuarioPorAlias.Perfil),
+                alias.Identificador);
         }
 
-        return await _dbContext.Users.SingleOrDefaultAsync(usuario =>
+        var usuario = await _dbContext.Users.SingleOrDefaultAsync(usuario =>
             usuario.NormalizedUserName == identificadorNormalizado
             || usuario.IdentificadorFuncionario.ToUpper() == identificadorNormalizado);
+
+        return usuario is null
+            ? null
+            : new LoginContexto(
+                usuario,
+                ObterPerfilDoContexto(string.Empty, identificadorNormalizado, usuario.Perfil),
+                identificadorNormalizado);
+    }
+
+    private async Task<ApplicationUser?> EncontrarUsuarioParaLogin(LoginRequest request)
+    {
+        return (await EncontrarContextoParaLogin(request))?.Usuario;
+    }
+
+    private static string ObterPerfilDoContexto(string tipo, string identificador, string perfilPadrao)
+    {
+        if (string.Equals(tipo, "EQP", StringComparison.OrdinalIgnoreCase)
+            || identificador.StartsWith("EQP-", StringComparison.OrdinalIgnoreCase))
+        {
+            return PerfisAcesso.Equipe;
+        }
+
+        if (string.Equals(tipo, "ADM", StringComparison.OrdinalIgnoreCase)
+            || identificador.StartsWith("ADM-", StringComparison.OrdinalIgnoreCase))
+        {
+            return PerfisAcesso.Adm;
+        }
+
+        return perfilPadrao;
+    }
+
+    private static IReadOnlyCollection<string> SelecionarRolesDaSessao(
+        IEnumerable<string> roles,
+        string perfil)
+    {
+        var rolesDisponiveis = roles.ToArray();
+
+        if (string.Equals(perfil, PerfisAcesso.Equipe, StringComparison.OrdinalIgnoreCase))
+        {
+            return rolesDisponiveis
+                .Where(role => string.Equals(role, PerfisAcesso.Equipe, StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+        }
+
+        if (string.Equals(perfil, PerfisAcesso.Adm, StringComparison.OrdinalIgnoreCase))
+        {
+            return rolesDisponiveis
+                .Where(role => string.Equals(role, PerfisAcesso.Adm, StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+        }
+
+        return rolesDisponiveis;
     }
 
     private async Task<FuncionarioConvite?> ObterConvitePorCodigoAsync(string codigoCadastro)
@@ -1278,25 +1349,32 @@ public class AuthController : ControllerBase
             || string.Equals(perfil, PerfisAcesso.AssistenteSocial, StringComparison.OrdinalIgnoreCase);
     }
 
-    private AuthResponse GerarRespostaDoisFatores(ApplicationUser usuario, IEnumerable<string> roles)
+    private AuthResponse GerarRespostaDoisFatores(
+        ApplicationUser usuario,
+        string perfilSessao,
+        string identificadorSessao)
     {
         return new AuthResponse
         {
             NomeCompleto = usuario.NomeCompleto,
             Email = usuario.Email ?? string.Empty,
-            Perfil = roles.FirstOrDefault() ?? usuario.Perfil,
-            IdentificadorFuncionario = usuario.IdentificadorFuncionario,
+            Perfil = perfilSessao,
+            IdentificadorFuncionario = identificadorSessao,
             RequerDoisFatores = true,
-            LoginTemporario = GerarLoginTemporario(usuario),
+            LoginTemporario = GerarLoginTemporario(usuario, perfilSessao, identificadorSessao),
             DoisFatoresObrigatorio = usuario.DoisFatoresObrigatorio,
             DoisFatoresAtivado = usuario.TwoFactorEnabled,
             DeveTrocarSenha = usuario.DeveTrocarSenha
         };
     }
 
-    private AuthResponse GerarAuthResponse(ApplicationUser usuario, IEnumerable<string> roles)
+    private AuthResponse GerarAuthResponse(
+        ApplicationUser usuario,
+        IEnumerable<string> roles,
+        string perfilSessao,
+        string identificadorSessao)
     {
-        var jwt = GerarJwt(usuario, roles);
+        var jwt = GerarJwt(usuario, roles, perfilSessao, identificadorSessao);
 
         return new AuthResponse
         {
@@ -1304,8 +1382,8 @@ public class AuthController : ControllerBase
             ExpiraEm = jwt.ExpiraEm,
             NomeCompleto = usuario.NomeCompleto,
             Email = usuario.Email ?? string.Empty,
-            Perfil = roles.FirstOrDefault() ?? usuario.Perfil,
-            IdentificadorFuncionario = usuario.IdentificadorFuncionario,
+            Perfil = perfilSessao,
+            IdentificadorFuncionario = identificadorSessao,
             RequerDoisFatores = false,
             DoisFatoresObrigatorio = usuario.DoisFatoresObrigatorio,
             DoisFatoresAtivado = usuario.TwoFactorEnabled,
@@ -1313,7 +1391,11 @@ public class AuthController : ControllerBase
         };
     }
 
-    private JwtEmitido GerarJwt(ApplicationUser usuario, IEnumerable<string> roles)
+    private JwtEmitido GerarJwt(
+        ApplicationUser usuario,
+        IEnumerable<string> roles,
+        string? perfilSessao = null,
+        string? identificadorSessao = null)
     {
         var key = _configuration["Jwt:Key"];
 
@@ -1329,8 +1411,8 @@ public class AuthController : ControllerBase
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new(ClaimTypes.NameIdentifier, usuario.Id),
             new(ClaimTypes.Name, usuario.NomeCompleto),
-            new("perfil", usuario.Perfil),
-            new("identificadorFuncionario", usuario.IdentificadorFuncionario)
+            new("perfil", perfilSessao ?? usuario.Perfil),
+            new("identificadorFuncionario", identificadorSessao ?? usuario.IdentificadorFuncionario)
         };
 
         claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
@@ -1350,24 +1432,32 @@ public class AuthController : ControllerBase
         return new JwtEmitido(new JwtSecurityTokenHandler().WriteToken(token), expiraEm);
     }
 
-    private string GerarLoginTemporario(ApplicationUser usuario)
+    private string GerarLoginTemporario(
+        ApplicationUser usuario,
+        string perfilSessao,
+        string identificadorSessao)
     {
         var ticket = new LoginTemporarioTicket(
             usuario.Id,
             usuario.SecurityStamp ?? string.Empty,
-            DateTimeOffset.UtcNow);
+            DateTimeOffset.UtcNow,
+            perfilSessao,
+            identificadorSessao);
 
         return _loginDoisFatoresProtector.Protect(JsonSerializer.Serialize(ticket));
     }
 
-    private async Task<ApplicationUser?> ObterUsuarioDoLoginTemporario(string loginTemporario)
+    private async Task<LoginContexto?> ObterContextoDoLoginTemporario(string loginTemporario)
     {
         try
         {
             var json = _loginDoisFatoresProtector.Unprotect(loginTemporario);
             var ticket = JsonSerializer.Deserialize<LoginTemporarioTicket>(json);
 
-            if (ticket is null || DateTimeOffset.UtcNow - ticket.EmitidoEm > LoginTemporarioValidade)
+            if (ticket is null
+                || string.IsNullOrWhiteSpace(ticket.Perfil)
+                || string.IsNullOrWhiteSpace(ticket.Identificador)
+                || DateTimeOffset.UtcNow - ticket.EmitidoEm > LoginTemporarioValidade)
             {
                 return null;
             }
@@ -1379,7 +1469,7 @@ public class AuthController : ControllerBase
                 return null;
             }
 
-            return usuario;
+            return new LoginContexto(usuario, ticket.Perfil, ticket.Identificador);
         }
         catch
         {
@@ -1425,5 +1515,12 @@ public class AuthController : ControllerBase
         return string.Join(" ", chave.Chunk(4).Select(grupo => new string(grupo)));
     }
 
-    private sealed record LoginTemporarioTicket(string UsuarioId, string SecurityStamp, DateTimeOffset EmitidoEm);
+    private sealed record LoginContexto(ApplicationUser Usuario, string Perfil, string Identificador);
+
+    private sealed record LoginTemporarioTicket(
+        string UsuarioId,
+        string SecurityStamp,
+        DateTimeOffset EmitidoEm,
+        string Perfil,
+        string Identificador);
 }

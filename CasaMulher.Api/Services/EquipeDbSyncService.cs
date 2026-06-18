@@ -157,10 +157,9 @@ public class EquipeDbSyncService
         usuario.SecurityStamp = string.IsNullOrWhiteSpace(membro.SecurityStamp) ? Guid.NewGuid().ToString("N") : membro.SecurityStamp;
         usuario.ConcurrencyStamp = string.IsNullOrWhiteSpace(membro.ConcurrencyStamp) ? Guid.NewGuid().ToString("N") : membro.ConcurrencyStamp;
 
-        if (string.IsNullOrWhiteSpace(usuario.Perfil))
-        {
-            usuario.Perfil = PerfisAcesso.Equipe;
-        }
+        usuario.Perfil = usuario.IdentificadorFuncionario.StartsWith("ADM-", StringComparison.OrdinalIgnoreCase)
+            ? PerfisAcesso.Adm
+            : PerfisAcesso.Equipe;
     }
 
     private async Task<bool> GarantirIdentificadorAsync(

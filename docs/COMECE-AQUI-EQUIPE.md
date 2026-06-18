@@ -45,6 +45,12 @@ Casa da Mulher: sincronizar equipe
 
 Depois da sincronização, o login normal do sistema aceita tanto o EQP quanto o ADM pareado com a senha criada no portal.
 
+Os IDs abrem contextos diferentes, mesmo quando pertencem à mesma pessoa:
+
+- entrar com `EQP-...` abre o Painel da Equipe;
+- entrar com `ADM-...` abre o painel administrativo institucional;
+- sair e entrar novamente troca o contexto da sessão com segurança.
+
 ## Entrada local
 
 No ambiente local do mantenedor:
