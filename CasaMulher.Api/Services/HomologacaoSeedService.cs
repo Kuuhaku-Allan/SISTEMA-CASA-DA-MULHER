@@ -86,7 +86,17 @@ public sealed class HomologacaoSeedService
         {
             content = await File.ReadAllBytesAsync(localPath, cancellationToken);
         }
-        else if (_github.ReadConfigured)
+        else
+        {
+            // Alternativa: JSON do seed embutido diretamente em variável de ambiente
+            var inlineJson = _configuration["HML_SEED_CONTENT"];
+            if (!string.IsNullOrWhiteSpace(inlineJson))
+            {
+                content = System.Text.Encoding.UTF8.GetBytes(inlineJson);
+            }
+        }
+
+        if (content is null && _github.ReadConfigured)
         {
             content = (await _github.ReadAsync(SeedPath, cancellationToken))?.Content;
         }
