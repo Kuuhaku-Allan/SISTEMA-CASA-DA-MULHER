@@ -25,17 +25,20 @@ public class PasskeysController : ControllerBase
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IFido2 _fido2;
     private readonly IAuditoriaService _auditoriaService;
+    private readonly WebAuthnEnvironmentInfo _webAuthn;
 
     public PasskeysController(
         AppDbContext dbContext,
         UserManager<ApplicationUser> userManager,
         IFido2 fido2,
-        IAuditoriaService auditoriaService)
+        IAuditoriaService auditoriaService,
+        WebAuthnEnvironmentInfo webAuthn)
     {
         _dbContext = dbContext;
         _userManager = userManager;
         _fido2 = fido2;
         _auditoriaService = auditoriaService;
+        _webAuthn = webAuthn;
     }
 
     // ── GET /api/passkeys ──────────────────────────────────────────────────
@@ -51,7 +54,7 @@ public class PasskeysController : ControllerBase
         }
 
         var credenciais = await _dbContext.PasskeyCredentials
-            .Where(c => c.UserId == usuario.Id)
+            .Where(c => c.UserId == usuario.Id && c.RpId == _webAuthn.RpId)
             .OrderByDescending(c => c.CriadoEm)
             .Select(c => new PasskeyListaItemResponse
             {
@@ -79,7 +82,7 @@ public class PasskeysController : ControllerBase
 
         // Credenciais já cadastradas — excluir para evitar duplicatas durante attestation
         var credenciaisExistentes = await _dbContext.PasskeyCredentials
-            .Where(c => c.UserId == usuario.Id)
+            .Where(c => c.UserId == usuario.Id && c.RpId == _webAuthn.RpId)
             .Select(c => c.CredentialId)
             .ToListAsync();
 
@@ -222,6 +225,7 @@ public class PasskeysController : ControllerBase
             PublicKey = result.Result.PublicKey,
             SignatureCounter = result.Result.Counter,
             NomeDispositivo = nomePadrao,
+            RpId = _webAuthn.RpId,
             CriadoEm = DateTime.UtcNow
         });
 

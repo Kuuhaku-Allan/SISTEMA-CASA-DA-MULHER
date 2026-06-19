@@ -276,9 +276,7 @@ public class EquipeController : ControllerBase
         var usuarioId = ObterUsuarioAtualId();
         var podeVerTodos = await PodeVerTodosLogsEquipeAsync();
         var eventos = await _dbContext.AuditoriaEventos
-            .Where(evento =>
-                evento.PerfilFuncionario == PerfisAcesso.Equipe
-                || evento.Acao.StartsWith("EQUIPE_"))
+            .Where(evento => evento.Escopo == AuditoriaEscopos.Equipe)
             .Where(evento => podeVerTodos || evento.UsuarioId == usuarioId)
             .OrderByDescending(evento => evento.CriadoEm)
             .Take(200)
@@ -1076,6 +1074,7 @@ public class EquipeController : ControllerBase
             IdentificadorFuncionario = evento.IdentificadorFuncionario,
             NomeFuncionario = evento.NomeFuncionario,
             PerfilFuncionario = evento.PerfilFuncionario,
+            Escopo = evento.Escopo,
             Acao = evento.Acao,
             Entidade = evento.Entidade,
             EntidadeId = evento.EntidadeId,

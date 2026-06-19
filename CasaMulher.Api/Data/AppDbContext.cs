@@ -234,6 +234,8 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             entity.Property(evento => evento.IdentificadorFuncionario).HasMaxLength(20);
             entity.Property(evento => evento.NomeFuncionario).HasMaxLength(160);
             entity.Property(evento => evento.PerfilFuncionario).HasMaxLength(40);
+            entity.Property(evento => evento.Escopo).HasMaxLength(20).IsRequired();
+            entity.HasIndex(evento => evento.Escopo);
             entity.Property(evento => evento.Acao).HasMaxLength(80).IsRequired();
             entity.Property(evento => evento.Entidade).HasMaxLength(80).IsRequired();
             entity.Property(evento => evento.EntidadeId).HasMaxLength(80);
@@ -274,6 +276,10 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
 
             entity.Property(c => c.Transports)
                 .HasMaxLength(200);
+
+            entity.Property(c => c.RpId)
+                .HasMaxLength(253)
+                .IsRequired();
 
             entity.HasOne(c => c.User)
                 .WithMany(u => u.PasskeyCredentials)

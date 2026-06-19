@@ -12,6 +12,8 @@ public class AuditoriaEventoResponse
 
     public string PerfilFuncionario { get; set; } = string.Empty;
 
+    public string Escopo { get; set; } = string.Empty;
+
     public string Acao { get; set; } = string.Empty;
 
     public string Entidade { get; set; } = string.Empty;

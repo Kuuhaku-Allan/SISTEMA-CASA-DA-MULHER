@@ -161,6 +161,17 @@ PRs vindos de fork sao bloqueados automaticamente se alterarem arquivos fora de 
 - Matriz de permissoes: `docs/MATRIZ-PERMISSOES-EQP-ADM.md`
 - Repositorio privado da equipe: `docs/ACESSO-EQUIPE-PRIVADO.md`
 
+## Passkeys no Render
+
+Passkeys sao vinculadas ao dominio em que foram criadas. Uma passkey de `localhost` nao funciona no Render e vice-versa. Isso e padrao WebAuthn, nao e um bug.
+
+- Para usar passkey no Render: entre primeiro com ID e senha, va em Seguranca da Conta e registre uma nova passkey.
+- Cada ambiente tem sua propria lista de passkeys.
+
+O banco do Render Free e apagado em redeploys. Para persistir 2FA e passkeys, o owner precisa configurar o snapshot criptografado (veja `docs/HOMOLOGACAO-PORTAL-EQP-RENDER.md`). Se nao configurado, a tela Seguranca mostra aviso.
+
+O Historico institucional mostra apenas eventos de funcionarios reais. Falhas de login com EQP aparecem somente nos logs da equipe.
+
 ## Deu erro
 
 Verifique nesta ordem:

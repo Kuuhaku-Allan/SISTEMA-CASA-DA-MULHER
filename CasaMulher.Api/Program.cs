@@ -60,6 +60,13 @@ if (string.IsNullOrWhiteSpace(connectionString))
     throw new InvalidOperationException("Configure ConnectionStrings:DefaultConnection para o ambiente atual.");
 }
 
+var isSqlite = string.Equals(databaseProvider, "Sqlite", StringComparison.OrdinalIgnoreCase)
+    || string.Equals(databaseProvider, "SQLite", StringComparison.OrdinalIgnoreCase);
+var sqliteDatabasePath = isSqlite
+    ? ResolverSqliteDatabasePath(connectionString, builder.Environment.ContentRootPath)
+    : string.Empty;
+builder.Services.AddSingleton(new HmlDbStorageInfo(sqliteDatabasePath, isSqlite));
+
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
     if (string.Equals(databaseProvider, "PostgreSQL", StringComparison.OrdinalIgnoreCase)
@@ -249,7 +256,10 @@ builder.Services.AddSingleton<IRedefinicaoSenhaThrottleService, InMemoryRedefini
 builder.Services.AddMemoryCache();
 builder.Services.AddHttpClient<IEquipeGithubService, EquipeGithubService>();
 builder.Services.AddHttpClient<IEquipeDbGitHubService, EquipeDbGitHubService>();
+builder.Services.AddHttpClient<GitHubPrivateFileService>();
 builder.Services.AddScoped<EquipeDbSyncService>();
+builder.Services.AddScoped<HmlDbSnapshotService>();
+builder.Services.AddScoped<HomologacaoSeedService>();
 builder.Services.AddScoped<ContaEquipeSincronizadaService>();
 builder.Services.AddSingleton<GitHubPortalSessionStore>();
 builder.Services.AddScoped<PortalEqpGateAuthorizationService>();
@@ -260,23 +270,18 @@ if ((builder.Environment.IsDevelopment() || builder.Environment.IsStaging())
     builder.Services.AddHostedService<EquipeDbAutoSyncHostedService>();
 }
 
-// WebAuthn / Passkey — Fido2 v3 é instanciado diretamente (sem extension method)
-var fido2Origin = builder.Environment.IsDevelopment()
-    ? "http://localhost:5500"
-    : builder.Configuration["Fido2:Origin"] ?? "http://localhost:5500";
-
-var fido2RpId = builder.Environment.IsDevelopment()
-    ? "localhost"
-    : builder.Configuration["Fido2:RpId"] ?? "localhost";
+// WebAuthn / Passkey — RP ID e origins são específicos por ambiente/domínio.
+var webAuthnInfo = ResolverWebAuthn(builder.Configuration, builder.Environment);
 
 var fido2Config = new Fido2Configuration
 {
-    ServerName = "Casa da Mulher",
-    ServerDomain = fido2RpId,
-    Origins = new HashSet<string> { fido2Origin },
+    ServerName = webAuthnInfo.RpName,
+    ServerDomain = webAuthnInfo.RpId,
+    Origins = webAuthnInfo.Origins.ToHashSet(StringComparer.OrdinalIgnoreCase),
     TimestampDriftTolerance = 300000 // 5 min em ms
 };
 
+builder.Services.AddSingleton(webAuthnInfo);
 builder.Services.AddSingleton<IFido2>(new Fido2(fido2Config));
 
 var emailProvider = builder.Configuration.GetValue("Email:Provider", builder.Environment.IsDevelopment() ? "Fake" : "Smtp");
@@ -339,6 +344,12 @@ builder.Services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
+if (args.Contains("--validate-hml-snapshot-crypto", StringComparer.OrdinalIgnoreCase))
+{
+    ValidarSnapshotCrypto();
+    return;
+}
+
 var renderGateEnabled = bool.TryParse(app.Configuration["ENABLE_RENDER_GITHUB_GATE"], out var explicitGateValue)
     ? explicitGateValue
     : app.Configuration.GetValue<bool?>("RenderAccessGate:Enabled") ?? app.Environment.IsStaging();
@@ -346,6 +357,12 @@ app.Logger.LogInformation(
     "Inicializando CasaMulher.Api em {Environment}; GitHub Gate ativo={GateAtivo}.",
     app.Environment.EnvironmentName,
     renderGateEnabled);
+app.Logger.LogInformation(
+    "WebAuthn configurado: ambiente={Environment}; RP ID={RpId}; RP Name={RpName}; Origins={Origins}.",
+    webAuthnInfo.EnvironmentName,
+    webAuthnInfo.RpId,
+    webAuthnInfo.RpName,
+    string.Join(", ", webAuthnInfo.Origins));
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -356,10 +373,48 @@ if (app.Environment.IsDevelopment())
 
 if (app.Environment.IsDevelopment() || app.Environment.IsStaging())
 {
+    if (app.Environment.IsStaging() && isSqlite)
+    {
+        await using var restoreScope = app.Services.CreateAsyncScope();
+        var snapshotService = restoreScope.ServiceProvider.GetRequiredService<HmlDbSnapshotService>();
+        await snapshotService.TryRestoreAtStartupAsync();
+        var snapshotStatus = snapshotService.GetStatus();
+        app.Logger.LogInformation(
+            "Persistência de homologação: solicitada={Enabled}; configurada={Configured}; caminho={Path}.",
+            snapshotStatus.EnabledRequested,
+            snapshotStatus.Configured,
+            snapshotStatus.SnapshotPath);
+    }
+
     await using var migrationScope = app.Services.CreateAsyncScope();
     var dbContext = migrationScope.ServiceProvider.GetRequiredService<AppDbContext>();
     await dbContext.Database.MigrateAsync();
     app.Logger.LogInformation("Migrations aplicadas no ambiente {Environment}.", app.Environment.EnvironmentName);
+}
+
+if (app.Environment.IsStaging())
+{
+    await using var stagingScope = app.Services.CreateAsyncScope();
+    try
+    {
+        var syncService = stagingScope.ServiceProvider.GetRequiredService<EquipeDbSyncService>();
+        var syncResult = await syncService.SincronizarAsync(null);
+        app.Logger.LogInformation("Sync EQP inicial concluído: {Message}", syncResult.Mensagem);
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogWarning(ex, "Sync EQP inicial falhou; o serviço periódico tentará novamente.");
+    }
+
+    try
+    {
+        var seedService = stagingScope.ServiceProvider.GetRequiredService<HomologacaoSeedService>();
+        await seedService.ApplyIfNeededAsync();
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogWarning(ex, "Seed fictício de homologação não pôde ser aplicado.");
+    }
 }
 
 var runDemoSeed = app.Configuration.GetValue("Seed:RunDemoData", app.Environment.IsDevelopment());
@@ -444,4 +499,116 @@ static string[] IncluirEquipeDev(bool permitirEquipeDev, params string[] perfis)
         .Append(PerfisAcesso.Equipe)
         .Distinct(StringComparer.OrdinalIgnoreCase)
         .ToArray();
+}
+
+static WebAuthnEnvironmentInfo ResolverWebAuthn(
+    IConfiguration configuration,
+    IWebHostEnvironment environment)
+{
+    var defaultRpId = environment.IsStaging()
+        ? "casa-mulher-eqp.onrender.com"
+        : "localhost";
+    var rpId = (configuration["WEBAUTHN_RP_ID"]
+        ?? configuration["Fido2:RpId"]
+        ?? defaultRpId).Trim();
+
+    if (rpId.Contains("://", StringComparison.Ordinal)
+        || rpId.Contains('/', StringComparison.Ordinal)
+        || rpId.Contains(':', StringComparison.Ordinal)
+        || string.IsNullOrWhiteSpace(rpId))
+    {
+        throw new InvalidOperationException(
+            "WEBAUTHN_RP_ID deve conter somente o domínio, sem protocolo, porta ou caminho.");
+    }
+
+    var rpName = (configuration["WEBAUTHN_RP_NAME"]
+        ?? configuration["Fido2:RpName"]
+        ?? (environment.IsStaging()
+            ? "Sistema Casa da Mulher - Homologação"
+            : "Sistema Casa da Mulher")).Trim();
+    var rawOrigins = configuration["WEBAUTHN_ORIGINS"]
+        ?? configuration["Fido2:Origins"]
+        ?? configuration["Fido2:Origin"];
+    var origins = string.IsNullOrWhiteSpace(rawOrigins)
+        ? environment.IsStaging()
+            ? [$"https://{rpId}"]
+            : ["http://localhost:5500", "http://localhost:5001"]
+        : rawOrigins
+            .Trim()
+            .TrimStart('[')
+            .TrimEnd(']')
+            .Split([',', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(item => item.Trim().Trim('"', '\''))
+            .ToArray();
+
+    var normalizedOrigins = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+    foreach (var origin in origins)
+    {
+        if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri)
+            || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
+            || !string.IsNullOrEmpty(uri.PathAndQuery) && uri.PathAndQuery != "/")
+        {
+            throw new InvalidOperationException($"Origem WebAuthn inválida: {origin}.");
+        }
+
+        if (environment.IsStaging() && uri.Scheme != Uri.UriSchemeHttps)
+        {
+            throw new InvalidOperationException("WEBAUTHN_ORIGINS deve usar HTTPS em Staging.");
+        }
+
+        if (!string.Equals(uri.Host, rpId, StringComparison.OrdinalIgnoreCase)
+            && !uri.Host.EndsWith($".{rpId}", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException(
+                $"A origem WebAuthn {origin} não pertence ao RP ID {rpId}.");
+        }
+
+        normalizedOrigins.Add(uri.GetLeftPart(UriPartial.Authority).TrimEnd('/'));
+    }
+
+    return new WebAuthnEnvironmentInfo(rpId, rpName, normalizedOrigins, environment.EnvironmentName);
+}
+
+static string ResolverSqliteDatabasePath(string connectionString, string contentRootPath)
+{
+    var sqlite = new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder(connectionString);
+    if (string.IsNullOrWhiteSpace(sqlite.DataSource))
+    {
+        throw new InvalidOperationException("ConnectionStrings:DefaultConnection não contém Data Source SQLite.");
+    }
+
+    return Path.GetFullPath(Path.IsPathRooted(sqlite.DataSource)
+        ? sqlite.DataSource
+        : Path.Combine(contentRootPath, sqlite.DataSource));
+}
+
+static void ValidarSnapshotCrypto()
+{
+    var header = Encoding.ASCII.GetBytes("SQLite format 3\0");
+    var sample = header.Concat(System.Security.Cryptography.RandomNumberGenerator.GetBytes(2048)).ToArray();
+    var key = System.Security.Cryptography.RandomNumberGenerator.GetBytes(32);
+    var encrypted = HmlDbSnapshotCrypto.EncryptCompressed(sample, key);
+    var decrypted = HmlDbSnapshotCrypto.DecryptDecompressed(encrypted, key);
+    if (!sample.SequenceEqual(decrypted))
+    {
+        throw new InvalidOperationException("Round-trip criptográfico do snapshot falhou.");
+    }
+
+    encrypted[^1] ^= 0x01;
+    try
+    {
+        HmlDbSnapshotCrypto.DecryptDecompressed(encrypted, key);
+        throw new InvalidOperationException("Snapshot adulterado foi aceito indevidamente.");
+    }
+    catch (System.Security.Cryptography.AuthenticationTagMismatchException)
+    {
+        Console.WriteLine("[OK] Snapshot AES-256-GCM fez round-trip e rejeitou adulteração.");
+    }
+    finally
+    {
+        System.Security.Cryptography.CryptographicOperations.ZeroMemory(sample);
+        System.Security.Cryptography.CryptographicOperations.ZeroMemory(decrypted);
+        System.Security.Cryptography.CryptographicOperations.ZeroMemory(key);
+    }
 }

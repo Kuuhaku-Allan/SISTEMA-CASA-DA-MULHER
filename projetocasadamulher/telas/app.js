@@ -2265,6 +2265,47 @@ async function setupSeguranca() {
 
     bindLogoutButton("btnSairSeguranca");
 
+    const persistenciaHomologacao = document.getElementById("persistenciaHomologacao");
+    const btnSnapshotHomologacao = document.getElementById("btnSnapshotHomologacao");
+
+    try {
+        const response = await CasaMulherAuth.apiFetch("/api/homologacao/status", {
+            headers: getAuthHeaders(false),
+            mensagemElement: mensagem
+        });
+        if (response.ok) {
+            const status = await response.json();
+            if (status.staging && persistenciaHomologacao) {
+                persistenciaHomologacao.textContent = status.message;
+                persistenciaHomologacao.classList.remove("hidden");
+                if (status.podeGerenciar && status.snapshotConfigurado && btnSnapshotHomologacao) {
+                    btnSnapshotHomologacao.classList.remove("hidden");
+                }
+            }
+        }
+    } catch {
+        // O restante da tela de segurança continua disponível.
+    }
+
+    btnSnapshotHomologacao?.addEventListener("click", async function () {
+        btnSnapshotHomologacao.disabled = true;
+        setMessage(mensagem, "Gerando snapshot criptografado...", "info");
+        try {
+            const response = await CasaMulherAuth.apiFetch("/api/homologacao/snapshot", {
+                method: "POST",
+                headers: getAuthHeaders(false),
+                mensagemElement: mensagem
+            });
+            setMessage(mensagem, response.ok
+                ? "Snapshot criptografado atualizado."
+                : await readApiMessage(response), response.ok ? "success" : "error");
+        } catch {
+            setMessage(mensagem, "Não foi possível gerar o snapshot.", "error");
+        } finally {
+            btnSnapshotHomologacao.disabled = false;
+        }
+    });
+
     async function atualizarStatus() {
         const usuario = await carregarUsuarioAtual();
 
@@ -2502,6 +2543,18 @@ function isPasskeySupported() {
     return window.PublicKeyCredential !== undefined;
 }
 
+function passkeyErrorMessage(error) {
+    if (error?.name === "NotAllowedError") {
+        return "A chave foi cancelada ou não pertence a este domínio. Entre com ID e senha e registre uma nova passkey neste ambiente.";
+    }
+
+    if (error?.name === "SecurityError") {
+        return "A configuração de segurança deste domínio não permite esta passkey. Atualize a página ou registre uma nova chave neste ambiente.";
+    }
+
+    return error?.message || "Não foi possível usar a chave de acesso.";
+}
+
 function setupPasskeyLogin() {
     const container = document.getElementById("passkey-login-container");
     const btn = document.getElementById("btn-passkey-login");
@@ -2577,7 +2630,7 @@ function setupPasskeyLogin() {
             CasaMulherAuth.salvarSessao(result);
             redirectAfterLogin(result);
         } catch (err) {
-            setMessage(msg, err.message, "error");
+            setMessage(msg, passkeyErrorMessage(err), "error");
         } finally {
             btn.disabled = false;
         }
@@ -2626,7 +2679,7 @@ function setupPasskeyRegistro() {
             setMessage(msg, "Chave de acesso cadastrada com sucesso!", "success");
             if (typeof carregarPasskeys === "function") carregarPasskeys();
         } catch (err) {
-            setMessage(msg, err.message, "error");
+            setMessage(msg, passkeyErrorMessage(err), "error");
         } finally {
             btn.disabled = false;
         }

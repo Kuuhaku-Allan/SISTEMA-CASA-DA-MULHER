@@ -1,6 +1,8 @@
 # Homologacao do Portal EQP no Render
 
-Este ambiente e somente para equipe de desenvolvimento/homologacao. O mesmo Web Service hospeda a API ASP.NET Core e todo o front em `projetocasadamulher/telas`. Ele nao usa Neon/PostgreSQL: o banco SQLite e temporario e a equipe e reconstruida a partir do repositorio privado `Sistema-Casa-da-Mulher/ACESSO-EQUIPE`.
+Este ambiente e somente para equipe de desenvolvimento/homologacao. O mesmo Web Service hospeda a API ASP.NET Core e todo o front em `projetocasadamulher/telas`. Ele nao usa Neon/PostgreSQL: o banco SQLite e temporario (filesystem efemero do Render Free) e a equipe e reconstruida a partir do repositorio privado `Sistema-Casa-da-Mulher/ACESSO-EQUIPE`.
+
+> **Render Free usa filesystem efemero.** O SQLite em `/tmp` e apagado em redeploy/restart. Use o snapshot criptografado para persistir 2FA, passkeys e dados de homologacao (veja secao Persistencia abaixo).
 
 ## O que o Render hospeda
 
@@ -91,6 +93,24 @@ Opcional, se quiser permitir leitura com token separado:
 GITHUB_EQP_READ_TOKEN=...
 ```
 
+### Variaveis adicionais para Passkeys e Persistencia
+
+As variaveis abaixo ja tem valores padrao corretos para o dominio `casa-mulher-eqp.onrender.com`, mas podem ser sobrescritas:
+
+```text
+# WebAuthn / Passkeys — RP ID deve ser exatamente o dominio, sem https:// nem porta
+WEBAUTHN_RP_ID=casa-mulher-eqp.onrender.com
+WEBAUTHN_RP_NAME=Sistema Casa da Mulher - Homologacao
+WEBAUTHN_ORIGINS=https://casa-mulher-eqp.onrender.com
+
+# Snapshot criptografado do banco (opcional, gratuito, necessario para persistir 2FA/passkeys)
+HML_DB_SNAPSHOT_ENABLED=true
+HML_DB_SNAPSHOT_KEY=<base64 de 32 bytes gerado fora do repositorio>
+HML_DB_SNAPSHOT_REPO_OWNER=Sistema-Casa-da-Mulher
+HML_DB_SNAPSHOT_REPO=ACESSO-EQUIPE
+HML_DB_SNAPSHOT_PATH=data/render-hml-db/latest.sqlite.gz.enc
+```
+
 Nao configure connection string de producao. O `Staging` aplica migrations automaticamente no SQLite temporario e inicia a sincronizacao da equipe. Se o disco efemero for apagado, o banco e recriado no proximo startup.
 
 Os nomes OAuth documentados sao exatamente `GITHUB_OAUTH_CLIENT_ID` e `GITHUB_OAUTH_CLIENT_SECRET`.
@@ -173,6 +193,41 @@ Em Windows, use o Git Bash explicitamente para validar scripts:
 & "C:\Program Files\Git\bin\bash.exe" -n scripts/codespaces/abrir-equipe.sh
 ```
 
+## Passkeys e WebAuthn por dominio
+
+Passkeys sao vinculadas ao dominio (RP ID) em que foram criadas. O RP ID no Render e `casa-mulher-eqp.onrender.com`. Passkeys criadas em `localhost` **nao funcionam** no Render e vice-versa. Isso e comportamento definido pelo padrao WebAuthn (W3C), nao um bug.
+
+- O RP ID nunca deve conter `https://` nem porta.
+- Para registrar uma passkey no Render, entre primeiro com ID e senha e vá em Seguranca da Conta.
+- Cada ambiente (local, Codespaces, Render) tem sua propria lista de passkeys.
+- A mensagem de erro `The relying party ID is not a registrable domain suffix` indica passkey de outro ambiente.
+
+## Persistencia do banco no Render
+
+O Render Free usa filesystem efemero: dados em `/tmp` sao perdidos em redeploys e reinicializacoes. Para manter 2FA, passkeys e dados entre reinicializacoes, use o snapshot criptografado:
+
+1. Configure `HML_DB_SNAPSHOT_ENABLED=true` e `HML_DB_SNAPSHOT_KEY` no Render.
+2. A chave deve ser Base64 de exatamente 32 bytes gerado com `openssl rand -base64 32` ou equivalente.
+3. **Nunca commitar a chave.** Ela fica somente em variavel de ambiente.
+4. Apos configurar 2FA/passkeys, clique em "Gerar snapshot seguro agora" na tela Seguranca.
+5. No proximo startup, a API restaura o banco automaticamente antes das migrations.
+
+A tela Seguranca mostra aviso se o banco for temporario. O botao de snapshot aparece somente para owner quando snapshot esta configurado.
+
+## Historico institucional x logs da equipe
+
+Eventos de equipe (EQP, sync, portal-eqp) ficam somente nos logs da equipe. O Historico institucional mostra apenas eventos de funcionarios institucionais reais. A separacao e automatica: qualquer evento com identificador `EQP-`, rota `/api/portal-eqp/` ou `/api/equipe/` e classificado como escopo Equipe.
+
+## Dados de homologacao
+
+O banco do Render nao tem dados ficticios automaticamente no primeiro acesso. Para popular as telas:
+
+1. Configure o seed no ACESSO-EQUIPE em `data/homologacao-seed.json` (veja formato abaixo).
+2. Na primeira inicializacao sem snapshot, a API aplica o seed se `HML_SEED_ENABLED=true` (padrao em Staging).
+3. Para exportar dados locais sanitizados: `node scripts/exportar-homologacao-seed.mjs`
+
+O seed nao exporta: senhas, hashes, SecurityStamp, tokens, passkeys, 2FA nem dados reais.
+
 ## Regras de seguranca
 
 - Nao salvar senha em texto puro.
@@ -185,9 +240,13 @@ Em Windows, use o Git Bash explicitamente para validar scripts:
 - Pessoa comum so redefine a propria senha.
 - Convite usado nao volta a disponivel sem acao do owner.
 - Nao usar dados reais da Casa da Mulher.
+- Nao commitar `HML_DB_SNAPSHOT_KEY` nem banco SQLite puro no repositorio.
+- Nao salvar segredo TOTP puro em JSON.
 
 Referencias:
 
+- W3C WebAuthn spec: https://www.w3.org/TR/webauthn-3/
+- Render Persistent Disks: https://render.com/docs/disks
 - GitHub Contents API: https://docs.github.com/en/rest/repos/contents
 - Render Web Services: https://render.com/docs/web-services
 - Render Environment Variables: https://render.com/docs/configure-environment-variables

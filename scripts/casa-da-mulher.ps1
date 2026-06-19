@@ -47,6 +47,7 @@ function Show-Help {
     Write-Host "  .\casa_da_mulher.cmd equipe bootstrap"
     Write-Host "  .\casa_da_mulher.cmd equipe sync"
     Write-Host "  .\casa_da_mulher.cmd equipe reparar-seguranca [apply]"
+    Write-Host "  .\casa_da_mulher.cmd homologacao exportar-seed"
     Write-Host "  .\casa_da_mulher.cmd status"
     Write-Host "  .\casa_da_mulher.cmd update"
     Write-Host ""
@@ -461,6 +462,17 @@ function Invoke-EquipeSecurityRepair {
         -ErrorMessage "A auditoria/reparação de segurança EQP falhou."
 }
 
+function Export-HomologacaoSeed {
+    $node = Get-RequiredCommand -Name "node" -InstallMessage "Node.js não encontrado. Instale Node.js 22 ou superior."
+    $script = Join-Path $ProjectRoot "scripts\exportar-homologacao-seed.mjs"
+    $output = Join-Path $RuntimeDir "homologacao-seed.json"
+    Ensure-RuntimeDir
+    Invoke-Checked -FilePath $node `
+        -Arguments @("--no-warnings", $script, "--database", (Join-Path $ApiDir "casamulher.db"), "--output", $output) `
+        -WorkingDirectory $ProjectRoot `
+        -ErrorMessage "Não foi possível exportar o seed sanitizado de homologação."
+}
+
 function Show-Status {
     Assert-ProjectRoot
     $apiOnline = Test-HttpUrl $StatusApiUrl
@@ -552,6 +564,14 @@ try {
             }
         }
         "status" { Show-Status }
+        "homologacao" {
+            if ($secondary -eq "exportar-seed") {
+                Export-HomologacaoSeed
+            } else {
+                Show-Help
+                exit 1
+            }
+        }
         "update" { Update-System }
         default {
             Show-Help

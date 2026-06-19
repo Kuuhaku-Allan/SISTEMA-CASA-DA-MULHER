@@ -145,7 +145,7 @@
                 bindEvents();
                 updateDateTime();
                 setInterval(updateDateTime, 1000);
-                loadData();
+                await loadData();
                 updateDashboard();
                 displayPatients();
             }
@@ -219,13 +219,31 @@
                 document.getElementById("currentTime").textContent = now.toLocaleTimeString("pt-BR");
             }
 
-            function loadData() {
+            async function loadData() {
                 try {
                     const stored = localStorage.getItem(STORAGE_KEY);
                     patients = stored ? JSON.parse(stored) : [];
 
                     if (!Array.isArray(patients)) {
                         patients = [];
+                    }
+
+                    if (patients.length === 0) {
+                        const response = await CasaMulherAuth.apiFetch("/api/homologacao/recepcao-seed");
+                        if (response.ok) {
+                            const seed = await response.json();
+                            patients = Array.isArray(seed) ? seed.map(function (item) {
+                                return Object.assign({}, item, {
+                                    cpfClean: String(item.cpf || "").replace(/\D/g, ""),
+                                    criadoEm: item.criadoEm || new Date().toISOString(),
+                                    atualizadoEm: item.atualizadoEm || new Date().toISOString()
+                                });
+                            }) : [];
+                            if (patients.length > 0) {
+                                saveToLocal();
+                                showMessage("Dados fictícios de homologação carregados.", "info");
+                            }
+                        }
                     }
                 } catch {
                     patients = [];

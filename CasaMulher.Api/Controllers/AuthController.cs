@@ -44,6 +44,7 @@ public class AuthController : ControllerBase
     private readonly IConfiguration _configuration;
     private readonly IDataProtector _loginDoisFatoresProtector;
     private readonly IFido2 _fido2;
+    private readonly WebAuthnEnvironmentInfo _webAuthn;
 
     public AuthController(
         AppDbContext dbContext,
@@ -57,7 +58,8 @@ public class AuthController : ControllerBase
         ContaEquipeSincronizadaService contaEquipeSincronizadaService,
         IConfiguration configuration,
         IDataProtectionProvider dataProtectionProvider,
-        IFido2 fido2)
+        IFido2 fido2,
+        WebAuthnEnvironmentInfo webAuthn)
     {
         _dbContext = dbContext;
         _userManager = userManager;
@@ -71,6 +73,7 @@ public class AuthController : ControllerBase
         _configuration = configuration;
         _loginDoisFatoresProtector = dataProtectionProvider.CreateProtector("CasaMulher.LoginDoisFatores");
         _fido2 = fido2;
+        _webAuthn = webAuthn;
     }
 
     [AllowAnonymous]
@@ -218,7 +221,8 @@ public class AuthController : ControllerBase
                     "LOGIN_BLOQUEADO",
                     "ApplicationUser",
                     usuario.Id,
-                    $"Tentativa de login bloqueada para usuário inativo {usuario.IdentificadorFuncionario}.");
+                    $"Tentativa de login bloqueada para usuário inativo {usuario.IdentificadorFuncionario}.",
+                    request.Identificador);
 
                 return Unauthorized(new { mensagem = "Usuário desativado. Procure a coordenação." });
             }
@@ -227,7 +231,8 @@ public class AuthController : ControllerBase
                 "LOGIN_FALHA",
                 "ApplicationUser",
                 null,
-                "Tentativa de login falhou para identificador não encontrado ou inválido.");
+                "Tentativa de login falhou para identificador não encontrado ou inválido.",
+                request.Identificador);
 
             return Unauthorized(new { mensagem = "Identificador ou senha inválidos." });
         }
@@ -238,7 +243,8 @@ public class AuthController : ControllerBase
                 "LOGIN_BLOQUEADO",
                 "ApplicationUser",
                 usuario.Id,
-                $"Tentativa de login bloqueada temporariamente para {usuario.IdentificadorFuncionario}.");
+                $"Tentativa de login bloqueada temporariamente para {usuario.IdentificadorFuncionario}.",
+                request.Identificador);
 
             return Unauthorized(new { mensagem = "Acesso temporariamente bloqueado. Aguarde alguns minutos e tente novamente." });
         }
@@ -255,7 +261,8 @@ public class AuthController : ControllerBase
                     "LOGIN_BLOQUEADO",
                     "ApplicationUser",
                     usuario.Id,
-                    $"Login bloqueado temporariamente após tentativas inválidas para {usuario.IdentificadorFuncionario}.");
+                    $"Login bloqueado temporariamente após tentativas inválidas para {usuario.IdentificadorFuncionario}.",
+                    request.Identificador);
 
                 return Unauthorized(new { mensagem = "Acesso temporariamente bloqueado. Aguarde alguns minutos e tente novamente." });
             }
@@ -264,7 +271,8 @@ public class AuthController : ControllerBase
                 "LOGIN_FALHA",
                 "ApplicationUser",
                 usuario.Id,
-                $"Tentativa de login falhou para {usuario.IdentificadorFuncionario}.");
+                $"Tentativa de login falhou para {usuario.IdentificadorFuncionario}.",
+                request.Identificador);
 
             return Unauthorized(new { mensagem = "Identificador ou senha inválidos." });
         }
@@ -807,7 +815,7 @@ public class AuthController : ControllerBase
 
         // Limita a autenticação às chaves da identidade informada.
         var todasCredenciais = await _dbContext.PasskeyCredentials
-            .Where(c => c.UserId == contextoLogin.Usuario.Id)
+            .Where(c => c.UserId == contextoLogin.Usuario.Id && c.RpId == _webAuthn.RpId)
             .Select(c => c.CredentialId)
             .ToListAsync();
 
@@ -815,7 +823,7 @@ public class AuthController : ControllerBase
         {
             return BadRequest(new
             {
-                mensagem = "Este ID não possui chave de acesso cadastrada. Entre com ID e senha e ative uma chave em Segurança."
+                mensagem = $"Este ID não possui chave de acesso para {_webAuthn.RpId}. Entre com ID e senha e registre uma nova passkey neste ambiente."
             });
         }
 
@@ -912,7 +920,7 @@ public class AuthController : ControllerBase
         var rawId = assertionResponse.RawId;
         var credencial = await _dbContext.PasskeyCredentials
             .Include(c => c.User)
-            .SingleOrDefaultAsync(c => c.CredentialId == rawId);
+            .SingleOrDefaultAsync(c => c.CredentialId == rawId && c.RpId == _webAuthn.RpId);
 
         if (credencial is null
             || credencial.User is null
@@ -922,7 +930,8 @@ public class AuthController : ControllerBase
                 "PASSKEY_LOGIN_FALHA",
                 "PasskeyCredential",
                 null,
-                "Tentativa de login por passkey com credencial desconhecida.");
+                "Tentativa de login por passkey com credencial desconhecida.",
+                challenge.ContextoIdentificador);
 
             return Unauthorized(new { mensagem = "Chave de acesso não reconhecida." });
         }

@@ -156,6 +156,8 @@ O back-end filtra contas, convites e logs de equipe nestas areas:
 
 Eventos de equipe ficam em logs proprios, acessados pela Area da Equipe e pelo `equipe-events.ndjson` privado.
 
+A classificacao de escopo e automatica: qualquer evento com identificador `EQP-`, rota `/api/portal-eqp/` ou `/api/equipe/`, ou perfil `equipe` e classificado como `Escopo = Equipe` e nunca aparece no Historico institucional. Falhas de login com identificador EQP tambem sao classificadas como Equipe antes mesmo de existir usuario autenticado.
+
 ## Seguranca
 
 - Nao use senha pessoal sua ou de outro servico.
