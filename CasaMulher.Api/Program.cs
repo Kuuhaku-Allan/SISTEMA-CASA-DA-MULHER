@@ -270,6 +270,11 @@ if ((builder.Environment.IsDevelopment() || builder.Environment.IsStaging())
     builder.Services.AddHostedService<EquipeDbAutoSyncHostedService>();
 }
 
+if (builder.Environment.IsStaging() && builder.Configuration.GetValue("HML_DB_SNAPSHOT_ENABLED", false))
+{
+    builder.Services.AddHostedService<HmlDbSnapshotAutoService>();
+}
+
 // WebAuthn / Passkey — RP ID e origins são específicos por ambiente/domínio.
 var webAuthnInfo = ResolverWebAuthn(builder.Configuration, builder.Environment);
 

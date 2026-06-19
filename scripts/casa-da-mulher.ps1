@@ -1,4 +1,4 @@
-﻿param(
+param(
     [Parameter(ValueFromRemainingArguments = $true)]
     [string[]]$CommandArgs
 )
@@ -48,6 +48,11 @@ function Show-Help {
     Write-Host "  .\casa_da_mulher.cmd equipe sync"
     Write-Host "  .\casa_da_mulher.cmd equipe reparar-seguranca [apply]"
     Write-Host "  .\casa_da_mulher.cmd homologacao exportar-seed"
+    Write-Host "  .\casa_da_mulher.cmd hml status"
+    Write-Host "  .\casa_da_mulher.cmd hml pull"
+    Write-Host "  .\casa_da_mulher.cmd hml push"
+    Write-Host "  .\casa_da_mulher.cmd hml backup-local"
+    Write-Host "  .\casa_da_mulher.cmd hml init-key"
     Write-Host "  .\casa_da_mulher.cmd status"
     Write-Host "  .\casa_da_mulher.cmd update"
     Write-Host ""
@@ -473,6 +478,23 @@ function Export-HomologacaoSeed {
         -ErrorMessage "Não foi possível exportar o seed sanitizado de homologação."
 }
 
+function Invoke-HmlGitOps {
+    param([string]$Action)
+
+    $node = Get-RequiredCommand -Name "node" -InstallMessage "Node.js não encontrado. Instale Node.js 22 ou superior."
+    $script = Join-Path $ProjectRoot "scripts\banco-hml.mjs"
+
+    if ([string]::IsNullOrWhiteSpace($Action)) {
+        Show-Help
+        exit 1
+    }
+
+    Invoke-Checked -FilePath $node `
+        -Arguments @("--no-warnings", $script, $Action) `
+        -WorkingDirectory $ProjectRoot `
+        -ErrorMessage "Falha ao executar o comando hml $Action."
+}
+
 function Show-Status {
     Assert-ProjectRoot
     $apiOnline = Test-HttpUrl $StatusApiUrl
@@ -571,6 +593,9 @@ try {
                 Show-Help
                 exit 1
             }
+        }
+        "hml" {
+            Invoke-HmlGitOps -Action $secondary
         }
         "update" { Update-System }
         default {

@@ -53,18 +53,42 @@ public sealed class HmlDbSnapshotService
     public HmlDbSnapshotStatus GetStatus()
     {
         var message = Configured
-            ? "Persistência manual de homologação configurada. Gere um snapshot após alterações importantes."
-            : "Banco temporário: 2FA e passkeys podem ser perdidos em reinicializações até o snapshot ser configurado.";
+            ? "Persistência de homologação ativa. Alterações de segurança serão preservadas pelo snapshot criptografado."
+            : "Este ambiente usa banco temporário. Configurações de 2FA e passkeys podem ser perdidas após reinicializações.";
         return new(_environment.IsStaging(), EnabledRequested, Configured, _github.RepositoryLabel, SnapshotPath, message);
     }
+
+    public long LoadedGeneration { get; private set; } = 0;
 
     public async Task<bool> TryRestoreAtStartupAsync(CancellationToken cancellationToken = default)
     {
         if (!Configured || HasValidLocalDatabase()) return false;
-        var remote = await _github.ReadAsync(SnapshotPath, cancellationToken);
+        
+        var remoteManifestFile = await _github.ReadAsync(ManifestPath, cancellationToken);
+        if (remoteManifestFile is null)
+        {
+            _logger.LogWarning("Manifesto de homologação não existe em {Path}; banco novo será criado.", ManifestPath);
+            return false;
+        }
+
+        var manifest = JsonSerializer.Deserialize<HmlDbSnapshotManifest>(remoteManifestFile.Content, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+        if (manifest is null || string.IsNullOrWhiteSpace(manifest.Current.File))
+        {
+            _logger.LogWarning("Manifesto inválido.");
+            return false;
+        }
+
+        var remote = await _github.ReadAsync($"data/render-hml-db/{manifest.Current.File}", cancellationToken);
         if (remote is null)
         {
-            _logger.LogWarning("Snapshot de homologação não existe em {Path}; banco novo será criado.", SnapshotPath);
+            _logger.LogWarning("Arquivo de snapshot {File} não encontrado.", manifest.Current.File);
+            return false;
+        }
+
+        var encryptedHash = Convert.ToHexString(SHA256.HashData(remote.Content)).ToLowerInvariant();
+        if (encryptedHash != manifest.Current.EncryptedHash)
+        {
+            _logger.LogError("Hash do snapshot criptografado não confere. Cancelando restore.");
             return false;
         }
 
@@ -74,6 +98,13 @@ public sealed class HmlDbSnapshotService
             var database = HmlDbSnapshotCrypto.DecryptDecompressed(remote.Content, key);
             try
             {
+                var dbHash = Convert.ToHexString(SHA256.HashData(database)).ToLowerInvariant();
+                if (dbHash != manifest.Current.DatabaseHash)
+                {
+                    _logger.LogError("Hash do SQLite descriptografado não confere. Cancelando restore.");
+                    return false;
+                }
+
                 if (!database.AsSpan().StartsWith(SqliteHeader))
                 {
                     throw new InvalidDataException("Snapshot descriptografado não é um banco SQLite.");
@@ -84,7 +115,9 @@ public sealed class HmlDbSnapshotService
                 var tempPath = _storage.DatabasePath + ".restore";
                 await File.WriteAllBytesAsync(tempPath, database, cancellationToken);
                 File.Move(tempPath, _storage.DatabasePath, overwrite: true);
-                _logger.LogInformation("Snapshot de homologação restaurado de {Path}.", SnapshotPath);
+                
+                LoadedGeneration = manifest.Current.Generation;
+                _logger.LogInformation("Snapshot de homologação restaurado (Geração {Gen}).", LoadedGeneration);
                 return true;
             }
             finally
@@ -103,6 +136,19 @@ public sealed class HmlDbSnapshotService
         if (!Configured) throw new InvalidOperationException(GetStatus().Message);
         if (!HasValidLocalDatabase()) throw new InvalidOperationException("Banco SQLite de homologação ainda não existe.");
 
+        var remoteManifestFile = await _github.ReadAsync(ManifestPath, cancellationToken);
+        HmlDbSnapshotManifest? remoteManifest = null;
+        if (remoteManifestFile is not null)
+        {
+            remoteManifest = JsonSerializer.Deserialize<HmlDbSnapshotManifest>(remoteManifestFile.Content, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+        }
+
+        long remoteGen = remoteManifest?.Current.Generation ?? 0;
+        if (remoteGen > LoadedGeneration)
+        {
+            throw new InvalidOperationException($"Conflito: o remoto está na geração {remoteGen}, mas o ambiente atual está baseado na {LoadedGeneration}. Faça pull/redeploy antes de enviar.");
+        }
+
         var tempPath = Path.Combine(Path.GetTempPath(), $"casa-mulher-snapshot-{Guid.NewGuid():N}.db");
         try
         {
@@ -115,21 +161,53 @@ public sealed class HmlDbSnapshotService
             }
 
             var database = await File.ReadAllBytesAsync(tempPath, cancellationToken);
+            var dbHash = Convert.ToHexString(SHA256.HashData(database)).ToLowerInvariant();
+            
+            // Se o hash for igual ao remoto, não precisa fazer upload (ignora silenciosamente ou lança exceção)
+            if (remoteManifest != null && remoteManifest.Current.DatabaseHash == dbHash)
+            {
+                _logger.LogInformation("Banco de dados não foi modificado. Upload ignorado.");
+                return;
+            }
+
             var key = HmlDbSnapshotCrypto.ParseKey(_configuration["HML_DB_SNAPSHOT_KEY"]!);
             try
             {
                 var encrypted = HmlDbSnapshotCrypto.EncryptCompressed(database, key);
-                await _github.WriteAsync(SnapshotPath, encrypted, "Atualiza snapshot de homologação Render", cancellationToken);
-                var manifest = JsonSerializer.SerializeToUtf8Bytes(new
+                var encHash = Convert.ToHexString(SHA256.HashData(encrypted)).ToLowerInvariant();
+                var snapshotId = Guid.NewGuid().ToString("N");
+                var historyFile = $"history/{snapshotId}.sqlite.gz.enc";
+
+                // 1. Upload do history
+                await _github.WriteAsync($"data/render-hml-db/{historyFile}", encrypted, $"Salva snapshot histórico de homologação (Gen {LoadedGeneration + 1})", cancellationToken);
+                
+                // 2. Upload do latest
+                await _github.WriteAsync(SnapshotPath, encrypted, $"Atualiza latest.sqlite.gz.enc", cancellationToken);
+
+                // 3. Atualiza Manifest
+                var newManifest = new HmlDbSnapshotManifest
                 {
-                    schemaVersion = 1,
-                    createdAt = DateTimeOffset.UtcNow,
-                    encryptedSha256 = Convert.ToHexString(SHA256.HashData(encrypted)).ToLowerInvariant(),
-                    databaseBytes = database.Length,
-                    encryption = "AES-256-GCM",
-                    compression = "gzip"
-                }, new JsonSerializerOptions { WriteIndented = true });
-                await _github.WriteAsync(ManifestPath, manifest, "Atualiza manifesto do snapshot de homologação", cancellationToken);
+                    SchemaVersion = 1,
+                    Current = new HmlDbSnapshotManifestCurrent
+                    {
+                        SnapshotId = snapshotId,
+                        CreatedAt = DateTimeOffset.UtcNow,
+                        Source = "render",
+                        SourceMachine = Environment.MachineName,
+                        AppCommit = Environment.GetEnvironmentVariable("RENDER_GIT_COMMIT") ?? "",
+                        DatabaseHash = dbHash,
+                        EncryptedHash = encHash,
+                        Generation = LoadedGeneration + 1,
+                        BaseGeneration = LoadedGeneration,
+                        File = historyFile,
+                        LatestFile = "latest.sqlite.gz.enc"
+                    }
+                };
+
+                var manifestBytes = JsonSerializer.SerializeToUtf8Bytes(newManifest, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = true });
+                await _github.WriteAsync(ManifestPath, manifestBytes, $"Atualiza manifesto para geração {newManifest.Current.Generation}", cancellationToken);
+                
+                LoadedGeneration = newManifest.Current.Generation;
             }
             finally
             {
@@ -151,4 +229,25 @@ public sealed class HmlDbSnapshotService
         Span<byte> header = stackalloc byte[SqliteHeader.Length];
         return stream.Read(header) == header.Length && header.SequenceEqual(SqliteHeader);
     }
+}
+
+public sealed class HmlDbSnapshotManifest
+{
+    public int SchemaVersion { get; set; } = 1;
+    public HmlDbSnapshotManifestCurrent Current { get; set; } = new();
+}
+
+public sealed class HmlDbSnapshotManifestCurrent
+{
+    public string SnapshotId { get; set; } = string.Empty;
+    public DateTimeOffset CreatedAt { get; set; }
+    public string Source { get; set; } = string.Empty;
+    public string SourceMachine { get; set; } = string.Empty;
+    public string AppCommit { get; set; } = string.Empty;
+    public string DatabaseHash { get; set; } = string.Empty;
+    public string EncryptedHash { get; set; } = string.Empty;
+    public long Generation { get; set; }
+    public long BaseGeneration { get; set; }
+    public string File { get; set; } = string.Empty;
+    public string LatestFile { get; set; } = string.Empty;
 }
