@@ -45,8 +45,19 @@ public sealed class HomologacaoController : ControllerBase
     public async Task<IActionResult> Snapshot(CancellationToken cancellationToken)
     {
         if (!OwnerAtual()) return Forbid();
-        await _snapshot.CreateAndUploadAsync(cancellationToken);
-        return Ok(new { mensagem = "Snapshot criptografado de homologação atualizado." });
+        try
+        {
+            await _snapshot.CreateAndUploadAsync(cancellationToken);
+            return Ok(new { mensagem = "Snapshot criptografado de homologação atualizado." });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { mensagem = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { mensagem = $"Erro ao gerar snapshot: {ex.Message}" });
+        }
     }
 
     [HttpGet("recepcao-seed")]

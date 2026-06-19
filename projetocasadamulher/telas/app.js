@@ -1,4 +1,4 @@
-﻿const API_BASE_URL = window.API_BASE_URL || "http://localhost:5001";
+const API_BASE_URL = window.API_BASE_URL || "http://localhost:5001";
 const PERFIS_LABEL = {
     adm: "Coordenação / ADM",
     recepcao: "Recepção",
@@ -2280,12 +2280,15 @@ async function setupSeguranca() {
                 persistenciaHomologacao.classList.remove("hidden");
                 if (status.podeGerenciar && status.snapshotConfigurado && btnSnapshotHomologacao) {
                     btnSnapshotHomologacao.classList.remove("hidden");
+                    const hrSeparator = document.getElementById("hrSnapshotSeparator");
+                    if (hrSeparator) hrSeparator.classList.remove("hidden");
                 }
             }
         }
     } catch {
         // O restante da tela de segurança continua disponível.
     }
+
 
     btnSnapshotHomologacao?.addEventListener("click", async function () {
         btnSnapshotHomologacao.disabled = true;
