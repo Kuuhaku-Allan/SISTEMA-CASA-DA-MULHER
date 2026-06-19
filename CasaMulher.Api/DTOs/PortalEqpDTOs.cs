@@ -5,6 +5,10 @@ namespace CasaMulher.Api.DTOs;
 
 public class PortalEqpStatusResponse
 {
+    public string Environment { get; set; } = string.Empty;
+
+    public bool GitHubGateAtivo { get; set; }
+
     public bool OAuthConfigurado { get; set; }
 
     public bool EscritaConfigurada { get; set; }

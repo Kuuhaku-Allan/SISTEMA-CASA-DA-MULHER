@@ -144,7 +144,8 @@ public class EquipeDbSyncService
             DoisFatoresObrigatorio = false,
             PasswordHash = membro.PasswordHash,
             SecurityStamp = string.IsNullOrWhiteSpace(membro.SecurityStamp) ? Guid.NewGuid().ToString("N") : membro.SecurityStamp,
-            ConcurrencyStamp = string.IsNullOrWhiteSpace(membro.ConcurrencyStamp) ? Guid.NewGuid().ToString("N") : membro.ConcurrencyStamp,
+            EquipeDbPasswordUpdatedAt = membro.SenhaAtualizadaEm ?? DateTime.UtcNow,
+            EquipeDbPasswordVersion = membro.PasswordVersion ?? 1,
             CriadoEm = membro.AtivadoEm == default ? DateTime.UtcNow : membro.AtivadoEm
         };
     }
@@ -153,9 +154,36 @@ public class EquipeDbSyncService
     {
         usuario.NomeCompleto = membro.Nome.Trim();
         usuario.Ativo = true;
-        usuario.PasswordHash = membro.PasswordHash;
-        usuario.SecurityStamp = string.IsNullOrWhiteSpace(membro.SecurityStamp) ? Guid.NewGuid().ToString("N") : membro.SecurityStamp;
-        usuario.ConcurrencyStamp = string.IsNullOrWhiteSpace(membro.ConcurrencyStamp) ? Guid.NewGuid().ToString("N") : membro.ConcurrencyStamp;
+
+        var versaoRemota = membro.PasswordVersion ?? 0;
+        var senhaRemotaAtualizadaEm = membro.SenhaAtualizadaEm;
+        var possuiVersaoRemota = versaoRemota > 0 || senhaRemotaAtualizadaEm.HasValue;
+        var deveAtualizarSenha = possuiVersaoRemota
+            && (
+                versaoRemota > usuario.EquipeDbPasswordVersion
+                || (
+                    senhaRemotaAtualizadaEm.HasValue
+                    && (
+                        !usuario.EquipeDbPasswordUpdatedAt.HasValue
+                        || senhaRemotaAtualizadaEm.Value > usuario.EquipeDbPasswordUpdatedAt.Value
+                    )
+                )
+            );
+
+        if (deveAtualizarSenha && !string.Equals(usuario.PasswordHash, membro.PasswordHash, StringComparison.Ordinal))
+        {
+            usuario.PasswordHash = membro.PasswordHash;
+            usuario.SecurityStamp = string.IsNullOrWhiteSpace(membro.SecurityStamp)
+                ? Guid.NewGuid().ToString("N")
+                : membro.SecurityStamp;
+            usuario.EquipeDbPasswordUpdatedAt = senhaRemotaAtualizadaEm ?? DateTime.UtcNow;
+            usuario.EquipeDbPasswordVersion = Math.Max(versaoRemota, usuario.EquipeDbPasswordVersion + 1);
+        }
+        else if (possuiVersaoRemota && string.Equals(usuario.PasswordHash, membro.PasswordHash, StringComparison.Ordinal))
+        {
+            usuario.EquipeDbPasswordUpdatedAt = senhaRemotaAtualizadaEm ?? usuario.EquipeDbPasswordUpdatedAt;
+            usuario.EquipeDbPasswordVersion = Math.Max(usuario.EquipeDbPasswordVersion, versaoRemota);
+        }
 
         usuario.Perfil = usuario.IdentificadorFuncionario.StartsWith("ADM-", StringComparison.OrdinalIgnoreCase)
             ? PerfisAcesso.Adm

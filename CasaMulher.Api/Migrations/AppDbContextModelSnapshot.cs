@@ -122,6 +122,10 @@ namespace CasaMulher.Api.Migrations
                         .HasDatabaseName("UserNameIndex");
 
                     b.ToTable("AspNetUsers", (string)null);
+                    b.Property<DateTime?>("EquipeDbPasswordUpdatedAt")
+                        .HasColumnType("TEXT");
+                    b.Property<int>("EquipeDbPasswordVersion")
+                        .HasColumnType("INTEGER");
                 });
 
             modelBuilder.Entity("CasaMulher.Api.Models.AuditoriaEvento", b =>

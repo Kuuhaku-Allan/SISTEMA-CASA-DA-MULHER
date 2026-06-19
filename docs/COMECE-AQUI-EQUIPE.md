@@ -45,6 +45,10 @@ Casa da Mulher: sincronizar equipe
 
 Depois da sincronização, o login normal do sistema aceita tanto o EQP quanto o ADM pareado com a senha criada no portal.
 
+Para contas sincronizadas, a senha e redefinida somente no portal EQP. As telas normais de troca ou recuperacao do sistema ficam bloqueadas para evitar divergencia com o banco privado da equipe.
+
+No ambiente central do Render, acesse `/equipe.html`, entre primeiro com GitHub e depois use o login normal do sistema com EQP ou ADM. O GitHub Gate apenas bloqueia pessoas externas; ele nao substitui o login do sistema.
+
 Os IDs abrem contextos diferentes, mesmo quando pertencem à mesma pessoa:
 
 - entrar com `EQP-...` abre o Painel da Equipe;

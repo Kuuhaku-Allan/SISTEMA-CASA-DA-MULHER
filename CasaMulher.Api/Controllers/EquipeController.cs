@@ -29,6 +29,7 @@ public class EquipeController : ControllerBase
     private readonly IAuditoriaService _auditoriaService;
     private readonly IEquipeGithubService _githubService;
     private readonly IMasterUserService _masterUserService;
+    private readonly ContaEquipeSincronizadaService _contaEquipeSincronizadaService;
     private readonly IWebHostEnvironment _environment;
 
     public EquipeController(
@@ -40,6 +41,7 @@ public class EquipeController : ControllerBase
         IAuditoriaService auditoriaService,
         IEquipeGithubService githubService,
         IMasterUserService masterUserService,
+        ContaEquipeSincronizadaService contaEquipeSincronizadaService,
         IWebHostEnvironment environment)
     {
         _dbContext = dbContext;
@@ -50,6 +52,7 @@ public class EquipeController : ControllerBase
         _auditoriaService = auditoriaService;
         _githubService = githubService;
         _masterUserService = masterUserService;
+        _contaEquipeSincronizadaService = contaEquipeSincronizadaService;
         _environment = environment;
     }
 
@@ -173,6 +176,11 @@ public class EquipeController : ControllerBase
             return NotFound(new { mensagem = "Membro da equipe não encontrado." });
         }
 
+        if (await _contaEquipeSincronizadaService.EhSincronizadaAsync(membro.UserId))
+        {
+            return Conflict(new { mensagem = ContaEquipeSincronizadaService.MensagemAlteracaoSenha });
+        }
+
         if (_masterUserService.EhEquipeOwnerPrincipal(membro.CodigoEquipe) && !await UsuarioAtualEhSuperAdminInstitucionalAsync())
         {
             return BadRequest(new { mensagem = "Somente o super admin institucional pode gerar uma redefinição para o owner principal." });
@@ -230,6 +238,11 @@ public class EquipeController : ControllerBase
         if (usuario is null || !usuario.Ativo)
         {
             return BadRequest(new { mensagem = "Conta da equipe não encontrada ou inativa." });
+        }
+
+        if (await _contaEquipeSincronizadaService.EhSincronizadaAsync(usuario.Id))
+        {
+            return Conflict(new { mensagem = ContaEquipeSincronizadaService.MensagemAlteracaoSenha });
         }
 
         var token = await _userManager.GeneratePasswordResetTokenAsync(usuario);

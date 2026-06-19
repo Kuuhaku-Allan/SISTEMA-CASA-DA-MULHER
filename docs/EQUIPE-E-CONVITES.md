@@ -69,7 +69,8 @@ A sincronização:
 - le `data/equipe-db.json` do `ACESSO-EQUIPE`;
 - cria/atualiza usuarios ASP.NET Identity no banco local;
 - vincula EQP e ADM ao mesmo usuario;
-- importa `passwordHash`, `securityStamp` e `concurrencyStamp`;
+- importa `passwordHash` e `securityStamp` com versao/data da senha;
+- mantem `concurrencyStamp` somente no banco Identity local;
 - permite login com EQP ou ADM pareado.
 
 ## Redefinir a propria senha
@@ -85,8 +86,16 @@ Regras:
 
 - usuario comum so redefine a propria senha;
 - owner nao precisa enviar codigo por e-mail;
+- contas sincronizadas nao alteram senha pelas telas normais do sistema;
+- a redefinicao deve ser feita no portal EQP, que atualiza a versao da senha antes da proxima sincronizacao;
 - senha nunca e salva em texto puro;
 - o JSON privado guarda apenas hash compativel com ASP.NET Identity.
+
+Validacao automatizada em banco SQLite novo:
+
+```powershell
+node scripts/validar-p1-final.js
+```
 
 ## Owner e convites
 

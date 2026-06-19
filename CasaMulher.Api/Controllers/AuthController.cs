@@ -40,6 +40,7 @@ public class AuthController : ControllerBase
     private readonly IRedefinicaoSenhaEmailService _redefinicaoSenhaEmailService;
     private readonly IEmailRecuperacaoEmailService _emailRecuperacaoEmailService;
     private readonly IRedefinicaoSenhaThrottleService _redefinicaoSenhaThrottleService;
+    private readonly ContaEquipeSincronizadaService _contaEquipeSincronizadaService;
     private readonly IConfiguration _configuration;
     private readonly IDataProtector _loginDoisFatoresProtector;
     private readonly IFido2 _fido2;
@@ -53,6 +54,7 @@ public class AuthController : ControllerBase
         IRedefinicaoSenhaEmailService redefinicaoSenhaEmailService,
         IEmailRecuperacaoEmailService emailRecuperacaoEmailService,
         IRedefinicaoSenhaThrottleService redefinicaoSenhaThrottleService,
+        ContaEquipeSincronizadaService contaEquipeSincronizadaService,
         IConfiguration configuration,
         IDataProtectionProvider dataProtectionProvider,
         IFido2 fido2)
@@ -65,6 +67,7 @@ public class AuthController : ControllerBase
         _redefinicaoSenhaEmailService = redefinicaoSenhaEmailService;
         _emailRecuperacaoEmailService = emailRecuperacaoEmailService;
         _redefinicaoSenhaThrottleService = redefinicaoSenhaThrottleService;
+        _contaEquipeSincronizadaService = contaEquipeSincronizadaService;
         _configuration = configuration;
         _loginDoisFatoresProtector = dataProtectionProvider.CreateProtector("CasaMulher.LoginDoisFatores");
         _fido2 = fido2;
@@ -313,6 +316,12 @@ public class AuthController : ControllerBase
             return BadRequest(new { mensagem = "Solicitação de redefinição inválida." });
         }
 
+        if (await _contaEquipeSincronizadaService.EhSincronizadaAsync(usuario.Id))
+        {
+            await RegistrarAlteracaoSenhaEquipeBloqueadaAsync(usuario, "redefinição por e-mail");
+            return Conflict(new { mensagem = ContaEquipeSincronizadaService.MensagemAlteracaoSenha });
+        }
+
         var result = await _userManager.ResetPasswordAsync(usuario, request.Token, request.NovaSenha);
 
         if (!result.Succeeded)
@@ -362,6 +371,12 @@ public class AuthController : ControllerBase
         if (usuario is null || !usuario.Ativo || string.IsNullOrWhiteSpace(usuario.Email))
         {
             return Ok(new { mensagem = mensagemGenerica });
+        }
+
+        if (await _contaEquipeSincronizadaService.EhSincronizadaAsync(usuario.Id))
+        {
+            await RegistrarAlteracaoSenhaEquipeBloqueadaAsync(usuario, "solicitação de redefinição por e-mail");
+            return Ok(new { mensagem = ContaEquipeSincronizadaService.MensagemAlteracaoSenha });
         }
 
         if (!_redefinicaoSenhaThrottleService.PermitirSolicitacao(
@@ -731,6 +746,12 @@ public class AuthController : ControllerBase
         if (usuario is null)
         {
             return Unauthorized();
+        }
+
+        if (await _contaEquipeSincronizadaService.EhSincronizadaAsync(usuario.Id))
+        {
+            await RegistrarAlteracaoSenhaEquipeBloqueadaAsync(usuario, "troca de senha autenticada");
+            return Conflict(new { mensagem = ContaEquipeSincronizadaService.MensagemAlteracaoSenha });
         }
 
         if (request.NovaSenha != request.ConfirmarNovaSenha)
@@ -1170,6 +1191,15 @@ public class AuthController : ControllerBase
             "FuncionarioConvite",
             null,
             descricao);
+    }
+
+    private Task RegistrarAlteracaoSenhaEquipeBloqueadaAsync(ApplicationUser usuario, string fluxo)
+    {
+        return _auditoriaService.RegistrarAsync(
+            "EQUIPE_SENHA_ALTERACAO_BLOQUEADA",
+            "ApplicationUser",
+            usuario.Id,
+            $"Bloqueou {fluxo} para a conta sincronizada {usuario.IdentificadorFuncionario}; use o portal EQP.");
     }
 
     private async Task<bool> EmailRecuperacaoEstaEmUsoPorOutroUsuarioAsync(string usuarioId, string emailRecuperacao)

@@ -75,7 +75,20 @@ public class EquipeDbMembro
 
     public string SecurityStamp { get; set; } = string.Empty;
 
+    // Mantido apenas para ler documentos antigos. ConcurrencyStamp pertence ao banco Identity local.
     public string ConcurrencyStamp { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Data/hora da última atualização da senha no portal EQP.
+    /// Usada para evitar sobrescrever senha local mais nova com hash antigo do JSON.
+    /// </summary>
+    public DateTime? SenhaAtualizadaEm { get; set; }
+
+    /// <summary>
+    /// Versão da senha no portal EQP. Incrementada a cada alteração de senha no portal.
+    /// Usada para detectar atualizações no JSON.
+    /// </summary>
+    public int? PasswordVersion { get; set; }
 
     public DateTime AtivadoEm { get; set; } = DateTime.UtcNow;
 

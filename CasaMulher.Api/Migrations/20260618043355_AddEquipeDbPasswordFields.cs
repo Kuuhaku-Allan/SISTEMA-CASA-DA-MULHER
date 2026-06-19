@@ -9,46 +9,35 @@ namespace CasaMulher.Api.Migrations
 {
     /// <inheritdoc />
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260604090000_AddEmailRecuperacao")]
-    public partial class AddEmailRecuperacao : Migration
+    [Migration("20260618043355_AddEquipeDbPasswordFields")]
+    public partial class AddEquipeDbPasswordFields : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<string>(
-                name: "EmailRecuperacao",
+            migrationBuilder.AddColumn<DateTime>(
+                name: "EquipeDbPasswordUpdatedAt",
                 table: "AspNetUsers",
                 type: "TEXT",
-                maxLength: 256,
                 nullable: true);
 
-            migrationBuilder.AddColumn<bool>(
-                name: "EmailRecuperacaoConfirmado",
+            migrationBuilder.AddColumn<int>(
+                name: "EquipeDbPasswordVersion",
                 table: "AspNetUsers",
                 type: "INTEGER",
                 nullable: false,
-                defaultValue: false);
-
-            migrationBuilder.AddColumn<DateTime>(
-                name: "EmailRecuperacaoConfirmadoEm",
-                table: "AspNetUsers",
-                type: "TEXT",
-                nullable: true);
+                defaultValue: 0);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(
-                name: "EmailRecuperacao",
+                name: "EquipeDbPasswordUpdatedAt",
                 table: "AspNetUsers");
 
             migrationBuilder.DropColumn(
-                name: "EmailRecuperacaoConfirmado",
-                table: "AspNetUsers");
-
-            migrationBuilder.DropColumn(
-                name: "EmailRecuperacaoConfirmadoEm",
+                name: "EquipeDbPasswordVersion",
                 table: "AspNetUsers");
         }
     }

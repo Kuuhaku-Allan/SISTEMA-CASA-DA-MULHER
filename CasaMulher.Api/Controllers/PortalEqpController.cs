@@ -6,6 +6,7 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using CasaMulher.Api.DTOs;
+using CasaMulher.Api.Middleware;
 using CasaMulher.Api.Models;
 using CasaMulher.Api.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -20,7 +21,7 @@ namespace CasaMulher.Api.Controllers;
 [Route("api/portal-eqp")]
 public class PortalEqpController : ControllerBase
 {
-    private const string AuthCookieName = "CasaMulher.PortalEqp.Auth";
+    private const string AuthCookieName = RenderAccessGateMiddleware.AuthCookieName;
     private const string StateCookieName = "CasaMulher.PortalEqp.State";
     private static readonly TimeSpan AuthCookieLifetime = TimeSpan.FromHours(12);
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
@@ -31,6 +32,8 @@ public class PortalEqpController : ControllerBase
     private readonly IConfiguration _configuration;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IDataProtector _protector;
+    private readonly GitHubPortalSessionStore _sessionStore;
+    private readonly IWebHostEnvironment _environment;
     private readonly ILogger<PortalEqpController> _logger;
 
     public PortalEqpController(
@@ -40,6 +43,8 @@ public class PortalEqpController : ControllerBase
         IConfiguration configuration,
         IHttpClientFactory httpClientFactory,
         IDataProtectionProvider dataProtectionProvider,
+        GitHubPortalSessionStore sessionStore,
+        IWebHostEnvironment environment,
         ILogger<PortalEqpController> logger)
     {
         _equipeDbService = equipeDbService;
@@ -47,7 +52,9 @@ public class PortalEqpController : ControllerBase
         _passwordHasher = passwordHasher;
         _configuration = configuration;
         _httpClientFactory = httpClientFactory;
-        _protector = dataProtectionProvider.CreateProtector("CasaMulher.PortalEqp.GitHub");
+        _protector = dataProtectionProvider.CreateProtector(RenderAccessGateMiddleware.ProtectorPurpose);
+        _sessionStore = sessionStore;
+        _environment = environment;
         _logger = logger;
     }
 
@@ -58,6 +65,8 @@ public class PortalEqpController : ControllerBase
         var oauthConfigurado = OAuthConfigurado();
         return Ok(new PortalEqpStatusResponse
         {
+            Environment = _environment.EnvironmentName,
+            GitHubGateAtivo = GitHubGateAtivo(),
             OAuthConfigurado = oauthConfigurado,
             EscritaConfigurada = _equipeDbService.EscritaConfigurada,
             Organization = ObterConfig("GitHub:Org", "GitHub:Organization", "GITHUB_ORG") ?? "Sistema-Casa-da-Mulher",
@@ -126,15 +135,11 @@ public class PortalEqpController : ControllerBase
             return Redirect("/equipe-ativar.html?erro=github_usuario_invalido");
         }
 
-        var ticket = new GitHubPortalTicket(
-            githubUser.Id.ToString(),
-            githubUser.Login,
-            accessToken,
-            DateTimeOffset.UtcNow);
+        var sessionId = _sessionStore.Create(githubUser.Id.ToString(), githubUser.Login, accessToken);
 
         Response.Cookies.Append(
             AuthCookieName,
-            _protector.Protect(JsonSerializer.Serialize(ticket, JsonOptions)),
+            _protector.Protect(sessionId),
             CriarCookieOptions(httpOnly: true, AuthCookieLifetime));
 
         return Redirect("/equipe-ativar.html");
@@ -144,6 +149,13 @@ public class PortalEqpController : ControllerBase
     [HttpPost("github/logout")]
     public IActionResult GitHubLogout()
     {
+        var sessionId = ObterSessionId();
+
+        if (!string.IsNullOrWhiteSpace(sessionId))
+        {
+            _sessionStore.Remove(sessionId);
+        }
+
         Response.Cookies.Delete(AuthCookieName);
         return Ok(new { mensagem = "Sessão GitHub encerrada." });
     }
@@ -270,7 +282,8 @@ public class PortalEqpController : ControllerBase
                 Status = "ativo",
                 PasswordHash = _passwordHasher.HashPassword(usuarioHash, request.Senha),
                 SecurityStamp = Guid.NewGuid().ToString("N"),
-                ConcurrencyStamp = Guid.NewGuid().ToString("N"),
+                SenhaAtualizadaEm = agora,
+                PasswordVersion = 1,
                 AtivadoEm = agora,
                 AtualizadoEm = agora
             };
@@ -347,7 +360,8 @@ public class PortalEqpController : ControllerBase
             var agora = DateTime.UtcNow;
             membro.PasswordHash = _passwordHasher.HashPassword(CriarUsuarioParaHash(membro.Nome, membro.EqpId), request.NovaSenha);
             membro.SecurityStamp = Guid.NewGuid().ToString("N");
-            membro.ConcurrencyStamp = Guid.NewGuid().ToString("N");
+            membro.SenhaAtualizadaEm = agora;
+            membro.PasswordVersion = Math.Max(membro.PasswordVersion ?? 0, 0) + 1;
             membro.AtualizadoEm = agora;
 
             try
@@ -696,6 +710,24 @@ public class PortalEqpController : ControllerBase
 
     private GitHubPortalTicket? ObterTicket()
     {
+        var sessionId = ObterSessionId();
+
+        if (string.IsNullOrWhiteSpace(sessionId)
+            || !_sessionStore.TryGet(sessionId, out var session)
+            || session is null)
+        {
+            return null;
+        }
+
+        return new GitHubPortalTicket(
+            session.GitHubId,
+            session.GitHubUsername,
+            session.AccessToken,
+            session.EmitidoEm);
+    }
+
+    private string? ObterSessionId()
+    {
         var cookie = Request.Cookies[AuthCookieName];
 
         if (string.IsNullOrWhiteSpace(cookie))
@@ -705,14 +737,7 @@ public class PortalEqpController : ControllerBase
 
         try
         {
-            var ticket = JsonSerializer.Deserialize<GitHubPortalTicket>(_protector.Unprotect(cookie), JsonOptions);
-
-            if (ticket is null || DateTimeOffset.UtcNow - ticket.EmitidoEm > AuthCookieLifetime)
-            {
-                return null;
-            }
-
-            return ticket;
+            return _protector.Unprotect(cookie);
         }
         catch
         {
@@ -765,6 +790,17 @@ public class PortalEqpController : ControllerBase
     {
         return !string.IsNullOrWhiteSpace(ObterClientId())
             && !string.IsNullOrWhiteSpace(ObterClientSecret());
+    }
+
+    private bool GitHubGateAtivo()
+    {
+        if (bool.TryParse(_configuration["ENABLE_RENDER_GITHUB_GATE"], out var explicitValue))
+        {
+            return explicitValue;
+        }
+
+        return _configuration.GetValue<bool?>("RenderAccessGate:Enabled")
+            ?? _environment.IsStaging();
     }
 
     private string? ObterConfig(params string[] keys)

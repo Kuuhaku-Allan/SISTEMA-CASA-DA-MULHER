@@ -1,15 +1,18 @@
 # Homologacao do Portal EQP no Render
 
-Este portal e somente para equipe de desenvolvimento/homologacao. Ele nao hospeda o sistema inteiro e nao usa Neon/PostgreSQL como fonte da equipe. O estado dos convites e membros fica no repositorio privado `Sistema-Casa-da-Mulher/ACESSO-EQUIPE`, em `data/equipe-db.json`.
+Este ambiente e somente para equipe de desenvolvimento/homologacao. O mesmo Web Service hospeda a API ASP.NET Core e todo o front em `projetocasadamulher/telas`. Ele nao usa Neon/PostgreSQL: o banco SQLite e temporario e a equipe e reconstruida a partir do repositorio privado `Sistema-Casa-da-Mulher/ACESSO-EQUIPE`.
 
 ## O que o Render hospeda
 
 - API ASP.NET Core em modo `Staging`.
-- Tela `/equipe.html`.
-- Tela `/equipe-ativar.html`.
-- Endpoints `/api/portal-eqp/*`.
+- Todas as telas do sistema, incluindo `/equipe.html` e `/index.html`.
+- Todos os endpoints `/api/*` no mesmo dominio.
+- SQLite temporario de homologacao.
+- GitHub Gate antes das telas e APIs sensiveis.
 
 O portal usa OAuth GitHub para identificar a pessoa e usa a API Contents do GitHub para ler/gravar o JSON privado. O token de escrita fica somente em variavel de ambiente do Render.
+
+O GitHub Gate nao substitui o login normal. Primeiro a pessoa comprova que pertence a equipe pelo GitHub; depois entra no sistema com EQP ou ADM.
 
 ## Criar o Web Service com Docker
 
@@ -61,7 +64,9 @@ Configure no Render:
 ```text
 ASPNETCORE_ENVIRONMENT=Staging
 DOTNET_ENVIRONMENT=Staging
+ENABLE_RENDER_GITHUB_GATE=true
 PORTAL_EQP_BASE_URL=https://SEU-SERVICE.onrender.com
+SQLITE_DB_PATH=/tmp/casa_mulher_hml.db
 
 GITHUB_OAUTH_CLIENT_ID=...
 GITHUB_OAUTH_CLIENT_SECRET=...
@@ -73,6 +78,9 @@ GITHUB_EQP_DB_REPO=ACESSO-EQUIPE
 GITHUB_EQP_DB_PATH=data/equipe-db.json
 GITHUB_EQP_EVENTS_PATH=data/equipe-events.ndjson
 GITHUB_EQP_WRITE_TOKEN=...
+
+Jwt__Key=CHAVE_FORTE_E_EXCLUSIVA
+Convites__HashSecret=CHAVE_FORTE_E_EXCLUSIVA
 ```
 
 Opcional, se quiser permitir leitura com token separado:
@@ -81,7 +89,19 @@ Opcional, se quiser permitir leitura com token separado:
 GITHUB_EQP_READ_TOKEN=...
 ```
 
-Nao configure connection string de producao. O `Staging` usa SQLite local apenas para a API subir e para importacoes de homologacao; a fonte da equipe continua sendo o JSON privado.
+Nao configure connection string de producao. O `Staging` aplica migrations automaticamente no SQLite temporario e inicia a sincronizacao da equipe. Se o disco efemero for apagado, o banco e recriado no proximo startup.
+
+Os nomes OAuth documentados sao exatamente `GITHUB_OAUTH_CLIENT_ID` e `GITHUB_OAUTH_CLIENT_SECRET`.
+
+## GitHub Gate
+
+Sem sessao GitHub autorizada:
+
+- `/equipe.html`, `/equipe-ativar.html` e os endpoints de OAuth permanecem publicos;
+- paginas sensiveis redirecionam para a Area da Equipe;
+- APIs sensiveis retornam `401` em JSON antes da autenticacao Identity.
+
+A autorizacao aceita owner, `allowlistGitHub`, membro ativo ou membership confirmada da organizacao. Falha ao consultar a organizacao nunca libera acesso. O cookie e `HttpOnly`, `Secure` em HTTPS e `SameSite=Lax`; ele contem somente um ID aleatorio protegido. O token OAuth permanece na memoria do servidor.
 
 ## OAuth GitHub
 
@@ -137,6 +157,8 @@ Depois disso, o login normal aceita tanto o EQP quanto o ADM pareado.
 dotnet build CasaMulher.Api/CasaMulher.Api.csproj --configuration Release --no-restore
 node --check projetocasadamulher/telas/portal-eqp.js
 node scripts/validar-html-inline.mjs
+node scripts/validar-p1-final.js
+node scripts/validar-render-gate.mjs
 git diff --check
 ```
 
@@ -154,6 +176,8 @@ Em Windows, use o Git Bash explicitamente para validar scripts:
 - Nao expor `passwordHash` no front-end.
 - Nao expor `GITHUB_EQP_WRITE_TOKEN`.
 - Nao expor `GITHUB_OAUTH_CLIENT_SECRET`.
+- Nao guardar o token OAuth no cookie do navegador.
+- Nao deixar APIs institucionais acessiveis antes do GitHub Gate em Staging.
 - Cada GitHub pode ativar apenas um EQP.
 - Pessoa comum so redefine a propria senha.
 - Convite usado nao volta a disponivel sem acao do owner.

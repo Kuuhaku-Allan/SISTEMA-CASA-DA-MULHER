@@ -30,6 +30,17 @@ public class ApplicationUser : IdentityUser
     /// </summary>
     public DateTime? PasskeyReconfirmadoEm { get; set; }
 
+    /// <summary>
+    /// Data da última atualização da senha via sincronização do portal EQP.
+    /// Usada para evitar sobrescrever senha local mais nova com hash antigo do JSON.
+    /// </summary>
+    public DateTime? EquipeDbPasswordUpdatedAt { get; set; }
+
+    /// <summary>
+    /// Versão da senha no portal EQP. Usada para detectar atualizações no JSON.
+    /// </summary>
+    public int EquipeDbPasswordVersion { get; set; }
+
     public ICollection<PasskeyCredential> PasskeyCredentials { get; set; } = new List<PasskeyCredential>();
 
     public ICollection<UserLoginIdentifier> LoginIdentifiers { get; set; } = new List<UserLoginIdentifier>();

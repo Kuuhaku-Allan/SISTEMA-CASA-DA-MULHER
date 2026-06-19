@@ -2,6 +2,7 @@ using System.Text;
 using System.Threading.RateLimiting;
 using CasaMulher.Api.Data;
 using CasaMulher.Api.Models;
+using CasaMulher.Api.Middleware;
 using CasaMulher.Api.Security;
 using CasaMulher.Api.Services;
 using Fido2NetLib;
@@ -25,6 +26,34 @@ builder.Logging.AddDebug();
 
 var databaseProvider = builder.Configuration.GetValue("Database:Provider", "Sqlite");
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
+if (builder.Environment.IsStaging()
+    && string.Equals(databaseProvider, "Sqlite", StringComparison.OrdinalIgnoreCase))
+{
+    var explicitConnectionString = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection");
+    var sqlitePath = builder.Configuration["SQLITE_DB_PATH"];
+
+    if (!string.IsNullOrWhiteSpace(explicitConnectionString))
+    {
+        connectionString = explicitConnectionString;
+    }
+    else
+    {
+        if (string.IsNullOrWhiteSpace(sqlitePath))
+        {
+            sqlitePath = Path.Combine(Path.GetTempPath(), "casa_mulher_hml.db");
+        }
+
+        var sqliteDirectory = Path.GetDirectoryName(sqlitePath);
+
+        if (!string.IsNullOrWhiteSpace(sqliteDirectory))
+        {
+            Directory.CreateDirectory(sqliteDirectory);
+        }
+
+        connectionString = $"Data Source={sqlitePath}";
+    }
+}
 
 if (string.IsNullOrWhiteSpace(connectionString))
 {
@@ -221,8 +250,11 @@ builder.Services.AddMemoryCache();
 builder.Services.AddHttpClient<IEquipeGithubService, EquipeGithubService>();
 builder.Services.AddHttpClient<IEquipeDbGitHubService, EquipeDbGitHubService>();
 builder.Services.AddScoped<EquipeDbSyncService>();
+builder.Services.AddScoped<ContaEquipeSincronizadaService>();
+builder.Services.AddSingleton<GitHubPortalSessionStore>();
+builder.Services.AddScoped<PortalEqpGateAuthorizationService>();
 
-if (builder.Environment.IsDevelopment()
+if ((builder.Environment.IsDevelopment() || builder.Environment.IsStaging())
     && builder.Configuration.GetValue("EquipeSync:Automatico", true))
 {
     builder.Services.AddHostedService<EquipeDbAutoSyncHostedService>();
@@ -307,11 +339,27 @@ builder.Services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
+var renderGateEnabled = bool.TryParse(app.Configuration["ENABLE_RENDER_GITHUB_GATE"], out var explicitGateValue)
+    ? explicitGateValue
+    : app.Configuration.GetValue<bool?>("RenderAccessGate:Enabled") ?? app.Environment.IsStaging();
+app.Logger.LogInformation(
+    "Inicializando CasaMulher.Api em {Environment}; GitHub Gate ativo={GateAtivo}.",
+    app.Environment.EnvironmentName,
+    renderGateEnabled);
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+}
+
+if (app.Environment.IsDevelopment() || app.Environment.IsStaging())
+{
+    await using var migrationScope = app.Services.CreateAsyncScope();
+    var dbContext = migrationScope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await dbContext.Database.MigrateAsync();
+    app.Logger.LogInformation("Migrations aplicadas no ambiente {Environment}.", app.Environment.EnvironmentName);
 }
 
 var runDemoSeed = app.Configuration.GetValue("Seed:RunDemoData", app.Environment.IsDevelopment());
@@ -322,6 +370,7 @@ if (runDemoSeed)
 }
 
 app.UseForwardedHeaders();
+app.UseMiddleware<RenderAccessGateMiddleware>();
 app.UseHttpsRedirection();
 
 var telasPath = Path.GetFullPath(Path.Combine(app.Environment.ContentRootPath, "..", "projetocasadamulher", "telas"));
