@@ -46,6 +46,7 @@ function Show-Help {
     Write-Host "  .\casa_da_mulher.cmd equipe"
     Write-Host "  .\casa_da_mulher.cmd equipe bootstrap"
     Write-Host "  .\casa_da_mulher.cmd equipe sync"
+    Write-Host "  .\casa_da_mulher.cmd equipe reparar-seguranca [apply]"
     Write-Host "  .\casa_da_mulher.cmd status"
     Write-Host "  .\casa_da_mulher.cmd update"
     Write-Host ""
@@ -442,6 +443,24 @@ function Invoke-EquipeSync {
     return $true
 }
 
+function Invoke-EquipeSecurityRepair {
+    param([switch]$Apply)
+
+    $node = Get-RequiredCommand -Name "node" -InstallMessage "Node.js não encontrado. Instale Node.js 22 ou superior."
+    $script = Join-Path $ProjectRoot "scripts\validar-e-reparar-seguranca-eqp.mjs"
+    $arguments = @("--no-warnings", $script, "--database", (Join-Path $ApiDir "casamulher.db"))
+
+    if ($Apply) {
+        $arguments += "--apply"
+    }
+
+    Invoke-Checked `
+        -FilePath $node `
+        -Arguments $arguments `
+        -WorkingDirectory $ProjectRoot `
+        -ErrorMessage "A auditoria/reparação de segurança EQP falhou."
+}
+
 function Show-Status {
     Assert-ProjectRoot
     $apiOnline = Test-HttpUrl $StatusApiUrl
@@ -521,6 +540,10 @@ try {
                 }
                 "sync" {
                     Invoke-EquipeSync
+                }
+                "reparar-seguranca" {
+                    $aplicar = $CommandArgs.Count -gt 2 -and $CommandArgs[2].ToLowerInvariant() -eq "apply"
+                    Invoke-EquipeSecurityRepair -Apply:$aplicar
                 }
                 default {
                     Show-Help

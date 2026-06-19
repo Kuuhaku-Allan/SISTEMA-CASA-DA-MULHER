@@ -6,17 +6,17 @@ Nao publique senhas, tokens, hashes, Client Secrets ou dados reais aqui.
 
 ## Portal central EQP
 
-Quando o portal Render estiver publicado, coloque o link aqui:
+Portal da equipe:
 
 ```text
-https://SEU-SERVICE.onrender.com/equipe.html
+https://casa-mulher-eqp.onrender.com/equipe.html
 ```
 
 Fluxo:
 
 1. Entrar com GitHub.
 2. Ativar um EQP disponivel ou reservado.
-3. Criar uma senha propria para este projeto.
+3. Informar e-mail de recuperacao e criar uma senha propria para este projeto.
 4. Receber o ADM pareado automaticamente.
 5. Abrir ambiente local ou Codespaces.
 6. Aguardar a sincronização automática da API.
@@ -63,6 +63,8 @@ data/README.md
 ```
 
 O portal grava `equipe-db.json` por commit automatico. Nao edite manualmente sem entender o fluxo.
+
+Os campos privados `email`, `emailRecuperacao` e `emailRecuperacaoConfirmado` permitem reconstruir contas de homologacao sem trocar e-mail real por placeholder. `@equipe.local` e apenas fallback tecnico.
 
 ## Seguranca
 

@@ -275,6 +275,7 @@
         const body = {
             eqpId: $("portalEqpId").value,
             nome: $("portalNome").value,
+            emailRecuperacao: $("portalEmailRecuperacao").value,
             senha: $("portalSenha").value,
             confirmarSenha: $("portalConfirmarSenha").value
         };

@@ -4,6 +4,7 @@ using CasaMulher.Api.Models;
 using CasaMulher.Api.Security;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System.Net.Mail;
 
 namespace CasaMulher.Api.Services;
 
@@ -107,22 +108,40 @@ public class EquipeDbSyncService
             .Select(id => id.Trim().ToUpperInvariant())
             .ToArray();
 
-        var alias = await _dbContext.UserLoginIdentifiers
+        var aliasUserIds = await _dbContext.UserLoginIdentifiers
             .Where(item => item.Ativo && identificadores.Contains(item.Identificador.ToUpper()))
             .OrderBy(item => item.Id)
-            .FirstOrDefaultAsync(cancellationToken);
+            .Select(item => item.UserId)
+            .Distinct()
+            .Take(2)
+            .ToListAsync(cancellationToken);
 
-        if (alias is not null)
+        if (aliasUserIds.Count > 1)
         {
-            return await _userManager.FindByIdAsync(alias.UserId);
+            throw new InvalidOperationException(
+                $"Os aliases de {membro.EqpId}/{membro.AdmId} apontam para usuários diferentes. Execute a auditoria de segurança antes de sincronizar.");
         }
 
-        return await _dbContext.Users
+        if (aliasUserIds.Count == 1)
+        {
+            return await _userManager.FindByIdAsync(aliasUserIds[0]);
+        }
+
+        var usuarios = await _dbContext.Users
             .Where(usuario =>
                 identificadores.Contains(usuario.IdentificadorFuncionario.ToUpper())
                 || identificadores.Contains(usuario.NormalizedUserName ?? string.Empty))
             .OrderBy(usuario => usuario.Id)
-            .FirstOrDefaultAsync(cancellationToken);
+            .Take(2)
+            .ToListAsync(cancellationToken);
+
+        if (usuarios.Count > 1)
+        {
+            throw new InvalidOperationException(
+                $"Foram encontradas contas diferentes para {membro.EqpId}/{membro.AdmId}. Execute a auditoria de segurança antes de sincronizar.");
+        }
+
+        return usuarios.SingleOrDefault();
     }
 
     private static ApplicationUser CriarUsuario(EquipeDbMembro membro)
@@ -130,16 +149,28 @@ public class EquipeDbSyncService
         var identificadorPrincipal = string.IsNullOrWhiteSpace(membro.EqpId)
             ? membro.AdmId.Trim().ToUpperInvariant()
             : membro.EqpId.Trim().ToUpperInvariant();
+        var emailPrincipal = ObterEmailReal(membro.Email, membro.EmailRecuperacao)
+            ?? CriarEmailPlaceholder(identificadorPrincipal);
+        var emailRecuperacao = ObterEmailReal(membro.EmailRecuperacao, membro.Email);
+        var recuperacaoConfirmada = emailRecuperacao is not null
+            && EhEmailReal(membro.EmailRecuperacao)
+            && membro.EmailRecuperacaoConfirmado;
 
         return new ApplicationUser
         {
             NomeCompleto = membro.Nome.Trim(),
-            Email = $"{identificadorPrincipal.ToLowerInvariant()}@equipe.local",
+            Email = emailPrincipal,
+            EmailConfirmed = recuperacaoConfirmada
+                && string.Equals(emailPrincipal, emailRecuperacao, StringComparison.OrdinalIgnoreCase),
+            EmailRecuperacao = emailRecuperacao,
+            EmailRecuperacaoConfirmado = recuperacaoConfirmada,
+            EmailRecuperacaoConfirmadoEm = recuperacaoConfirmada
+                ? (membro.AtualizadoEm == default ? DateTime.UtcNow : membro.AtualizadoEm)
+                : null,
             UserName = identificadorPrincipal,
             NormalizedUserName = identificadorPrincipal,
             IdentificadorFuncionario = identificadorPrincipal,
             Perfil = PerfisAcesso.Equipe,
-            EmailConfirmed = true,
             Ativo = true,
             DoisFatoresObrigatorio = false,
             PasswordHash = membro.PasswordHash,
@@ -154,6 +185,7 @@ public class EquipeDbSyncService
     {
         usuario.NomeCompleto = membro.Nome.Trim();
         usuario.Ativo = true;
+        PreencherEmailsAusentes(usuario, membro);
 
         var versaoRemota = membro.PasswordVersion ?? 0;
         var senhaRemotaAtualizadaEm = membro.SenhaAtualizadaEm;
@@ -190,6 +222,47 @@ public class EquipeDbSyncService
             : PerfisAcesso.Equipe;
     }
 
+    private static void PreencherEmailsAusentes(ApplicationUser usuario, EquipeDbMembro membro)
+    {
+        var emailPrincipalRemoto = ObterEmailReal(membro.Email, membro.EmailRecuperacao);
+
+        if (!EhEmailReal(usuario.Email) && emailPrincipalRemoto is not null)
+        {
+            usuario.Email = emailPrincipalRemoto;
+            usuario.EmailConfirmed = membro.EmailRecuperacaoConfirmado
+                && EhEmailReal(membro.EmailRecuperacao)
+                && string.Equals(emailPrincipalRemoto, membro.EmailRecuperacao, StringComparison.OrdinalIgnoreCase);
+        }
+
+        var emailRecuperacaoRemoto = ObterEmailReal(membro.EmailRecuperacao, membro.Email);
+
+        if (!EhEmailReal(usuario.EmailRecuperacao) && emailRecuperacaoRemoto is not null)
+        {
+            var confirmado = membro.EmailRecuperacaoConfirmado
+                && EhEmailReal(membro.EmailRecuperacao)
+                && string.Equals(emailRecuperacaoRemoto, membro.EmailRecuperacao, StringComparison.OrdinalIgnoreCase);
+
+            usuario.EmailRecuperacao = emailRecuperacaoRemoto;
+            usuario.EmailRecuperacaoConfirmado = confirmado;
+            usuario.EmailRecuperacaoConfirmadoEm = confirmado
+                ? (membro.AtualizadoEm == default ? DateTime.UtcNow : membro.AtualizadoEm)
+                : null;
+        }
+    }
+
+    private static string? ObterEmailReal(params string?[] candidatos) =>
+        candidatos.FirstOrDefault(EhEmailReal)?.Trim();
+
+    private static bool EhEmailReal(string? email)
+    {
+        return !string.IsNullOrWhiteSpace(email)
+            && !email.Trim().EndsWith("@equipe.local", StringComparison.OrdinalIgnoreCase)
+            && MailAddress.TryCreate(email.Trim(), out _);
+    }
+
+    private static string CriarEmailPlaceholder(string identificador) =>
+        $"{identificador.ToLowerInvariant()}@equipe.local";
+
     private async Task<bool> GarantirIdentificadorAsync(
         string userId,
         string identificador,
@@ -220,7 +293,12 @@ public class EquipeDbSyncService
             return true;
         }
 
-        existente.UserId = userId;
+        if (!string.Equals(existente.UserId, userId, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                $"O alias {normalizado} já pertence a outro usuário. Execute a auditoria de segurança antes de sincronizar.");
+        }
+
         existente.Tipo = tipo;
         existente.Ativo = true;
         existente.AtualizadoEm = DateTime.UtcNow;

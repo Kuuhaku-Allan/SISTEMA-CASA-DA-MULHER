@@ -4,12 +4,16 @@ Esta issue deve ficar fixada no repositorio privado `Sistema-Casa-da-Mulher/ACES
 
 Nao publique senhas, tokens, hashes, Client Secrets ou dados reais.
 
+Portal da equipe:
+
+https://casa-mulher-eqp.onrender.com/equipe.html
+
 ## Primeiro passo
 
 1. Abra o link do portal central EQP no Render.
 2. Entre com GitHub.
 3. Ative seu EQP.
-4. Crie uma senha propria para este projeto.
+4. Informe seu e-mail de recuperacao e crie uma senha propria para este projeto.
 5. Abra seu ambiente local ou Codespaces.
 6. Aguarde a sincronização automática da API.
 7. Faca login com EQP ou ADM pareado.

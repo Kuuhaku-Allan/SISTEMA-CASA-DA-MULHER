@@ -17,7 +17,11 @@ O ponto fixo da equipe e o repositorio privado:
 https://github.com/Sistema-Casa-da-Mulher/ACESSO-EQUIPE
 ```
 
-Quando o portal do Render estiver publicado, o link fixo ficara no README desse repositorio privado.
+Portal central da equipe:
+
+```text
+https://casa-mulher-eqp.onrender.com/equipe.html
+```
 
 O portal central serve para:
 
@@ -45,7 +49,15 @@ Casa da Mulher: sincronizar equipe
 
 Depois da sincronização, o login normal do sistema aceita tanto o EQP quanto o ADM pareado com a senha criada no portal.
 
+EQP e ADM pareado sao aliases do mesmo usuario. Eles compartilham senha, e-mail de recuperacao, 2FA, passkeys e demais configuracoes de seguranca. A sincronizacao atualiza aliases e senha versionada, mas nunca troca um e-mail real por `@equipe.local` nem apaga 2FA/passkeys.
+
 Para contas sincronizadas, a senha e redefinida somente no portal EQP. As telas normais de troca ou recuperacao do sistema ficam bloqueadas para evitar divergencia com o banco privado da equipe.
+
+Para auditar contas EQP/ADM sem alterar dados:
+
+```powershell
+.\casa_da_mulher.cmd equipe reparar-seguranca
+```
 
 No ambiente central do Render, acesse `/equipe.html`, entre primeiro com GitHub e depois use o login normal do sistema com EQP ou ADM. O GitHub Gate apenas bloqueia pessoas externas; ele nao substitui o login do sistema.
 

@@ -40,7 +40,7 @@ A integrante deve:
 1. Abrir o portal central do Render.
 2. Entrar com GitHub.
 3. Escolher um convite disponivel ou reservado para seu GitHub.
-4. Informar nome e senha criada somente para este projeto.
+4. Informar nome, e-mail de recuperacao e senha criada somente para este projeto.
 5. Confirmar a ativacao.
 6. Abrir seu ambiente local ou Codespaces.
 7. Aguardar a sincronização automática da API.
@@ -70,8 +70,21 @@ A sincronização:
 - cria/atualiza usuarios ASP.NET Identity no banco local;
 - vincula EQP e ADM ao mesmo usuario;
 - importa `passwordHash` e `securityStamp` com versao/data da senha;
+- importa e-mail real somente para conta nova ou conta ainda vazia/com placeholder;
+- preserva e-mail, recuperacao, telefone, 2FA, passkeys, bloqueio e seguranca de conta existente;
+- trata `@equipe.local` apenas como placeholder tecnico e nunca o coloca sobre e-mail real;
 - mantem `concurrencyStamp` somente no banco Identity local;
 - permite login com EQP ou ADM pareado.
+
+EQP e ADM pareado sao aliases do mesmo `ApplicationUser`. Portanto, senha, recuperacao, 2FA e passkeys sao compartilhados. Se a auditoria encontrar os dois aliases em UserIds diferentes, o sync para sem religar contas automaticamente.
+
+Auditoria segura, em modo somente leitura:
+
+```powershell
+.\casa_da_mulher.cmd equipe reparar-seguranca
+```
+
+O modo de reparo exige `CASA_MULHER_REPAIR_EQP_ID`, `CASA_MULHER_REPAIR_ADM_ID`, `CASA_MULHER_REPAIR_EMAIL` e confirmacao explicita `CASA_MULHER_REPAIR_CONFIRM=APLICAR`. Ele atualiza apenas e-mail/recuperacao e verifica que senha, `SecurityStamp`, telefone, bloqueio, 2FA, passkeys e tokens permaneceram intactos.
 
 ## Redefinir a propria senha
 
@@ -95,6 +108,7 @@ Validacao automatizada em banco SQLite novo:
 
 ```powershell
 node scripts/validar-p1-final.js
+node --no-warnings scripts/validar-preservacao-seguranca-eqp.mjs
 ```
 
 ## Owner e convites

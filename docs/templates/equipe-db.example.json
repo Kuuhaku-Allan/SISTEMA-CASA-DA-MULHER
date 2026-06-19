@@ -35,5 +35,25 @@
       "usadoEm": null
     }
   ],
-  "membros": []
+  "membros": [
+    {
+      "eqpId": "EQP-000099",
+      "admId": "ADM-000099",
+      "nome": "Colaboradora Exemplo",
+      "email": "colaboradora@example.invalid",
+      "emailRecuperacao": "colaboradora@example.invalid",
+      "emailRecuperacaoConfirmado": false,
+      "githubId": "00000000",
+      "githubUsername": "colaboradora-exemplo",
+      "papelEquipe": "contributor",
+      "fluxoTrabalho": "fork_codespaces",
+      "status": "ativo",
+      "passwordHash": "<hash-aspnet-identity>",
+      "securityStamp": "<security-stamp>",
+      "senhaAtualizadaEm": "2026-06-17T00:00:00Z",
+      "passwordVersion": 1,
+      "ativadoEm": "2026-06-17T00:00:00Z",
+      "atualizadoEm": "2026-06-17T00:00:00Z"
+    }
+  ]
 }

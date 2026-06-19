@@ -82,6 +82,11 @@ public class PortalEqpAtivarRequest
     public string Nome { get; set; } = string.Empty;
 
     [Required]
+    [EmailAddress]
+    [MaxLength(256)]
+    public string EmailRecuperacao { get; set; } = string.Empty;
+
+    [Required]
     [MinLength(8)]
     public string Senha { get; set; } = string.Empty;
 

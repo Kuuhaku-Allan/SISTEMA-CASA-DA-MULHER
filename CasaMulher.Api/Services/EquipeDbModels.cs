@@ -61,6 +61,12 @@ public class EquipeDbMembro
 
     public string Nome { get; set; } = string.Empty;
 
+    public string? Email { get; set; }
+
+    public string? EmailRecuperacao { get; set; }
+
+    public bool EmailRecuperacaoConfirmado { get; set; }
+
     public string GitHubId { get; set; } = string.Empty;
 
     public string GitHubUsername { get; set; } = string.Empty;

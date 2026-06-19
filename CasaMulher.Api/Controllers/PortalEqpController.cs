@@ -270,11 +270,15 @@ public class PortalEqpController : ControllerBase
 
             var agora = DateTime.UtcNow;
             var usuarioHash = CriarUsuarioParaHash(request.Nome, convite.EqpId);
+            var emailRecuperacao = request.EmailRecuperacao.Trim();
             var membro = new EquipeDbMembro
             {
                 EqpId = convite.EqpId,
                 AdmId = convite.AdmId,
                 Nome = request.Nome.Trim(),
+                Email = emailRecuperacao,
+                EmailRecuperacao = emailRecuperacao,
+                EmailRecuperacaoConfirmado = false,
                 GitHubId = acesso.Ticket.GitHubId,
                 GitHubUsername = acesso.Ticket.GitHubUsername,
                 PapelEquipe = convite.PapelEquipe,

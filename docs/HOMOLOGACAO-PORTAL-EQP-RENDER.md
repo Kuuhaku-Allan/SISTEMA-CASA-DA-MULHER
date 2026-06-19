@@ -14,6 +14,8 @@ O portal usa OAuth GitHub para identificar a pessoa e usa a API Contents do GitH
 
 O GitHub Gate nao substitui o login normal. Primeiro a pessoa comprova que pertence a equipe pelo GitHub; depois entra no sistema com EQP ou ADM.
 
+EQP e ADM pareado sao aliases do mesmo usuario e compartilham seguranca. O sync preserva e-mail/recuperacao reais, 2FA, passkeys, telefone e bloqueio existentes. `@equipe.local` e somente fallback tecnico para conta nova sem e-mail e nunca substitui um endereco real.
+
 ## Criar o Web Service com Docker
 
 O repositorio possui um `Dockerfile` na raiz. No Render, use Docker e deixe:
@@ -158,6 +160,7 @@ dotnet build CasaMulher.Api/CasaMulher.Api.csproj --configuration Release --no-r
 node --check projetocasadamulher/telas/portal-eqp.js
 node scripts/validar-html-inline.mjs
 node scripts/validar-p1-final.js
+node --no-warnings scripts/validar-preservacao-seguranca-eqp.mjs
 node scripts/validar-render-gate.mjs
 git diff --check
 ```
