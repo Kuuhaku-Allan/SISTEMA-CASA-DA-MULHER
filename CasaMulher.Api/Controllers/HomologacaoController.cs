@@ -67,14 +67,33 @@ public sealed class HomologacaoController : ControllerBase
         return Ok(document?.Recepcao ?? []);
     }
 
+    [AllowAnonymous]
     [HttpPost("owner-recovery/reset-security")]
     public async Task<IActionResult> OwnerRecovery(
         [FromServices] OwnerRecoveryService recoveryService,
+        [FromServices] Microsoft.AspNetCore.DataProtection.IDataProtectionProvider dataProtectionProvider,
+        [FromServices] GitHubPortalSessionStore sessionStore,
         [FromHeader(Name = "OWNER_RECOVERY_TOKEN")] string? recoveryToken)
     {
-        if (!OwnerAtual())
+        var cookie = Request.Cookies[CasaMulher.Api.Middleware.RenderAccessGateMiddleware.AuthCookieName];
+        if (string.IsNullOrWhiteSpace(cookie)) return Unauthorized(new { mensagem = "Sessão do GitHub não encontrada." });
+
+        try
         {
-            return Forbid();
+            var protector = dataProtectionProvider.CreateProtector(CasaMulher.Api.Middleware.RenderAccessGateMiddleware.ProtectorPurpose);
+            var sessionId = protector.Unprotect(cookie);
+            if (!sessionStore.TryGet(sessionId, out var session) || session is null)
+                return Unauthorized(new { mensagem = "Sessão do GitHub inválida ou expirada." });
+
+            var expectedOwner = HttpContext.RequestServices.GetRequiredService<IConfiguration>().GetValue("GitHub:OwnerLogin", 
+                HttpContext.RequestServices.GetRequiredService<IConfiguration>().GetValue("GITHUB_OWNER_LOGIN", "Kuuhaku-Allan"));
+            
+            if (!string.Equals(session.GitHubUsername, expectedOwner, StringComparison.OrdinalIgnoreCase))
+                return StatusCode(StatusCodes.Status403Forbidden, new { mensagem = "Apenas o Owner do GitHub configurado pode executar esta ação." });
+        }
+        catch
+        {
+            return Unauthorized(new { mensagem = "Sessão do GitHub corrompida." });
         }
 
         var configToken = HttpContext.RequestServices.GetRequiredService<IConfiguration>()["OWNER_RECOVERY_TOKEN"];
