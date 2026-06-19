@@ -61,6 +61,30 @@ public class PortalEqpConviteResponse
     public string FluxoTrabalho { get; set; } = string.Empty;
 }
 
+public class AcessoEquipeSyncRequest
+{
+    public string EqpId { get; set; } = string.Empty;
+}
+
+public class GitHubDiagnostico
+{
+    public string GitHubUsername { get; set; } = string.Empty;
+    public bool Autenticado { get; set; }
+    public bool Autorizado { get; set; }
+    public bool EhOwner { get; set; }
+    public bool EstaNaAllowlist { get; set; }
+    public bool EstaEmMembrosEqp { get; set; }
+    public string OrgConfigurada { get; set; } = string.Empty;
+    public string TeamSlugConfigurado { get; set; } = string.Empty;
+    public bool OrgMembershipVerificado { get; set; }
+    public bool? OrgMembership { get; set; }
+    public bool TeamMembershipVerificado { get; set; }
+    public bool? TeamMembership { get; set; }
+    public List<string> ScopesDetectados { get; set; } = new();
+    public bool ReadOrgPresente { get; set; }
+    public string MotivoNegacao { get; set; } = string.Empty;
+}
+
 public class PortalEqpMembroResponse
 {
     public string EqpId { get; set; } = string.Empty;

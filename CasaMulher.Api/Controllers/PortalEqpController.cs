@@ -161,6 +161,31 @@ public class PortalEqpController : ControllerBase
     }
 
     [AllowAnonymous]
+    [HttpGet("github/diagnostico")]
+    public async Task<ActionResult<GitHubDiagnostico>> ObterDiagnosticoGitHub(CancellationToken cancellationToken)
+    {
+        var ticket = ObterTicket();
+        if (ticket is null)
+        {
+            return Ok(new GitHubDiagnostico { MotivoNegacao = "Sessão GitHub não encontrada ou expirada." });
+        }
+
+        var arquivo = await _equipeDbService.LerAsync(cancellationToken);
+        if (arquivo is null)
+        {
+            return Ok(new GitHubDiagnostico 
+            { 
+                GitHubUsername = ticket.GitHubUsername, 
+                Autenticado = true, 
+                MotivoNegacao = "Base de equipe não encontrada ou não foi possível carregar." 
+            });
+        }
+
+        var diagnostico = await ObterGitHubDiagnosticoAsync(ticket, arquivo.Document, cancellationToken);
+        return Ok(diagnostico);
+    }
+
+    [AllowAnonymous]
     [HttpGet("me")]
     public async Task<ActionResult<PortalEqpMeResponse>> Me(CancellationToken cancellationToken)
     {
@@ -643,66 +668,107 @@ public class PortalEqpController : ControllerBase
         EquipeDbDocument document,
         CancellationToken cancellationToken)
     {
-        if (EhOwner(ticket, document))
+        var diagnostico = await ObterGitHubDiagnosticoAsync(ticket, document, cancellationToken);
+        if (diagnostico.Autorizado)
         {
+            _logger.LogInformation("Portal EQP autorizou {GitHub}.", ticket.GitHubUsername);
             return true;
         }
+
+        _logger.LogInformation("Autorização GitHub negada para {GitHub}: {Motivo}", ticket.GitHubUsername, diagnostico.MotivoNegacao);
+        return false;
+    }
+
+    private async Task<GitHubDiagnostico> ObterGitHubDiagnosticoAsync(
+        GitHubPortalTicket ticket,
+        EquipeDbDocument document,
+        CancellationToken cancellationToken)
+    {
+        var diagnostico = new GitHubDiagnostico
+        {
+            GitHubUsername = ticket.GitHubUsername,
+            Autenticado = true,
+            EhOwner = EhOwner(ticket, document),
+            OrgConfigurada = ObterOrg(document),
+            TeamSlugConfigurado = ObterConfig("GitHub:EqpTeamSlug", "GITHUB_EQP_TEAM_SLUG") ?? "colaboradoras"
+        };
 
         var allowlist = document.AllowlistGitHub
             .Concat(ObterAllowlistAmbiente())
             .Where(item => !string.IsNullOrWhiteSpace(item))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        if (allowlist.Contains(ticket.GitHubUsername))
+        diagnostico.EstaNaAllowlist = allowlist.Contains(ticket.GitHubUsername);
+        diagnostico.EstaEmMembrosEqp = document.Membros
+            .Any(m => string.Equals(m.GitHubUsername, ticket.GitHubUsername, StringComparison.OrdinalIgnoreCase));
+
+        if (diagnostico.EhOwner || diagnostico.EstaNaAllowlist || diagnostico.EstaEmMembrosEqp)
         {
-            _logger.LogInformation("Portal EQP autorizou {GitHub} por allowlist.", ticket.GitHubUsername);
-            return true;
+            diagnostico.Autorizado = true;
+            return diagnostico;
         }
 
-        var org = ObterOrg(document);
-        var pertenceOrg = await VerificarOrganizacaoAsync(ticket, org, cancellationToken);
-
-        _logger.LogInformation(
-            "Autorização GitHub no portal EQP para {GitHub}: organização {Org}, autorizado={Autorizado}.",
-            ticket.GitHubUsername,
-            org,
-            pertenceOrg);
-
-        return pertenceOrg;
-    }
-
-    private async Task<bool> VerificarOrganizacaoAsync(
-        GitHubPortalTicket ticket,
-        string org,
-        CancellationToken cancellationToken)
-    {
-        if (string.IsNullOrWhiteSpace(ticket.AccessToken) || string.IsNullOrWhiteSpace(org))
+        if (string.IsNullOrWhiteSpace(ticket.AccessToken) || string.IsNullOrWhiteSpace(diagnostico.OrgConfigurada))
         {
-            return false;
+            diagnostico.MotivoNegacao = "Access Token ausente ou organização não configurada.";
+            return diagnostico;
         }
 
         var client = _httpClientFactory.CreateClient();
-        var membershipUrl = $"https://api.github.com/user/memberships/orgs/{Uri.EscapeDataString(org)}";
+        
+        using var userRequest = CriarGitHubRequest(HttpMethod.Get, "https://api.github.com/user", ticket.AccessToken);
+        using var userResponse = await client.SendAsync(userRequest, cancellationToken);
+        if (userResponse.Headers.TryGetValues("X-OAuth-Scopes", out var scopesValues))
+        {
+            var scopes = string.Join(",", scopesValues).Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+            diagnostico.ScopesDetectados.AddRange(scopes);
+            diagnostico.ReadOrgPresente = diagnostico.ScopesDetectados.Contains("read:org");
+        }
 
+        var membershipUrl = $"https://api.github.com/user/memberships/orgs/{Uri.EscapeDataString(diagnostico.OrgConfigurada)}";
         using (var request = CriarGitHubRequest(HttpMethod.Get, membershipUrl, ticket.AccessToken))
         using (var response = await client.SendAsync(request, cancellationToken))
         {
-            if (response.IsSuccessStatusCode)
-            {
-                return true;
-            }
+            diagnostico.OrgMembershipVerificado = true;
+            diagnostico.OrgMembership = response.IsSuccessStatusCode;
+        }
 
-            if (response.StatusCode != HttpStatusCode.NotFound && response.StatusCode != HttpStatusCode.Forbidden)
+        if (diagnostico.OrgMembership != true)
+        {
+            var publicMemberUrl = $"https://api.github.com/orgs/{Uri.EscapeDataString(diagnostico.OrgConfigurada)}/members/{Uri.EscapeDataString(ticket.GitHubUsername)}";
+            using var publicRequest = CriarGitHubRequest(HttpMethod.Get, publicMemberUrl, ticket.AccessToken);
+            using var publicResponse = await client.SendAsync(publicRequest, cancellationToken);
+            if (publicResponse.IsSuccessStatusCode)
             {
-                _logger.LogWarning("GitHub retornou {Status} ao verificar membership da org.", response.StatusCode);
+                diagnostico.OrgMembership = true;
             }
         }
 
-        var publicMemberUrl =
-            $"https://api.github.com/orgs/{Uri.EscapeDataString(org)}/members/{Uri.EscapeDataString(ticket.GitHubUsername)}";
-        using var publicRequest = CriarGitHubRequest(HttpMethod.Get, publicMemberUrl, ticket.AccessToken);
-        using var publicResponse = await client.SendAsync(publicRequest, cancellationToken);
-        return publicResponse.IsSuccessStatusCode;
+        if (diagnostico.OrgMembership == true)
+        {
+            var teamUrl = $"https://api.github.com/orgs/{Uri.EscapeDataString(diagnostico.OrgConfigurada)}/teams/{Uri.EscapeDataString(diagnostico.TeamSlugConfigurado)}/memberships/{Uri.EscapeDataString(ticket.GitHubUsername)}";
+            using var teamRequest = CriarGitHubRequest(HttpMethod.Get, teamUrl, ticket.AccessToken);
+            using var teamResponse = await client.SendAsync(teamRequest, cancellationToken);
+            diagnostico.TeamMembershipVerificado = true;
+            if (teamResponse.IsSuccessStatusCode)
+            {
+                diagnostico.TeamMembership = true;
+                diagnostico.Autorizado = true;
+            }
+            else
+            {
+                diagnostico.TeamMembership = false;
+                diagnostico.MotivoNegacao = $"Usuário não pertence ao time de {diagnostico.TeamSlugConfigurado}.";
+            }
+        }
+        else
+        {
+            diagnostico.MotivoNegacao = diagnostico.ReadOrgPresente 
+                ? "Usuário não pertence à organização." 
+                : "Permissão read:org não foi concedida.";
+        }
+
+        return diagnostico;
     }
 
     private HttpRequestMessage CriarGitHubRequest(HttpMethod method, string url, string accessToken)

@@ -510,7 +510,7 @@ public class AuthController : ControllerBase
 
     [Authorize]
     [HttpPost("2fa/iniciar-configuracao")]
-    public async Task<ActionResult<DoisFatoresConfiguracaoResponse>> IniciarConfiguracaoDoisFatores()
+    public async Task<ActionResult<DoisFatoresConfiguracaoResponse>> IniciarConfiguracaoDoisFatores([FromQuery] bool resetar = false)
     {
         var usuario = await ObterUsuarioAtual();
 
@@ -524,8 +524,13 @@ public class AuthController : ControllerBase
             return BadRequest(new { mensagem = "O código de segurança já está ativo para este usuário." });
         }
 
-        await _userManager.ResetAuthenticatorKeyAsync(usuario);
         var chave = await _userManager.GetAuthenticatorKeyAsync(usuario);
+
+        if (resetar || string.IsNullOrWhiteSpace(chave))
+        {
+            await _userManager.ResetAuthenticatorKeyAsync(usuario);
+            chave = await _userManager.GetAuthenticatorKeyAsync(usuario);
+        }
 
         if (string.IsNullOrWhiteSpace(chave))
         {
@@ -846,22 +851,9 @@ public class AuthController : ControllerBase
 
         if (todasCredenciais.Count == 0)
         {
-            var masterUser = HttpContext.RequestServices.GetRequiredService<IMasterUserService>();
-            var isOwner = masterUser.EhEquipeOwnerPrincipal(contextoLogin.Usuario.IdentificadorFuncionario) || string.Equals(contextoLogin.Usuario.IdentificadorFuncionario, masterUser.SuperAdminIdentificador, StringComparison.OrdinalIgnoreCase);
-            var isStaging = HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>().IsStaging() || HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>().IsDevelopment();
-
-            if (isOwner && isStaging)
-            {
-                return BadRequest(new
-                {
-                    mensagem = $"A segurança da conta está inconsistente (Nenhuma chave de acesso para {_webAuthn.RpId}). Use a recuperação oficial do sistema.",
-                    ownerRecoveryUrl = "/owner-recovery.html"
-                });
-            }
-
             return BadRequest(new
             {
-                mensagem = $"Este ID não possui chave de acesso para {_webAuthn.RpId}. Entre com ID e senha e registre uma nova passkey neste ambiente."
+                mensagem = $"Esta conta ainda não possui passkey cadastrada para {_webAuthn.RpId}. Entre com ID e senha e registre uma nova passkey na tela Segurança."
             });
         }
 
@@ -1606,8 +1598,10 @@ public class AuthController : ControllerBase
         return await _userManager.FindByIdAsync(usuarioId);
     }
 
-    private static string NormalizarCodigoDoisFatores(string codigo)
+    private static string NormalizarCodigoDoisFatores(string? codigo)
     {
+        if (string.IsNullOrWhiteSpace(codigo)) return string.Empty;
+
         return codigo.Replace(" ", string.Empty, StringComparison.Ordinal)
             .Replace("-", string.Empty, StringComparison.Ordinal)
             .Trim();

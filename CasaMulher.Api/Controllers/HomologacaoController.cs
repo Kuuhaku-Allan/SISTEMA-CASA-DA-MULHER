@@ -5,6 +5,11 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.AspNetCore.Identity;
+using CasaMulher.Api.Data;
+using CasaMulher.Api.Models;
+using Microsoft.Extensions.Options;
+using Microsoft.EntityFrameworkCore;
 
 namespace CasaMulher.Api.Controllers;
 
@@ -67,6 +72,78 @@ public sealed class HomologacaoController : ControllerBase
     {
         var document = await _seed.LoadAsync(cancellationToken);
         return Ok(document?.Recepcao ?? []);
+    }
+
+    [AllowAnonymous]
+    [HttpGet("owner-recovery/security-diagnostics")]
+    public async Task<IActionResult> SecurityDiagnostics(
+        [FromServices] Microsoft.AspNetCore.DataProtection.IDataProtectionProvider dataProtectionProvider,
+        [FromServices] GitHubPortalSessionStore sessionStore,
+        [FromServices] UserManager<ApplicationUser> userManager,
+        [FromServices] AppDbContext dbContext,
+        [FromServices] HmlDbSnapshotService snapshotService,
+        [FromServices] WebAuthnEnvironmentInfo webAuthnInfo)
+    {
+        var cookie = Request.Cookies[CasaMulher.Api.Middleware.RenderAccessGateMiddleware.AuthCookieName];
+        if (string.IsNullOrWhiteSpace(cookie)) return Unauthorized(new { mensagem = "Sessão do GitHub não encontrada." });
+
+        GitHubPortalSession? session = null;
+        try
+        {
+            var protector = dataProtectionProvider.CreateProtector(CasaMulher.Api.Middleware.RenderAccessGateMiddleware.ProtectorPurpose);
+            var sessionId = protector.Unprotect(cookie);
+            if (!sessionStore.TryGet(sessionId, out session) || session is null)
+                return Unauthorized(new { mensagem = "Sessão do GitHub inválida ou expirada." });
+        }
+        catch
+        {
+            return Unauthorized(new { mensagem = "Sessão do GitHub corrompida." });
+        }
+
+        var expectedOwner = HttpContext.RequestServices.GetRequiredService<IConfiguration>().GetValue("GitHub:OwnerLogin", HttpContext.RequestServices.GetRequiredService<IConfiguration>().GetValue("GITHUB_OWNER_LOGIN", "Kuuhaku-Allan"));
+        if (!string.Equals(session.GitHubUsername, expectedOwner, StringComparison.OrdinalIgnoreCase))
+            return StatusCode(StatusCodes.Status403Forbidden, new { mensagem = "Apenas o Owner do GitHub configurado pode executar esta ação." });
+
+        var eqpAlias = await dbContext.UserLoginIdentifiers.FirstOrDefaultAsync(u => u.Identificador == "EQP-000001");
+        var admAlias = await dbContext.UserLoginIdentifiers.FirstOrDefaultAsync(u => u.Identificador == "ADM-000003");
+
+        var mesmoUserId = eqpAlias?.UserId == admAlias?.UserId;
+        var usuario = eqpAlias != null ? await userManager.FindByIdAsync(eqpAlias.UserId) : null;
+
+        var snapshotStatus = snapshotService.GetStatus();
+
+        if (usuario == null)
+        {
+            return NotFound(new { mensagem = "Usuário Owner não encontrado no banco." });
+        }
+
+        var authenticatorKey = await userManager.GetAuthenticatorKeyAsync(usuario);
+        var recoveryCodes = await dbContext.UserTokens
+            .Where(t => t.UserId == usuario.Id && t.LoginProvider == "[AspNetUserStore]" && t.Name == "RecoveryCodes")
+            .CountAsync();
+
+        var passkeys = await dbContext.PasskeyCredentials
+            .Where(c => c.UserId == usuario.Id)
+            .GroupBy(c => c.RpId)
+            .Select(g => new { RpId = g.Key, Count = g.Count() })
+            .ToListAsync();
+
+        return Ok(new
+        {
+            userId = usuario.Id,
+            eqpId = "EQP-000001",
+            admId = "ADM-000003",
+            mesmoUserId,
+            twoFactorEnabled = usuario.TwoFactorEnabled,
+            authenticatorKeyExiste = !string.IsNullOrWhiteSpace(authenticatorKey),
+            recoveryCodesCount = recoveryCodes,
+            passkeysCount = passkeys.Sum(p => p.Count),
+            passkeysPorRpId = passkeys,
+            rpIdAtual = webAuthnInfo.RpId,
+            email = usuario.Email,
+            emailRecuperacao = usuario.EmailRecuperacao,
+            snapshotAtivo = snapshotStatus.EnabledRequested && snapshotStatus.Configured
+        });
     }
 
     [AllowAnonymous]

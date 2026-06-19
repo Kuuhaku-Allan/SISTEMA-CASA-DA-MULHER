@@ -154,7 +154,25 @@
             userStatus.textContent = me.autorizado ? "Autorizado" : "Não autorizado";
 
             if (!me.autorizado) {
-                setMessage($("portalEqpActivationMessage"), "Seu GitHub ainda não está autorizado na organização ou na lista de acesso.", "error");
+                try {
+                    const diagnostico = await apiFetch("/api/portal-eqp/github/diagnostico", { method: "GET" });
+                    
+                    let motivoHtml = `<strong>Motivo:</strong> ${diagnostico.motivoNegacao || "Acesso negado."}<br>`;
+                    
+                    if (!diagnostico.readOrgPresente) {
+                        motivoHtml += `<br>A permissão <strong>read:org</strong> não foi concedida.<br>
+                        <a href="/api/portal-eqp/github/login" class="btn-primary button-link" style="margin-top: 10px;">Reautorizar GitHub</a>
+                        <p style="font-size: 11px; margin-top: 5px;">Se o problema persistir, revogue o acesso do app nas configurações do seu GitHub e tente novamente.</p>`;
+                    } else if (diagnostico.orgMembership === false) {
+                        motivoHtml += `<br>Você não é membro da organização <strong>${diagnostico.orgConfigurada}</strong>.`;
+                    } else if (diagnostico.teamMembership === false) {
+                        motivoHtml += `<br>Você não pertence ao time <strong>${diagnostico.teamSlugConfigurado}</strong> na organização.`;
+                    }
+
+                    setMessage($("portalEqpActivationMessage"), `Seu GitHub não está autorizado.<br><br>${motivoHtml}`, "error");
+                } catch (err) {
+                    setMessage($("portalEqpActivationMessage"), "Seu GitHub ainda não está autorizado na organização ou na lista de acesso.", "error");
+                }
                 return;
             }
 
