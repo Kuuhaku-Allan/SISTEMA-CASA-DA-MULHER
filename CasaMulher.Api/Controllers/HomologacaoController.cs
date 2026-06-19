@@ -2,7 +2,9 @@ using System.Security.Claims;
 using CasaMulher.Api.Security;
 using CasaMulher.Api.Services;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace CasaMulher.Api.Controllers;
 
@@ -68,25 +70,77 @@ public sealed class HomologacaoController : ControllerBase
     }
 
     [AllowAnonymous]
+    [HttpGet("owner-recovery/status")]
+    public IActionResult OwnerRecoveryStatus([FromServices] Microsoft.Extensions.Caching.Memory.IMemoryCache cache, [FromServices] Microsoft.AspNetCore.DataProtection.IDataProtectionProvider dataProtectionProvider, [FromServices] GitHubPortalSessionStore sessionStore)
+    {
+        var cookie = Request.Cookies[CasaMulher.Api.Middleware.RenderAccessGateMiddleware.AuthCookieName];
+        if (string.IsNullOrWhiteSpace(cookie)) return Unauthorized(new { mensagem = "Sessão do GitHub não encontrada." });
+
+        GitHubPortalSession? session = null;
+        try
+        {
+            var protector = dataProtectionProvider.CreateProtector(CasaMulher.Api.Middleware.RenderAccessGateMiddleware.ProtectorPurpose);
+            var sessionId = protector.Unprotect(cookie);
+            if (!sessionStore.TryGet(sessionId, out session) || session is null)
+                return Unauthorized(new { mensagem = "Sessão do GitHub inválida ou expirada." });
+        }
+        catch
+        {
+            return Unauthorized(new { mensagem = "Sessão do GitHub corrompida." });
+        }
+
+        var expectedOwner = HttpContext.RequestServices.GetRequiredService<IConfiguration>().GetValue("GitHub:OwnerLogin", HttpContext.RequestServices.GetRequiredService<IConfiguration>().GetValue("GITHUB_OWNER_LOGIN", "Kuuhaku-Allan"));
+        
+        if (!string.Equals(session.GitHubUsername, expectedOwner, StringComparison.OrdinalIgnoreCase))
+            return StatusCode(StatusCodes.Status403Forbidden, new { mensagem = "Apenas o Owner do GitHub configurado pode executar esta ação." });
+
+        var configToken = HttpContext.RequestServices.GetRequiredService<IConfiguration>()["OWNER_RECOVERY_TOKEN"];
+        
+        var nonce = Guid.NewGuid().ToString("N");
+        var cacheKey = $"OwnerRecoveryNonce_{session.GitHubId}";
+        cache.Set(cacheKey, nonce, TimeSpan.FromMinutes(10));
+
+        return Ok(new
+        {
+            disponivel = true,
+            ambiente = HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>().EnvironmentName,
+            ownerGitHub = expectedOwner,
+            usuarioGitHubAtual = session.GitHubUsername,
+            autorizado = true,
+            tokenObrigatorio = !string.IsNullOrWhiteSpace(configToken),
+            eqpId = "EQP-000001",
+            admId = "ADM-000003",
+            nonce = nonce
+        });
+    }
+
+    [AllowAnonymous]
     [HttpPost("owner-recovery/reset-security")]
     public async Task<IActionResult> OwnerRecovery(
         [FromServices] OwnerRecoveryService recoveryService,
         [FromServices] Microsoft.AspNetCore.DataProtection.IDataProtectionProvider dataProtectionProvider,
         [FromServices] GitHubPortalSessionStore sessionStore,
-        [FromHeader(Name = "OWNER_RECOVERY_TOKEN")] string? recoveryToken)
+        [FromServices] Microsoft.Extensions.Caching.Memory.IMemoryCache cache,
+        [FromBody] OwnerRecoveryRequest request)
     {
+        if (request is null || request.Confirmacao != "RESETAR_SEGURANCA_OWNER")
+            return BadRequest(new { mensagem = "Confirmação textual obrigatória inválida." });
+
+        if (string.IsNullOrWhiteSpace(request.Nonce))
+            return BadRequest(new { mensagem = "Nonce de segurança ausente." });
+
         var cookie = Request.Cookies[CasaMulher.Api.Middleware.RenderAccessGateMiddleware.AuthCookieName];
         if (string.IsNullOrWhiteSpace(cookie)) return Unauthorized(new { mensagem = "Sessão do GitHub não encontrada." });
 
+        GitHubPortalSession? session = null;
         try
         {
             var protector = dataProtectionProvider.CreateProtector(CasaMulher.Api.Middleware.RenderAccessGateMiddleware.ProtectorPurpose);
             var sessionId = protector.Unprotect(cookie);
-            if (!sessionStore.TryGet(sessionId, out var session) || session is null)
+            if (!sessionStore.TryGet(sessionId, out session) || session is null)
                 return Unauthorized(new { mensagem = "Sessão do GitHub inválida ou expirada." });
 
-            var expectedOwner = HttpContext.RequestServices.GetRequiredService<IConfiguration>().GetValue("GitHub:OwnerLogin", 
-                HttpContext.RequestServices.GetRequiredService<IConfiguration>().GetValue("GITHUB_OWNER_LOGIN", "Kuuhaku-Allan"));
+            var expectedOwner = HttpContext.RequestServices.GetRequiredService<IConfiguration>().GetValue("GitHub:OwnerLogin", HttpContext.RequestServices.GetRequiredService<IConfiguration>().GetValue("GITHUB_OWNER_LOGIN", "Kuuhaku-Allan"));
             
             if (!string.Equals(session.GitHubUsername, expectedOwner, StringComparison.OrdinalIgnoreCase))
                 return StatusCode(StatusCodes.Status403Forbidden, new { mensagem = "Apenas o Owner do GitHub configurado pode executar esta ação." });
@@ -96,26 +150,55 @@ public sealed class HomologacaoController : ControllerBase
             return Unauthorized(new { mensagem = "Sessão do GitHub corrompida." });
         }
 
+        var cacheKey = $"OwnerRecoveryNonce_{session.GitHubId}";
+        if (!cache.TryGetValue(cacheKey, out string? cachedNonce) || cachedNonce != request.Nonce)
+        {
+            return BadRequest(new { mensagem = "Nonce inválido ou expirado." });
+        }
+        cache.Remove(cacheKey);
+
         var configToken = HttpContext.RequestServices.GetRequiredService<IConfiguration>()["OWNER_RECOVERY_TOKEN"];
-        if (!string.IsNullOrWhiteSpace(configToken) && recoveryToken != configToken)
+        if (!string.IsNullOrWhiteSpace(configToken) && request.OwnerRecoveryToken != configToken)
         {
             return Unauthorized(new { mensagem = "Token de recuperação inválido ou ausente." });
         }
 
-        var result = await recoveryService.ExecuteRecoveryAsync();
+        var result = await recoveryService.ExecuteRecoveryAsync(session.GitHubUsername);
 
         if (!result.IsSuccess)
         {
             return BadRequest(new { mensagem = result.ErrorMessage });
         }
 
+        try
+        {
+            var snapshotService = HttpContext.RequestServices.GetRequiredService<HmlDbSnapshotService>();
+            var snapshotStatus = snapshotService.GetStatus();
+            
+            if (snapshotStatus.EnabledRequested && snapshotStatus.Configured)
+            {
+                await snapshotService.CreateAndUploadAsync(CancellationToken.None);
+                return Ok(new { mensagem = result.Payload?.ToString() + " Snapshot manual gerado com sucesso." });
+            }
+        }
+        catch (Exception)
+        {
+            return Ok(new { mensagem = result.Payload?.ToString() + " IMPORTANTE: Recuperação aplicada, mas o snapshot automático falhou. Gere o snapshot manualmente pelo painel." });
+        }
+
         return Ok(result.Payload);
     }
-
     private bool OwnerAtual()
     {
         var identificador = User.FindFirstValue("identificadorFuncionario");
         return _masterUser.EhEquipeOwnerPrincipal(identificador)
             || string.Equals(identificador, _masterUser.SuperAdminIdentificador, StringComparison.OrdinalIgnoreCase);
     }
+}
+
+public class OwnerRecoveryRequest
+{
+    public string Confirmacao { get; set; } = string.Empty;
+    public string? OwnerRecoveryToken { get; set; }
+    public string Nonce { get; set; } = string.Empty;
 }

@@ -27,9 +27,9 @@ public sealed class OwnerRecoveryService
         _auditoriaService = auditoriaService;
     }
 
-    public async Task<OwnerRecoveryResult> ExecuteRecoveryAsync()
+    public async Task<OwnerRecoveryResult> ExecuteRecoveryAsync(string gitHubUsername)
     {
-        _logger.LogInformation("Iniciando rotina de recuperação de owner.");
+        _logger.LogInformation("Iniciando rotina de recuperação de owner acionada por {GitHubUsername}.", gitHubUsername);
 
         var eqpId = "EQP-000001";
         var admId = "ADM-000003";
@@ -101,7 +101,8 @@ public sealed class OwnerRecoveryService
             "OWNER_RECOVERY_EXECUTADO",
             "ApplicationUser",
             usuario.Id,
-            $"Recuperação emergencial executada para owner {eqpId}. 2FA resetado. {passkeysInvalidadas} passkeys locais do RP ID {_webAuthn.RpId} inativadas.");
+            $"Recuperação emergencial executada para owner {eqpId} via conta GitHub {gitHubUsername}. 2FA resetado. {passkeysInvalidadas} passkeys do RP ID {_webAuthn.RpId} inativadas.",
+            escopo: AuditoriaEscopos.Sistema);
 
         _logger.LogInformation("Recuperação do owner concluída com sucesso.");
 

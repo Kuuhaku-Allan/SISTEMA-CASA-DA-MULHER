@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recuperação de Segurança do Owner - Casa da Mulher</title>
+    <link rel="stylesheet" href="../css/global.css">
+    <link rel="stylesheet" href="../css/auth.css">
+    <style>
+        .recovery-container {
+            max-width: 600px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .recovery-header {
+            border-bottom: 2px solid var(--danger-color, #dc3545);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            color: var(--danger-color, #dc3545);
+        }
+        .warning-box {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        .input-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        .btn-danger {
+            background-color: var(--danger-color, #dc3545);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            font-weight: bold;
+        }
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+        .hidden {
+            display: none;
+        }
+        .loading {
+            text-align: center;
+            font-size: 18px;
+            color: #666;
+            margin: 40px 0;
+        }
+    </style>
+</head>
+<body class="bg-light">
+
+    <div id="loading" class="loading">
+        Carregando verificação de segurança do GitHub Gate...
+    </div>
+
+    <div id="recovery-content" class="recovery-container hidden">
+        <h2 class="recovery-header">Recuperação de Segurança (Break-Glass)</h2>
+        
+        <div class="warning-box">
+            <strong>Atenção:</strong> Esta ferramenta destina-se <strong>exclusivamente</strong> à recuperação de acesso quando a conta Owner (EQP-000001 / ADM-000003) sofre um bloqueio irrecuperável por falha de 2FA ou Passkey em ambientes remotos.
+            <br><br>
+            Ao executar esta ação:
+            <ul>
+                <li>A senha <strong>NÃO</strong> será alterada.</li>
+                <li>O E-mail oficial será restaurado para o padrão do Owner.</li>
+                <li>O 2FA (Authenticator) será desativado.</li>
+                <li>Passkeys associadas ao domínio atual serão inativadas.</li>
+            </ul>
+        </div>
+
+        <div id="status-info" style="margin-bottom: 20px; font-size: 14px; color: #555;">
+            <!-- Status populado via JS -->
+        </div>
+
+        <form id="recovery-form">
+            <div class="input-group">
+                <label for="confirmacao">Confirmação Obrigatória:</label>
+                <p style="font-size: 12px; color: #666; margin-bottom: 5px;">Digite exatamente: <strong>RESETAR_SEGURANCA_OWNER</strong></p>
+                <input type="text" id="confirmacao" required autocomplete="off" placeholder="RESETAR_SEGURANCA_OWNER">
+            </div>
+
+            <div class="input-group hidden" id="token-group">
+                <label for="token">Token de Recuperação (Requerido pelo Servidor):</label>
+                <input type="password" id="token" autocomplete="off" placeholder="Insira o token configurado no ambiente">
+            </div>
+
+            <button type="submit" class="btn-danger" id="btn-submit">Executar Recuperação do Owner</button>
+        </form>
+
+        <div id="result-message" style="margin-top: 20px; font-weight: bold;"></div>
+        
+        <div style="margin-top: 30px; text-align: center;">
+            <a href="equipe.html" style="color: #666; text-decoration: none;">&larr; Voltar para o Portal da Equipe</a>
+        </div>
+    </div>
+
+    <script src="../js/config.js"></script>
+    <script src="owner-recovery.js"></script>
+</body>
+</html>

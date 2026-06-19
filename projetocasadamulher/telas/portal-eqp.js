@@ -146,6 +146,10 @@
             userName.textContent = `@${githubUsername}`;
             userStatus.textContent = me.autorizado ? "Autorizado" : "Não autorizado";
 
+            if (me.ehOwner === true) {
+                show($("ownerRecoverySection"), true);
+            }
+
             if (!me.autorizado) {
                 setMessage($("portalEqpActivationMessage"), "Seu GitHub ainda não está autorizado na organização ou na lista de acesso.", "error");
                 return;

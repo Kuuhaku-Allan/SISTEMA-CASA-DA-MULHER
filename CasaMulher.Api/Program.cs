@@ -377,7 +377,7 @@ if (args.Contains("--repair-owner-security", StringComparer.OrdinalIgnoreCase))
     Console.WriteLine("[i] Aplicando migrações...");
     dbContext.Database.Migrate();
 
-    var result = recoveryService.ExecuteRecoveryAsync().GetAwaiter().GetResult();
+    var result = recoveryService.ExecuteRecoveryAsync("CLI_LOCAL_OWNER").GetAwaiter().GetResult();
     
     if (result.IsSuccess)
     {

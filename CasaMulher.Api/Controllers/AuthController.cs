@@ -297,7 +297,20 @@ public class AuthController : ControllerBase
                     usuario.Id,
                     $"Autenticador habilitado sem chave configurada para {usuario.IdentificadorFuncionario}. Requer reparo.");
 
-                return Conflict(new { mensagem = "Autenticador inconsistente. Solicite recuperação de conta pelo portal." });
+                var masterUser = HttpContext.RequestServices.GetRequiredService<IMasterUserService>();
+                var isOwner = masterUser.EhEquipeOwnerPrincipal(usuario.IdentificadorFuncionario) || string.Equals(usuario.IdentificadorFuncionario, masterUser.SuperAdminIdentificador, StringComparison.OrdinalIgnoreCase);
+                var isStaging = HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>().IsStaging() || HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>().IsDevelopment();
+                
+                if (isOwner && isStaging)
+                {
+                    return Conflict(new 
+                    { 
+                        mensagem = "A segurança da conta está inconsistente (2FA quebrado). Use a recuperação oficial do sistema.",
+                        ownerRecoveryUrl = "/owner-recovery.html"
+                    });
+                }
+                
+                return Conflict(new { mensagem = "A segurança da conta está inconsistente. Procure o Owner ou a coordenação para solicitar reparo de segurança pelo Portal EQP." });
             }
 
             return Ok(GerarRespostaDoisFatores(usuario, contextoLogin.Perfil, contextoLogin.Identificador));
@@ -833,6 +846,19 @@ public class AuthController : ControllerBase
 
         if (todasCredenciais.Count == 0)
         {
+            var masterUser = HttpContext.RequestServices.GetRequiredService<IMasterUserService>();
+            var isOwner = masterUser.EhEquipeOwnerPrincipal(contextoLogin.Usuario.IdentificadorFuncionario) || string.Equals(contextoLogin.Usuario.IdentificadorFuncionario, masterUser.SuperAdminIdentificador, StringComparison.OrdinalIgnoreCase);
+            var isStaging = HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>().IsStaging() || HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>().IsDevelopment();
+
+            if (isOwner && isStaging)
+            {
+                return BadRequest(new
+                {
+                    mensagem = $"A segurança da conta está inconsistente (Nenhuma chave de acesso para {_webAuthn.RpId}). Use a recuperação oficial do sistema.",
+                    ownerRecoveryUrl = "/owner-recovery.html"
+                });
+            }
+
             return BadRequest(new
             {
                 mensagem = $"Este ID não possui chave de acesso para {_webAuthn.RpId}. Entre com ID e senha e registre uma nova passkey neste ambiente."
