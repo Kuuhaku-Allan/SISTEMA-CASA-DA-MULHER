@@ -111,8 +111,17 @@
     }
 
     async function loadPortal() {
-        const page = $("portalEqpPage");
+        let me = { autenticado: false, logado: false };
+        try {
+            me = await apiFetch("/api/portal-eqp/me", { method: "GET" });
+        } catch (error) {
+            setMessage($("portalEqpActivationMessage"), error.message, "error");
+        }
 
+        updateDashboardState(me);
+        updateDiagnostic(me);
+
+        const page = $("portalEqpPage");
         if (!page) {
             return;
         }
@@ -132,12 +141,10 @@
         show(activationBox, false);
 
         try {
-            const me = await apiFetch("/api/portal-eqp/me", { method: "GET" });
+            show(loginBox, !me.autenticado && !me.logado);
+            show(userBox, me.autenticado || me.logado);
 
-            show(loginBox, !me.logado);
-            show(userBox, me.logado);
-
-            if (!me.logado) {
+            if (!me.autenticado && !me.logado) {
                 setMessage($("portalEqpActivationMessage"), "Entre com GitHub antes de ativar um convite.", "info");
                 return;
             }
@@ -145,10 +152,6 @@
             const githubUsername = me.gitHubUsername || me.githubUsername || "";
             userName.textContent = `@${githubUsername}`;
             userStatus.textContent = me.autorizado ? "Autorizado" : "Não autorizado";
-
-            if (me.ehOwner === true) {
-                show($("ownerRecoverySection"), true);
-            }
 
             if (!me.autorizado) {
                 setMessage($("portalEqpActivationMessage"), "Seu GitHub ainda não está autorizado na organização ou na lista de acesso.", "error");
@@ -168,6 +171,53 @@
         } catch (error) {
             setMessage($("portalEqpActivationMessage"), error.message, "error");
         }
+    }
+
+    function updateDashboardState(me) {
+        show($("sessao-verificando"), false);
+        const logado = me.autenticado || me.logado;
+
+        if (logado) {
+            show($("sessao-deslogada"), false);
+            show($("sessao-logada"), true);
+            
+            const usernameDisplay = $("github-username-display");
+            if (usernameDisplay) {
+                usernameDisplay.textContent = `@${me.gitHubUsername || me.githubUsername || ""}`;
+            }
+
+            const roleTags = $("github-role-tags");
+            if (roleTags) {
+                const tags = [];
+                if (me.ehOwner) tags.push('<strong style="color: #0056b3;">[Owner]</strong>');
+                if (me.ehMembro) tags.push('<span style="color: #28a745;">[Equipe]</span>');
+                roleTags.innerHTML = tags.join(' ');
+            }
+
+            if (me.ehOwner === true) {
+                show($("ownerRecoverySection"), true);
+            }
+        } else {
+            show($("sessao-logada"), false);
+            show($("sessao-deslogada"), true);
+        }
+    }
+
+    function updateDiagnostic(me) {
+        const diag = $("portalDiagnostico");
+        if (!diag) return;
+
+        const info = [
+            `Ambiente: ${config.apiBaseUrl?.includes('localhost') ? 'Local/Dev' : 'Staging'}`,
+            `Autenticado: ${me.autenticado || me.logado ? 'Sim' : 'Não'}`,
+            `GitHub Usuário: ${me.gitHubUsername || me.githubUsername || 'Nenhum'}`,
+            `É Owner: ${me.ehOwner ? 'Sim' : 'Não'}`,
+            `É Membro EQP: ${me.ehMembro ? 'Sim' : 'Não'}`,
+            `Autorizado: ${me.autorizado ? 'Sim' : 'Não'}`,
+            `Sessão Expira Em: ${me.sessionExpiresAt ? new Date(me.sessionExpiresAt).toLocaleString() : 'N/A'}`
+        ];
+
+        diag.textContent = info.join('\n');
     }
 
     function renderMember(membro) {
@@ -254,6 +304,14 @@
 
         if (logoutButton) {
             logoutButton.addEventListener("click", async () => {
+                await apiFetch("/api/portal-eqp/github/logout", { method: "POST", body: "{}" });
+                window.location.reload();
+            });
+        }
+
+        const btnGithubLogout = $("btn-github-logout");
+        if (btnGithubLogout) {
+            btnGithubLogout.addEventListener("click", async () => {
                 await apiFetch("/api/portal-eqp/github/logout", { method: "POST", body: "{}" });
                 window.location.reload();
             });

@@ -168,7 +168,7 @@ public class PortalEqpController : ControllerBase
 
         if (ticket is null)
         {
-            return Ok(new PortalEqpMeResponse());
+            return Ok(new PortalEqpMeResponse { Autenticado = false, Logado = false, Autorizado = false });
         }
 
         var arquivo = await _equipeDbService.LerAsync(cancellationToken);
@@ -178,11 +178,14 @@ public class PortalEqpController : ControllerBase
 
         return Ok(new PortalEqpMeResponse
         {
+            Autenticado = true,
             Logado = true,
             GitHubId = ticket.GitHubId,
             GitHubUsername = ticket.GitHubUsername,
             Autorizado = autorizado,
             EhOwner = EhOwner(ticket, document),
+            EhMembro = membro is not null,
+            SessionExpiresAt = ticket.EmitidoEm.Add(AuthCookieLifetime),
             Membro = membro is null ? null : MapearMembro(membro)
         });
     }

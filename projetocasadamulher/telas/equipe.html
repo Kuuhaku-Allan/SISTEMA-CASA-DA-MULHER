@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Área da Equipe - Casa da Mulher</title>
     <link rel="stylesheet" href="style.css">
-    <script src="config.js" defer></script>
-    <script src="portal-eqp.js" defer></script>
+    <script src="config.js?v=20260619-3" defer></script>
+    <script src="portal-eqp.js?v=20260619-3" defer></script>
 </head>
 <body>
     <main class="admin-shell">
@@ -29,8 +29,31 @@
                 <h2>Portal EQP</h2>
                 <p class="message info">No Render, este ambiente central usa dados fictícios e é protegido por GitHub. Depois de entrar, faça o login normal com seu EQP ou ADM.</p>
                 <p class="section-intro">Este portal é apenas para a equipe de desenvolvimento e homologação. Use uma senha própria deste projeto.</p>
+                <div id="github-session-status" style="margin-bottom: 20px; padding: 15px; border: 1px solid #ccc; border-radius: 6px; background-color: #f9f9f9;">
+                    <div id="sessao-verificando">
+                        <strong>Verificando sessão GitHub...</strong>
+                    </div>
+
+                    <div id="sessao-deslogada" class="hidden">
+                        <p style="margin-bottom: 10px; font-size: 14px; color: #555;">Autentique-se com o GitHub para liberar o ambiente de homologação e ativar o seu perfil EQP.</p>
+                        <a class="btn-primary button-link" href="api/portal-eqp/github/login" data-portal-login>Entrar com GitHub</a>
+                    </div>
+
+                    <div id="sessao-logada" class="hidden">
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 15px; flex-wrap: wrap;">
+                            <div>
+                                <strong style="display: block; font-size: 16px;">Conectado como <span id="github-username-display">@...</span></strong>
+                                <span id="github-role-tags" style="font-size: 12px; color: #666; margin-top: 5px; display: inline-block;"></span>
+                            </div>
+                            <div style="display: flex; gap: 10px;">
+                                <a class="btn-secondary button-link btn-compact" href="api/portal-eqp/github/login" data-portal-login>Trocar conta</a>
+                                <button type="button" class="btn-danger button-link btn-compact" id="btn-github-logout" style="background-color: #6c757d; color: white;">Sair</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="link-list">
-                    <a class="btn-primary button-link" href="api/portal-eqp/github/login" data-portal-login>Entrar com GitHub</a>
                     <a class="btn-secondary button-link" href="equipe-ativar.html">Ativar meu EQP</a>
                     <a class="btn-secondary button-link" href="equipe-ativar.html#redefinir">Já ativei, redefinir senha</a>
                 </div>
@@ -106,6 +129,11 @@
                     <li>EQP/ADM da equipe não representa uma funcionária real da Casa da Mulher.</li>
                 </ul>
             </section>
+        </section>
+
+        <section style="margin-top: 40px; padding: 15px; border-top: 1px solid #ddd; font-size: 11px; color: #777; background-color: #fafafa; border-radius: 4px;">
+            <strong>Diagnóstico de Sessão</strong>
+            <pre id="portalDiagnostico" style="margin: 5px 0 0 0; padding: 0; background: none; border: none; font-size: 11px; color: #555; white-space: pre-wrap; font-family: monospace;">Aguardando dados...</pre>
         </section>
     </main>
 </body>

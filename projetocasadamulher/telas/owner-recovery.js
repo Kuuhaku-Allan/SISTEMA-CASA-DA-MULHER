@@ -19,7 +19,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
 
-        if (response.status === 401 || response.status === 403) {
+        if (response.status === 401) {
+            window.location.href = '/api/portal-eqp/github/login';
+            return;
+        }
+
+        if (response.status === 403) {
             const error = await response.json().catch(() => ({ mensagem: 'Acesso negado' }));
             document.body.innerHTML = `<div style="text-align:center; margin-top:50px; color:red;">
                 <h2>Acesso Negado</h2>

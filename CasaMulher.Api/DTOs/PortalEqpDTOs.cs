@@ -26,6 +26,9 @@ public class PortalEqpStatusResponse
 
 public class PortalEqpMeResponse
 {
+    public bool Autenticado { get; set; }
+
+    // Mantido para compatibilidade temporária com scripts antigos
     public bool Logado { get; set; }
 
     public string? GitHubId { get; set; }
@@ -35,6 +38,10 @@ public class PortalEqpMeResponse
     public bool Autorizado { get; set; }
 
     public bool EhOwner { get; set; }
+
+    public bool EhMembro { get; set; }
+
+    public DateTimeOffset? SessionExpiresAt { get; set; }
 
     public PortalEqpMembroResponse? Membro { get; set; }
 }
