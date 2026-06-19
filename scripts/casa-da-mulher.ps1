@@ -47,6 +47,7 @@ function Show-Help {
     Write-Host "  .\casa_da_mulher.cmd equipe bootstrap"
     Write-Host "  .\casa_da_mulher.cmd equipe sync"
     Write-Host "  .\casa_da_mulher.cmd equipe reparar-seguranca [apply]"
+    Write-Host "  .\casa_da_mulher.cmd equipe reparar-seguranca-owner"
     Write-Host "  .\casa_da_mulher.cmd homologacao exportar-seed"
     Write-Host "  .\casa_da_mulher.cmd hml status"
     Write-Host "  .\casa_da_mulher.cmd hml pull"
@@ -467,6 +468,15 @@ function Invoke-EquipeSecurityRepair {
         -ErrorMessage "A auditoria/reparação de segurança EQP falhou."
 }
 
+function Invoke-OwnerSecurityRepair {
+    $dotnet = Get-RequiredCommand -Name "dotnet" -InstallMessage "dotnet não encontrado."
+    Invoke-Checked `
+        -FilePath $dotnet `
+        -Arguments @("run", "--project", $ApiProject, "--", "--repair-owner-security") `
+        -WorkingDirectory $ProjectRoot `
+        -ErrorMessage "A reparação de segurança do Owner falhou."
+}
+
 function Export-HomologacaoSeed {
     $node = Get-RequiredCommand -Name "node" -InstallMessage "Node.js não encontrado. Instale Node.js 22 ou superior."
     $script = Join-Path $ProjectRoot "scripts\exportar-homologacao-seed.mjs"
@@ -578,6 +588,9 @@ try {
                 "reparar-seguranca" {
                     $aplicar = $CommandArgs.Count -gt 2 -and $CommandArgs[2].ToLowerInvariant() -eq "apply"
                     Invoke-EquipeSecurityRepair -Apply:$aplicar
+                }
+                "reparar-seguranca-owner" {
+                    Invoke-OwnerSecurityRepair
                 }
                 default {
                     Show-Help

@@ -226,6 +226,8 @@ public class PasskeysController : ControllerBase
             SignatureCounter = result.Result.Counter,
             NomeDispositivo = nomePadrao,
             RpId = _webAuthn.RpId,
+            Origin = _webAuthn.Origins.FirstOrDefault(),
+            CreatedEnvironment = _webAuthn.EnvironmentName,
             CriadoEm = DateTime.UtcNow
         });
 

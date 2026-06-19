@@ -67,6 +67,32 @@ public sealed class HomologacaoController : ControllerBase
         return Ok(document?.Recepcao ?? []);
     }
 
+    [HttpPost("owner-recovery/reset-security")]
+    public async Task<IActionResult> OwnerRecovery(
+        [FromServices] OwnerRecoveryService recoveryService,
+        [FromHeader(Name = "OWNER_RECOVERY_TOKEN")] string? recoveryToken)
+    {
+        if (!OwnerAtual())
+        {
+            return Forbid();
+        }
+
+        var configToken = HttpContext.RequestServices.GetRequiredService<IConfiguration>()["OWNER_RECOVERY_TOKEN"];
+        if (!string.IsNullOrWhiteSpace(configToken) && recoveryToken != configToken)
+        {
+            return Unauthorized(new { mensagem = "Token de recuperação inválido ou ausente." });
+        }
+
+        var result = await recoveryService.ExecuteRecoveryAsync();
+
+        if (!result.IsSuccess)
+        {
+            return BadRequest(new { mensagem = result.ErrorMessage });
+        }
+
+        return Ok(result.Payload);
+    }
+
     private bool OwnerAtual()
     {
         var identificador = User.FindFirstValue("identificadorFuncionario");

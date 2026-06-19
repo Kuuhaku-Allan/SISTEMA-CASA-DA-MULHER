@@ -32,6 +32,12 @@ public sealed class HmlDbSnapshotAutoService : BackgroundService
         {
             await Task.Delay(interval, stoppingToken);
 
+            var autoEnabled = _configuration.GetValue("HML_DB_SNAPSHOT_AUTO_ENABLED", true);
+            if (!autoEnabled)
+            {
+                continue;
+            }
+
             try
             {
                 using var scope = _serviceProvider.CreateScope();

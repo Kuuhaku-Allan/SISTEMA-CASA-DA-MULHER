@@ -281,6 +281,12 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
                 .HasMaxLength(253)
                 .IsRequired();
 
+            entity.Property(c => c.Origin)
+                .HasMaxLength(253);
+
+            entity.Property(c => c.CreatedEnvironment)
+                .HasMaxLength(40);
+
             entity.HasOne(c => c.User)
                 .WithMany(u => u.PasskeyCredentials)
                 .HasForeignKey(c => c.UserId)

@@ -288,6 +288,18 @@ public class AuthController : ControllerBase
 
         if (usuario.TwoFactorEnabled)
         {
+            var chave = await _userManager.GetAuthenticatorKeyAsync(usuario);
+            if (string.IsNullOrWhiteSpace(chave))
+            {
+                await _auditoriaService.RegistrarAsync(
+                    "LOGIN_2FA_INCONSISTENTE",
+                    "ApplicationUser",
+                    usuario.Id,
+                    $"Autenticador habilitado sem chave configurada para {usuario.IdentificadorFuncionario}. Requer reparo.");
+
+                return Conflict(new { mensagem = "Autenticador inconsistente. Solicite recuperação de conta pelo portal." });
+            }
+
             return Ok(GerarRespostaDoisFatores(usuario, contextoLogin.Perfil, contextoLogin.Identificador));
         }
 

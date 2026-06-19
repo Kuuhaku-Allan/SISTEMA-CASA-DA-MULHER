@@ -263,6 +263,7 @@ builder.Services.AddScoped<HomologacaoSeedService>();
 builder.Services.AddScoped<ContaEquipeSincronizadaService>();
 builder.Services.AddSingleton<GitHubPortalSessionStore>();
 builder.Services.AddScoped<PortalEqpGateAuthorizationService>();
+builder.Services.AddScoped<OwnerRecoveryService>();
 
 if ((builder.Environment.IsDevelopment() || builder.Environment.IsStaging())
     && builder.Configuration.GetValue("EquipeSync:Automatico", true))
@@ -352,6 +353,40 @@ var app = builder.Build();
 if (args.Contains("--validate-hml-snapshot-crypto", StringComparer.OrdinalIgnoreCase))
 {
     ValidarSnapshotCrypto();
+    return;
+}
+
+if (args.Contains("--repair-owner-security", StringComparer.OrdinalIgnoreCase))
+{
+    var scope = app.Services.CreateScope();
+    var recoveryService = scope.ServiceProvider.GetRequiredService<OwnerRecoveryService>();
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+    Console.WriteLine("[!] Iniciando reparo de segurança do Owner localmente via CLI...");
+    
+    // Backup antes
+    var tempPath = Path.GetTempPath();
+    var dbPath = dbContext.Database.GetDbConnection().DataSource;
+    if (File.Exists(dbPath))
+    {
+        var backupPath = Path.Combine(tempPath, $"casamulher_owner_repair_backup_{DateTime.Now:yyyyMMddHHmmss}.db");
+        File.Copy(dbPath, backupPath);
+        Console.WriteLine($"[i] Backup de segurança salvo em: {backupPath}");
+    }
+
+    Console.WriteLine("[i] Aplicando migrações...");
+    dbContext.Database.Migrate();
+
+    var result = recoveryService.ExecuteRecoveryAsync().GetAwaiter().GetResult();
+    
+    if (result.IsSuccess)
+    {
+        Console.WriteLine("[OK] Reparo concluído com sucesso!");
+    }
+    else
+    {
+        Console.WriteLine($"[ERRO] Falha no reparo: {result.ErrorMessage}");
+    }
     return;
 }
 
