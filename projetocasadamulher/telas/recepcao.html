@@ -349,6 +349,7 @@
                 const curso = document.getElementById("curso").value;
                 const emailAssistida = document.getElementById("email").value.trim();
                 const endereco = document.getElementById("endereco").value.trim();
+                const enderecoNumero = document.getElementById("enderecoNumero").value.trim();
                 const observacoes = document.getElementById("observacoes").value.trim();
 
                 if (!validarCPF(cpfClean)) {
@@ -380,6 +381,7 @@
                     emailAssistida: emailAssistida,
                     email: previous?.email || emailAssistida, // mantém compatibilidade
                     endereco,
+                    enderecoNumero,
                     funcionarioAtendimentoId: usuarioLogado?.identificadorFuncionario || previous?.funcionarioAtendimentoId,
                     funcionarioAtendimentoNomeSnapshot: usuarioLogado?.nomeCompleto || previous?.funcionarioAtendimentoNomeSnapshot,
                     funcionarioAtendimentoEmailSnapshot: usuarioLogado?.email || previous?.funcionarioAtendimentoEmailSnapshot,
@@ -429,15 +431,22 @@
                         const termSomenteDigitos = term.replace(/\D/g, "");
                         const temLetras = /[a-z]/i.test(termSemAcento);
                         
-                        // Busca por CPF exato
-                        if (!temLetras && termSomenteDigitos.length === 11 && validarCPF(termSomenteDigitos)) {
-                            return patient.cpfClean === termSomenteDigitos;
-                        }
-                        
-                        // Busca por Telefone
-                        if (!temLetras && (termSomenteDigitos.length === 10 || termSomenteDigitos.length === 11)) {
+                        // Busca Parcial ou Exata por CPF/Telefone
+                        if (!temLetras && termSomenteDigitos.length >= 3) {
+                            // Se for CPF completo válido, checa exato
+                            if (termSomenteDigitos.length === 11 && validarCPF(termSomenteDigitos)) {
+                                if (patient.cpfClean === termSomenteDigitos) return true;
+                            }
+                            
+                            // Busca parcial em CPF ou Telefone
+                            const cpfStr = String(patient.cpfClean || "").replace(/\D/g, "");
                             const telStr = String(patient.telefone || "").replace(/\D/g, "");
-                            return telStr.includes(termSomenteDigitos);
+                            if (cpfStr.includes(termSomenteDigitos) || telStr.includes(termSomenteDigitos)) {
+                                return true;
+                            }
+                        } else if (!temLetras && termSomenteDigitos.length > 0 && termSomenteDigitos.length < 3) {
+                            // Omitir busca numérica muito curta para não explodir resultados
+                            return false;
                         }
                         
                         // Busca por Nome
@@ -447,14 +456,23 @@
                     : patients;
 
                 if (filtered.length === 0) {
-                    tbody.innerHTML = "<tr><td colspan=\"7\">Nenhum acolhimento encontrado.</td></tr>";
+                    tbody.innerHTML = "<tr><td colspan=\"8\">Nenhum acolhimento encontrado.</td></tr>";
                     return;
                 }
 
                 tbody.innerHTML = filtered.map(function (patient) {
                     const emailExibir = patient.emailAssistida || patient.email;
                     const atendenteExibir = patient.funcionarioAtendimentoNomeSnapshot || patient.atendido || "-";
+                    const funcionarioEmail = patient.funcionarioAtendimentoEmailSnapshot || "";
                     
+                    let enderecoExibir = "Não informado";
+                    if (patient.endereco) {
+                        enderecoExibir = patient.endereco;
+                        if (patient.enderecoNumero) {
+                            enderecoExibir += `, ${patient.enderecoNumero}`;
+                        }
+                    }
+
                     // Mascarar CPF: 123.456.789-00 vira ***.456.789-** ou similar.
                     let cpfMascarado = "---";
                     if (patient.cpfClean && patient.cpfClean.length === 11) {
@@ -470,10 +488,11 @@
                             <td>${escapeHtmlValue(cpfMascarado)}</td>
                             <td>${escapeHtmlValue(patient.telefone || "-")}</td>
                             <td>${escapeHtmlValue(formatDateLocal(patient.dataNascimento))}</td>
+                            <td>${escapeHtmlValue(enderecoExibir)}</td>
                             <td>${escapeHtmlValue(patient.curso || "A definir")}</td>
                             <td>
                                 ${escapeHtmlValue(atendenteExibir)}
-                                ${patient.endereco ? `<br><small>${escapeHtmlValue(patient.endereco)}</small>` : ""}
+                                ${funcionarioEmail ? `<br><small>${escapeHtmlValue(funcionarioEmail)}</small>` : ""}
                             </td>
                             <td>
                                 <div class="actions-inline">
@@ -503,6 +522,7 @@
                 document.getElementById("curso").value = patient.curso || "";
                 document.getElementById("email").value = patient.emailAssistida || patient.email || "";
                 document.getElementById("endereco").value = patient.endereco || "";
+                document.getElementById("enderecoNumero").value = patient.enderecoNumero || "";
                 document.getElementById("observacoes").value = patient.observacoes || "";
 
                 document.getElementById("formTitle").textContent = "Editar acolhimento";
@@ -708,6 +728,7 @@
                                 <th>CPF</th>
                                 <th>Telefone</th>
                                 <th>Nascimento</th>
+                                <th>Endere&ccedil;o</th>
                                 <th>Curso/Oficina</th>
                                 <th>Atendimento</th>
                                 <th>A&ccedil;&otilde;es</th>
@@ -749,7 +770,12 @@
 
                         <div class="input-group">
                             <label for="endereco">Endere&ccedil;o</label>
-                            <input type="text" id="endereco" autocomplete="street-address">
+                            <input type="text" id="endereco" autocomplete="street-address" placeholder="Ex: Rua Sinibu">
+                        </div>
+
+                        <div class="input-group">
+                            <label for="enderecoNumero">N&ordm; / Complemento</label>
+                            <input type="text" id="enderecoNumero" placeholder="Ex: 123, S/N, Apto...">
                         </div>
 
                         <div class="input-group" style="background: #f8fbfa; border: 1px solid var(--color-border); padding: 12px; border-radius: 6px;">
