@@ -123,131 +123,6 @@
         }
     </style>
     <script src="config.js" defer></script>
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Recep&ccedil;&atilde;o - Casa da Mulher</title>
-    <link rel="stylesheet" href="style.css">
-    <style>
-        .recepcao-shell .admin-header,
-        .recepcao-layout {
-            width: min(1240px, 100%);
-        }
-
-        .recepcao-layout {
-            margin: 0 auto;
-            display: grid;
-            gap: 16px;
-        }
-
-        .recepcao-tabs {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-
-        .recepcao-tabs .btn-secondary.active {
-            color: #ffffff;
-            background: var(--color-accent);
-        }
-
-        .recepcao-panel {
-            display: none;
-        }
-
-        .recepcao-panel.active {
-            display: flex;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 12px;
-        }
-
-        .stat-box {
-            min-height: 112px;
-            padding: 18px;
-            border: 1px solid var(--color-border);
-            border-radius: var(--border-radius);
-            background: #f8fbfa;
-        }
-
-        .stat-number {
-            display: block;
-            color: var(--color-accent);
-            font-size: 2.2rem;
-            font-weight: 800;
-            line-height: 1;
-        }
-
-        .stat-label {
-            display: block;
-            margin-top: 10px;
-            color: var(--color-text-light);
-            font-weight: 700;
-        }
-
-        .recepcao-form-grid {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 16px;
-        }
-
-        .input-group textarea {
-            width: 100%;
-            min-height: 90px;
-            padding: 11px 12px;
-            border: 1px solid #cfd7df;
-            border-radius: 6px;
-            background: #ffffff;
-            color: #1f2933;
-            font: inherit;
-            resize: vertical;
-        }
-
-        .input-group textarea:focus {
-            border-color: var(--color-accent);
-            outline: 3px solid rgba(24, 114, 107, 0.15);
-        }
-
-        .span-2 {
-            grid-column: span 2;
-        }
-
-        .search-row {
-            display: grid;
-            grid-template-columns: 1fr auto auto;
-            gap: 10px;
-            align-items: end;
-        }
-
-        .actions-inline {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-
-        .actions-inline .btn-link,
-        .actions-inline .btn-link-danger {
-            white-space: nowrap;
-        }
-
-        @media (max-width: 760px) {
-            .stats-grid,
-            .recepcao-form-grid,
-            .search-row {
-                grid-template-columns: 1fr;
-            }
-
-            .span-2 {
-                grid-column: auto;
-            }
-        }
-    </style>
-    <script src="config.js" defer></script>
     <script src="auth.js" defer></script>
     <script src="app.js" defer></script>
     <script defer>
@@ -268,7 +143,7 @@
                 document.getElementById("recepcaoNome").textContent = usuario.nomeCompleto || "-";
                 document.getElementById("recepcaoPerfil").textContent = formatPerfilLocal(usuario.perfil);
                 usuarioLogado = usuario;
-                
+
                 const atendidaPorNomeDisplay = document.getElementById("atendidaPorNomeDisplay");
                 const atendidaPorInfoDisplay = document.getElementById("atendidaPorInfoDisplay");
                 if (atendidaPorNomeDisplay && atendidaPorInfoDisplay) {
@@ -503,12 +378,12 @@
                     dataNascimento,
                     curso,
                     emailAssistida: emailAssistida,
-                    email: previous?.email || emailAssistida,
+                    email: previous?.email || emailAssistida, // mantém compatibilidade
                     endereco,
                     funcionarioAtendimentoId: usuarioLogado?.identificadorFuncionario || previous?.funcionarioAtendimentoId,
                     funcionarioAtendimentoNomeSnapshot: usuarioLogado?.nomeCompleto || previous?.funcionarioAtendimentoNomeSnapshot,
                     funcionarioAtendimentoEmailSnapshot: usuarioLogado?.email || previous?.funcionarioAtendimentoEmailSnapshot,
-                    atendido: previous?.atendido || usuarioLogado?.nomeCompleto,
+                    atendido: previous?.atendido || usuarioLogado?.nomeCompleto, // fallback legado
                     observacoes,
                     criadoEm: previous?.criadoEm || new Date().toISOString(),
                     atualizadoEm: new Date().toISOString()
@@ -764,6 +639,148 @@
             </div>
             <div class="header-actions">
                 <a class="btn-secondary btn-compact button-link" href="painel.html" data-painel-link>Voltar</a>
+                <button type="button" id="btnSairRecepcao" class="btn-secondary btn-compact">Sair</button>
+            </div>
+        </header>
+
+        <section class="recepcao-layout">
+            <section class="admin-panel">
+                <div class="table-heading">
+                    <div>
+                        <h2>Acolhimentos</h2>
+                        <p class="section-intro">Registro inicial da recep&ccedil;&atilde;o.</p>
+                    </div>
+                    <div>
+                        <div id="currentDate" class="muted"></div>
+                        <strong id="currentTime"></strong>
+                    </div>
+                </div>
+
+                <div class="recepcao-tabs" aria-label="Se&ccedil;&otilde;es da recep&ccedil;&atilde;o">
+                    <button type="button" class="btn-secondary btn-compact active" data-tab="dashboard">Painel</button>
+                    <button type="button" class="btn-secondary btn-compact" data-tab="patients">Mulheres atendidas</button>
+                    <button type="button" class="btn-secondary btn-compact" data-tab="register">Novo acolhimento</button>
+                </div>
+
+                <div id="mensagemRecepcao" class="message" aria-live="polite"></div>
+            </section>
+
+            <section class="admin-panel recepcao-panel active" data-panel="dashboard">
+                <div class="table-heading">
+                    <h2>Indicadores</h2>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <span id="totalPatients" class="stat-number">0</span>
+                        <span class="stat-label">Mulheres acolhidas</span>
+                    </div>
+                    <div class="stat-box">
+                        <span id="totalCourses" class="stat-number">0</span>
+                        <span class="stat-label">Com curso/oficina</span>
+                    </div>
+                    <div class="stat-box">
+                        <span id="activeEnrollments" class="stat-number">0</span>
+                        <span class="stat-label">Cursos diferentes</span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="admin-panel table-panel recepcao-panel" data-panel="patients">
+                <div class="table-heading">
+                    <h2>Mulheres atendidas</h2>
+                </div>
+
+                <div class="search-row">
+                    <div class="input-group">
+                        <label for="searchPatient">Buscar por nome, CPF ou telefone</label>
+                        <input type="text" id="searchPatient" placeholder="Digite o nome, CPF ou telefone">
+                    </div>
+                    <button type="button" id="btnBuscarPaciente" class="btn-primary btn-compact">Buscar</button>
+                    <button type="button" id="btnMostrarTodas" class="btn-secondary btn-compact">Mostrar todas</button>
+                </div>
+
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>CPF</th>
+                                <th>Telefone</th>
+                                <th>Nascimento</th>
+                                <th>Curso/Oficina</th>
+                                <th>Atendimento</th>
+                                <th>A&ccedil;&otilde;es</th>
+                            </tr>
+                        </thead>
+                        <tbody id="patientsList"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="admin-panel recepcao-panel" data-panel="register">
+                <div class="table-heading">
+                    <h2 id="formTitle">Novo acolhimento</h2>
+                </div>
+
+                <form id="patientForm" class="auth-form">
+                    <input type="hidden" id="patientId">
+
+                    <div class="recepcao-form-grid">
+                        <div class="input-group">
+                            <label for="nome">Nome completo *</label>
+                            <input type="text" id="nome" autocomplete="name" required>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="cpf">CPF *</label>
+                            <input type="text" id="cpf" inputmode="numeric" placeholder="000.000.000-00" required>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="telefone">Telefone *</label>
+                            <input type="tel" id="telefone" autocomplete="tel" placeholder="(11) 99999-9999" required>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="dataNascimento">Data de nascimento *</label>
+                            <input type="date" id="dataNascimento" required>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="endereco">Endere&ccedil;o</label>
+                            <input type="text" id="endereco" autocomplete="street-address">
+                        </div>
+
+                        <div class="input-group" style="background: #f8fbfa; border: 1px solid var(--color-border); padding: 12px; border-radius: 6px;">
+                            <label style="margin-bottom: 4px; color: var(--color-text-light);">Atendida por</label>
+                            <div id="atendidaPorNomeDisplay" style="font-weight: 600; color: var(--color-accent); font-size: 1.05rem;">-</div>
+                            <div id="atendidaPorInfoDisplay" style="font-size: 0.85rem; color: #666; margin-top: 2px;">-</div>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="curso">Curso / oficina</label>
+                            <select id="curso">
+                                <option value="">A definir</option>
+                                <option value="Informatica">Inform&aacute;tica e Inclus&atilde;o Digital</option>
+                                <option value="Culinaria">Culin&aacute;ria e Autonomia</option>
+                                <option value="Estetica">Est&eacute;tica e Autoestima</option>
+                                <option value="Primeiros Socorros">Primeiros Socorros</option>
+                                <option value="Danca">Dan&ccedil;a Circular</option>
+                                <option value="Pilates">Pilates e Bem-estar</option>
+                                <option value="Empoderamento">Empoderamento Feminino</option>
+                            </select>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="email">E-mail da assistida — opcional</label>
+                            <input type="email" id="email" autocomplete="email" placeholder="exemplo@email.com (opcional)">
+                        </div>
+
+                        <div class="input-group span-2">
+                            <label for="observacoes">Observa&ccedil;&otilde;es</label>
+                            <textarea id="observacoes"></textarea>
+                        </div>
                     </div>
 
                     <div class="action-row">
