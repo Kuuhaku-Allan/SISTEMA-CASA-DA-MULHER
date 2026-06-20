@@ -1,4 +1,4 @@
-﻿* {
+* {
     box-sizing: border-box;
 }
 
@@ -546,6 +546,7 @@ td {
     border-bottom: 1px solid #e4e8ec;
     text-align: left;
     vertical-align: middle;
+    white-space: nowrap;
 }
 
 th {
