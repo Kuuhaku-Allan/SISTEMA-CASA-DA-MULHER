@@ -38,8 +38,10 @@
                     return;
                 }
 
-                document.getElementById("recepcaoNome").textContent = usuario.nomeCompleto || "-";
-                document.getElementById("recepcaoPerfil").textContent = formatPerfilLocal(usuario.perfil);
+                document.getElementById("sessionUserName").textContent = usuario.nomeCompleto || "-";
+                document.getElementById("sessionUserRole").textContent = formatPerfilLocal(usuario.perfil);
+                document.getElementById("sessionUserEmail").textContent = usuario.email || "-";
+                document.getElementById("sessionUserId").textContent = usuario.identificadorFuncionario || "-";
                 usuarioLogado = usuario;
 
                 const atendidaPorNomeDisplay = document.getElementById("atendidaPorNomeDisplay");
@@ -74,6 +76,23 @@
             }
 
             function bindEvents() {
+                const sessionCard = document.getElementById("sessionCard");
+                const sessionTrigger = document.getElementById("sessionTrigger");
+                if (sessionCard && sessionTrigger) {
+                    sessionTrigger.addEventListener("click", function (e) {
+                        e.stopPropagation();
+                        sessionCard.classList.toggle("open");
+                        const isOpen = sessionCard.classList.contains("open");
+                        sessionTrigger.setAttribute("aria-expanded", isOpen);
+                    });
+                    document.addEventListener("click", function (e) {
+                        if (!sessionCard.contains(e.target)) {
+                            sessionCard.classList.remove("open");
+                            sessionTrigger.setAttribute("aria-expanded", "false");
+                        }
+                    });
+                }
+
                 document.getElementById("btnSairRecepcao")?.addEventListener("click", function () {
                     CasaMulherAuth.logout();
                 });
@@ -545,15 +564,26 @@
         <header class="soft-header">
             <div>
                 <h1 class="soft-header-title">Casa da Mulher de Itaquaquecetuba</h1>
-                <p class="soft-header-subtitle">Recep&ccedil;&atilde;o &middot; Gest&atilde;o de atendimentos &middot; <span id="recepcaoNome">-</span> (<span id="recepcaoPerfil">-</span>)</p>
+                <p class="soft-header-subtitle">Recep&ccedil;&atilde;o</p>
             </div>
-            <div class="soft-clock">
-                <div id="currentDate"></div>
-                <div id="currentTime"></div>
-            </div>
-            <div style="display:flex; gap:10px; margin-top: 10px; width: 100%; justify-content: flex-end;">
-                <a class="soft-btn soft-btn-warning" href="painel.html" data-painel-link style="text-decoration:none; color:#B47B94;">Voltar</a>
-                <button type="button" id="btnSairRecepcao" class="soft-btn soft-btn-danger">Sair</button>
+            
+            <div class="soft-session-card" id="sessionCard">
+                <div class="soft-clock session-trigger" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false" id="sessionTrigger">
+                    <div id="currentDate"></div>
+                    <div id="currentTime"></div>
+                </div>
+                
+                <div class="session-dropdown" id="sessionDropdown">
+                    <div class="session-user-name" id="sessionUserName">-</div>
+                    <div class="session-user-role" id="sessionUserRole">-</div>
+                    <div class="session-user-meta" id="sessionUserEmail">-</div>
+                    <div class="session-user-meta" style="margin-top: 4px;">ID: <span id="sessionUserId">-</span></div>
+                    
+                    <div class="session-actions">
+                        <a class="soft-btn soft-btn-warning" href="painel.html" data-painel-link style="text-decoration:none; flex: 1; justify-content: center;">Voltar</a>
+                        <button type="button" id="btnSairRecepcao" class="soft-btn soft-btn-danger" style="flex: 1; justify-content: center;">Sair</button>
+                    </div>
+                </div>
             </div>
         </header>
 
@@ -641,10 +671,10 @@
                         </div>
 
                         <div class="soft-form-row">
-                            <div class="soft-form-group" style="background: #f8fbfa; border: 1px solid var(--color-border); padding: 12px; border-radius: 1.2rem;">
-                                <label style="margin-bottom: 4px;">Atendida por</label>
-                                <div id="atendidaPorNomeDisplay" style="font-weight: 600; color: #8F6C7E; font-size: 1.05rem;">-</div>
-                                <div id="atendidaPorInfoDisplay" style="font-size: 0.85rem; color: #666; margin-top: 2px;">-</div>
+                            <div class="responsavel-card">
+                                <div class="responsavel-title">Respons&aacute;vel pelo atendimento</div>
+                                <div class="responsavel-name" id="atendidaPorNomeDisplay">-</div>
+                                <div class="responsavel-meta" id="atendidaPorInfoDisplay">-</div>
                             </div>
                             <div class="soft-form-group">
                                 <label for="curso">Curso / oficina</label>

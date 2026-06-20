@@ -802,6 +802,7 @@ body.soft-page {
     font-weight: 600;
     color: #8B6C7E;
     font-size: 0.9rem;
+    display: block;
 }
 
 .soft-clock #currentTime {
@@ -810,6 +811,7 @@ body.soft-page {
     color: #C28B9E;
     letter-spacing: 1px;
     line-height: 1.2;
+    display: block;
 }
 
 .soft-tabs {
@@ -892,6 +894,7 @@ body.soft-page {
     font-weight: 800;
     color: #C48BA5;
     line-height: 1;
+    display: block;
 }
 
 .soft-stat-card .stat-label {
@@ -900,6 +903,7 @@ body.soft-page {
     margin-top: 12px;
     font-size: 1rem;
     letter-spacing: 0.5px;
+    display: block;
 }
 
 .soft-form-row {
@@ -1021,6 +1025,109 @@ body.soft-page {
     padding: 2rem;
     color: #CA9AB0;
     font-weight: 500;
+}
+
+/* --- Menu Expansível da Sessão --- */
+.soft-session-card {
+    position: relative;
+    z-index: 100;
+}
+
+.session-trigger {
+    cursor: pointer;
+    transition: transform 0.2s;
+    user-select: none;
+}
+
+.session-trigger:hover, .session-trigger:focus-within {
+    transform: scale(1.02);
+}
+
+.session-dropdown {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    background: rgba(255, 251, 253, 0.98);
+    backdrop-filter: blur(8px);
+    border: 1px solid #FAD0E2;
+    border-radius: 1.5rem;
+    padding: 1.5rem;
+    min-width: 280px;
+    box-shadow: 0 16px 32px rgba(180, 110, 140, 0.15);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* O dropdown abre no hover do card inteiro OU se tiver a classe 'open' via clique */
+.soft-session-card:hover .session-dropdown,
+.soft-session-card:focus-within .session-dropdown,
+.soft-session-card.open .session-dropdown {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.session-user-name {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #A26D85;
+}
+
+.session-user-role {
+    font-size: 0.9rem;
+    color: #C28FA8;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.session-user-meta {
+    font-size: 0.85rem;
+    color: #95748A;
+}
+
+.session-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+    padding-top: 14px;
+    border-top: 1px solid #FDE5F0;
+}
+
+/* --- Card Responsável pelo Atendimento --- */
+.responsavel-card {
+    background: #FEF6F9;
+    border: 1px solid #FAD0E2;
+    padding: 16px;
+    border-radius: 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.responsavel-title {
+    font-weight: 700;
+    color: #A26D85;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+
+.responsavel-name {
+    font-weight: 800;
+    color: #8F6C7E;
+    font-size: 1.15rem;
+}
+
+.responsavel-meta {
+    font-size: 0.85rem;
+    color: #A8889A;
 }
 
 @media (max-width: 720px) {
