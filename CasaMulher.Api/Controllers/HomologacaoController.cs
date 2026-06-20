@@ -109,36 +109,6 @@ public sealed class HomologacaoController : ControllerBase
         return Ok(document?.Recepcao ?? []);
     }
 
-    [AllowAnonymous]
-    [HttpGet("reset-recepcao")]
-    public async Task<IActionResult> ResetRecepcao(
-        [FromServices] UserManager<ApplicationUser> userManager,
-        [FromServices] AppDbContext dbContext)
-    {
-        var recs = new[] { "REC-000001", "REC-000002", "REC-000003", "REC-000004", "REC-000005", "REC-000006" };
-        var alterados = 0;
-        
-        foreach (var rec in recs)
-        {
-            var user = await userManager.FindByNameAsync(rec);
-            if (user != null)
-            {
-                user.Ativo = true;
-                
-                // Remove a senha antiga e adiciona a nova sem precisar de token, mais rápido e direto
-                var removeResult = await userManager.RemovePasswordAsync(user);
-                var addResult = await userManager.AddPasswordAsync(user, "Senh@123");
-                
-                if (addResult.Succeeded)
-                {
-                    alterados++;
-                }
-            }
-        }
-        
-        await dbContext.SaveChangesAsync();
-        return Ok(new { mensagem = $"Senhas de {alterados} usuários de recepção foram redefinidas para Senh@123 e as contas foram ativadas." });
-    }
 
     [AllowAnonymous]
     [HttpGet("owner-recovery/security-diagnostics")]
