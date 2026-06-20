@@ -787,7 +787,8 @@ body.soft-page {
 .soft-header-subtitle {
     color: #A8889A;
     font-weight: 500;
-    font-size: 0.85rem;
+    font-size: 1.15rem;
+    margin-top: 4px;
 }
 
 .soft-clock {
