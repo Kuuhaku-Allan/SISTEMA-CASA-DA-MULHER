@@ -546,6 +546,9 @@ td {
     border-bottom: 1px solid #e4e8ec;
     text-align: left;
     vertical-align: middle;
+}
+
+.table-wrap td {
     white-space: nowrap;
 }
 
@@ -748,3 +751,281 @@ small,
     background: var(--color-accent-dark);
 }
 .text-center { text-align: center; }
+
+/* ========== PADRAO SOFT UI (RECEPCAO E FUTURAS TELAS) ========== */
+body.soft-page {
+    background: linear-gradient(145deg, #FDF4F8 0%, #F9E9F2 100%);
+    min-height: 100vh;
+}
+
+.soft-header {
+    background: rgba(255, 251, 253, 0.96);
+    backdrop-filter: blur(2px);
+    border-radius: 2rem;
+    padding: 1.25rem 2rem;
+    margin-bottom: 1.8rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    box-shadow: 0 12px 28px rgba(190, 120, 150, 0.08);
+    border: 1px solid rgba(245, 210, 225, 0.6);
+}
+
+.soft-header-title {
+    background: linear-gradient(120deg, #B5838D, #9E6B7C);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    font-size: 1.75rem;
+    letter-spacing: -0.3px;
+    margin-bottom: 6px;
+    font-weight: 800;
+}
+
+.soft-header-subtitle {
+    color: #A8889A;
+    font-weight: 500;
+    font-size: 0.85rem;
+}
+
+.soft-clock {
+    background: #FFF9FC;
+    padding: 0.6rem 1.2rem;
+    border-radius: 3rem;
+    text-align: right;
+    box-shadow: inset 0 1px 3px #FFEFF5, 0 4px 8px rgba(0,0,0,0.02);
+}
+
+.soft-clock #currentDate {
+    font-weight: 600;
+    color: #8B6C7E;
+    font-size: 0.9rem;
+}
+
+.soft-clock #currentTime {
+    font-size: 1.7rem;
+    font-weight: 700;
+    color: #C28B9E;
+    letter-spacing: 1px;
+    line-height: 1.2;
+}
+
+.soft-tabs {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 28px;
+}
+
+.soft-tab {
+    background: #FFFBFD;
+    border: none;
+    padding: 12px 28px;
+    border-radius: 60px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    box-shadow: 0 2px 6px rgba(160, 100, 120, 0.05);
+    color: #A57489;
+}
+
+.soft-tab:hover {
+    transform: translateY(-2px);
+    background: #FFF0F7;
+    box-shadow: 0 8px 18px rgba(180, 110, 140, 0.12);
+}
+
+.soft-tab.active {
+    background: #E7B4C5;
+    color: white;
+    box-shadow: 0 10px 18px rgba(215, 140, 165, 0.25);
+}
+
+.soft-card {
+    background: rgba(255, 250, 252, 0.98);
+    border-radius: 1.8rem;
+    padding: 1.8rem;
+    margin-bottom: 1.8rem;
+    box-shadow: 0 12px 28px rgba(140, 90, 110, 0.06);
+    border: 1px solid #FDE8F0;
+}
+
+.soft-card-title {
+    font-size: 1.6rem;
+    font-weight: 700;
+    background: linear-gradient(130deg, #8F6C7E, #C28FA8);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    margin-bottom: 1.4rem;
+    border-left: 5px solid #E7BBCB;
+    padding-left: 18px;
+}
+
+.soft-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.6rem;
+    margin-top: 0.5rem;
+}
+
+.soft-stat-card {
+    background: linear-gradient(125deg, #FEF1F7, #FDE9F2);
+    border-radius: 2rem;
+    padding: 1.8rem;
+    text-align: center;
+    transition: transform 0.2s;
+    box-shadow: 0 8px 16px rgba(140, 90, 110, 0.05);
+    border: 1px solid #FFF0F5;
+}
+
+.soft-stat-card:hover {
+    transform: scale(1.02);
+    background: #FFFAFD;
+}
+
+.soft-stat-card .stat-number {
+    font-size: 3rem;
+    font-weight: 800;
+    color: #C48BA5;
+    line-height: 1;
+}
+
+.soft-stat-card .stat-label {
+    font-weight: 600;
+    color: #9B7588;
+    margin-top: 12px;
+    font-size: 1rem;
+    letter-spacing: 0.5px;
+}
+
+.soft-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.3rem;
+    margin-bottom: 1.5rem;
+}
+
+.soft-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.soft-form-group label {
+    font-weight: 700;
+    color: #AD859B;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.soft-input {
+    border: 2px solid #F5E2EC;
+    border-radius: 1.2rem;
+    padding: 12px 14px;
+    font-size: 0.95rem;
+    background: white;
+    transition: all 0.2s;
+    width: 100%;
+}
+
+.soft-input:focus {
+    border-color: #E2B8CC;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(210, 140, 165, 0.15);
+}
+
+.soft-btn {
+    border: none;
+    border-radius: 2rem;
+    padding: 10px 22px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.2s;
+    font-size: 0.85rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.soft-btn-primary {
+    background: linear-gradient(95deg, #CFA5BB, #E1B6CB);
+    color: white;
+    box-shadow: 0 4px 10px rgba(185, 120, 145, 0.2);
+}
+
+.soft-btn-primary:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.02);
+}
+
+.soft-btn-warning {
+    background: #FCE3EF;
+    color: #B47B94;
+}
+
+.soft-btn-danger {
+    background: #FFE3E8;
+    color: #C1738B;
+}
+
+.entity-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.6rem;
+}
+
+.entity-card {
+    background: #FFFFFFF2;
+    border-radius: 1.5rem;
+    padding: 1.4rem;
+    transition: all 0.2s;
+    border: 1px solid #FDE5F0;
+    box-shadow: 0 6px 12px rgba(0,0,0,0.02);
+}
+
+.entity-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 14px 26px rgba(160, 100, 120, 0.1);
+    border-color: #FAD0E2;
+}
+
+.entity-title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #A26D85;
+    margin-bottom: 12px;
+}
+
+.entity-info {
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+    color: #95748A;
+    border-left: 3px solid #F5D4E5;
+    padding-left: 10px;
+}
+
+.entity-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 18px;
+    flex-wrap: wrap;
+}
+
+.soft-empty-state {
+    text-align: center;
+    padding: 2rem;
+    color: #CA9AB0;
+    font-weight: 500;
+}
+
+@media (max-width: 720px) {
+    .soft-form-row { grid-template-columns: 1fr; gap: 1rem; }
+    .soft-header { flex-direction: column; text-align: center; }
+    .soft-clock { text-align: center; }
+    .soft-tab { padding: 8px 20px; }
+}
