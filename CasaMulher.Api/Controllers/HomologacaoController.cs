@@ -54,7 +54,7 @@ public sealed class HomologacaoController : ControllerBase
         if (!OwnerAtual()) return Forbid();
         try
         {
-            await _snapshot.CreateAndUploadAsync(cancellationToken);
+            await _snapshot.CreateAndUploadAsync(cancellationToken, "owner_manual");
             return Ok(new { mensagem = "Snapshot criptografado de homologação atualizado." });
         }
         catch (InvalidOperationException ex)
@@ -65,6 +65,41 @@ public sealed class HomologacaoController : ControllerBase
         {
             return StatusCode(500, new { mensagem = $"Erro ao gerar snapshot: {ex.Message}" });
         }
+    }
+
+    [HttpGet("snapshot/status")]
+    public async Task<IActionResult> SnapshotStatus(CancellationToken cancellationToken)
+    {
+        if (!OwnerAtual()) return Forbid();
+        var status = await _snapshot.GetDiagnosticAsync(cancellationToken);
+        return Ok(new Dictionary<string, object?>
+        {
+            ["snapshotAtivo"] = status.SnapshotAtivo,
+            ["autoSnapshotAtivo"] = status.AutoSnapshotAtivo,
+            ["restoreChamadoNoStartup"] = status.RestoreChamadoNoStartup,
+            ["restoreConfigurado"] = status.RestoreConfigurado,
+            ["restoreExecutado"] = status.RestoreExecutado,
+            ["motivoRestoreNaoExecutado"] = status.MotivoRestoreNaoExecutado,
+            ["dbPathAtual"] = status.DbPathAtual,
+            ["dbExiste"] = status.DbExiste,
+            ["dbEfemero"] = status.DbEfemero,
+            ["persistenciaReal"] = status.PersistenciaReal,
+            ["dbLastWriteUtc"] = status.DbLastWriteUtc,
+            ["dbHashAtual"] = status.DbHashAtual,
+            ["manifestGeneration"] = status.ManifestGeneration,
+            ["manifestSnapshotId"] = status.ManifestSnapshotId,
+            ["manifestDatabaseHash"] = status.ManifestDatabaseHash,
+            ["ultimoSnapshotSucesso"] = status.UltimoSnapshotSucesso,
+            ["ultimoSnapshotEm"] = status.UltimoSnapshotEm,
+            ["ultimoSnapshotSource"] = status.UltimoSnapshotSource,
+            ["ultimoErroSnapshot"] = status.UltimoErroSnapshot,
+            ["ultimoRestoreSucesso"] = status.UltimoRestoreSucesso,
+            ["ultimoRestoreEm"] = status.UltimoRestoreEm,
+            ["ultimoErroRestore"] = status.UltimoErroRestore,
+            ["HML_DB_SNAPSHOT_ENABLED"] = status.HmlDbSnapshotEnabled,
+            ["HML_DB_SNAPSHOT_AUTO_ENABLED"] = status.HmlDbSnapshotAutoEnabled,
+            ["ambiente"] = status.Ambiente
+        });
     }
 
     [HttpGet("recepcao-seed")]
@@ -254,7 +289,7 @@ public sealed class HomologacaoController : ControllerBase
             
             if (snapshotStatus.EnabledRequested && snapshotStatus.Configured)
             {
-                await snapshotService.CreateAndUploadAsync(CancellationToken.None);
+                await snapshotService.CreateAndUploadAsync(CancellationToken.None, "owner_recovery");
                 return Ok(new { mensagem = result.Payload?.ToString() + " Snapshot manual gerado com sucesso." });
             }
         }

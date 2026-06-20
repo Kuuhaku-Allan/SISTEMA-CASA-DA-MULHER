@@ -64,13 +64,59 @@ public class EquipeDbSyncService
             }
             else
             {
-                AtualizarUsuario(usuario, membro);
-                var updateResult = await _userManager.UpdateAsync(usuario);
+                // Atualização seletiva: não usar UserManager.UpdateAsync porque ele persiste
+                // o objeto inteiro e pode sobrescrever campos de segurança via tracking do EF.
+                // Guardamos os valores sensíveis antes e marcamos explicitamente só o permitido.
+                var twoFactorAntes = usuario.TwoFactorEnabled;
+                var securityStampAntes = usuario.SecurityStamp;
+                var passwordHashAntes = usuario.PasswordHash;
+                var passkeyReconfAntes = usuario.PasskeyReconfirmadoEm;
 
-                if (!updateResult.Succeeded)
+                AtualizarUsuario(usuario, membro);
+
+                var entry = _dbContext.Entry(usuario);
+                // Campos que o sync EQP pode atualizar
+                entry.Property(u => u.NomeCompleto).IsModified = true;
+                entry.Property(u => u.Ativo).IsModified = true;
+                entry.Property(u => u.Perfil).IsModified = true;
+                entry.Property(u => u.Email).IsModified = true;
+                entry.Property(u => u.NormalizedEmail).IsModified = true;
+                entry.Property(u => u.EmailRecuperacao).IsModified = true;
+                entry.Property(u => u.EmailRecuperacaoConfirmado).IsModified = true;
+                entry.Property(u => u.EmailRecuperacaoConfirmadoEm).IsModified = true;
+                entry.Property(u => u.EquipeDbPasswordUpdatedAt).IsModified = true;
+                entry.Property(u => u.EquipeDbPasswordVersion).IsModified = true;
+
+                // Senha e SecurityStamp: só se AtualizarUsuario() realmente mudou
+                if (!string.Equals(usuario.PasswordHash, passwordHashAntes, StringComparison.Ordinal))
+                {
+                    entry.Property(u => u.PasswordHash).IsModified = true;
+                    entry.Property(u => u.SecurityStamp).IsModified = true;
+                }
+                else
+                {
+                    entry.Property(u => u.PasswordHash).IsModified = false;
+                    entry.Property(u => u.SecurityStamp).IsModified = false;
+                }
+
+                // Campos de segurança que o sync NUNCA pode alterar
+                entry.Property(u => u.TwoFactorEnabled).IsModified = false;
+                entry.Property(u => u.PasskeyReconfirmadoEm).IsModified = false;
+                entry.Property(u => u.LockoutEnabled).IsModified = false;
+                entry.Property(u => u.LockoutEnd).IsModified = false;
+                entry.Property(u => u.AccessFailedCount).IsModified = false;
+                entry.Property(u => u.ConcurrencyStamp).IsModified = false;
+
+                await _dbContext.SaveChangesAsync(cancellationToken);
+
+                // Validação pós-sync: confirmar que campos de segurança críticos não mudaram
+                if (usuario.TwoFactorEnabled != twoFactorAntes
+                    || usuario.PasskeyReconfirmadoEm != passkeyReconfAntes)
                 {
                     throw new InvalidOperationException(
-                        $"Não foi possível atualizar usuário para {membro.EqpId}: {string.Join("; ", updateResult.Errors.Select(e => e.Description))}");
+                        $"Sync EQP alterou campo de segurança indevidamente para {membro.EqpId}. " +
+                        $"TwoFactor: {twoFactorAntes}->{usuario.TwoFactorEnabled}. " +
+                        $"PasskeyReconf: {passkeyReconfAntes}->{usuario.PasskeyReconfirmadoEm}. Abortando.");
                 }
 
                 response.UsuariosAtualizados++;

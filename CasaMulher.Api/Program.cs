@@ -66,6 +66,7 @@ var sqliteDatabasePath = isSqlite
     ? ResolverSqliteDatabasePath(connectionString, builder.Environment.ContentRootPath)
     : string.Empty;
 builder.Services.AddSingleton(new HmlDbStorageInfo(sqliteDatabasePath, isSqlite));
+builder.Services.AddSingleton<HmlDbSnapshotState>();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
@@ -259,6 +260,7 @@ builder.Services.AddHttpClient<IEquipeDbGitHubService, EquipeDbGitHubService>();
 builder.Services.AddHttpClient<GitHubPrivateFileService>();
 builder.Services.AddScoped<EquipeDbSyncService>();
 builder.Services.AddScoped<HmlDbSnapshotService>();
+builder.Services.AddScoped<SecuritySnapshotPersistenceService>();
 builder.Services.AddScoped<HomologacaoSeedService>();
 builder.Services.AddScoped<ContaEquipeSincronizadaService>();
 builder.Services.AddSingleton<GitHubPortalSessionStore>();
@@ -417,11 +419,22 @@ if (app.Environment.IsDevelopment() || app.Environment.IsStaging())
     {
         await using var restoreScope = app.Services.CreateAsyncScope();
         var snapshotService = restoreScope.ServiceProvider.GetRequiredService<HmlDbSnapshotService>();
+
+        // Log de diagnóstico antes do restore — sem expor valores dos tokens
+        var cfg = app.Configuration;
+        app.Logger.LogInformation(
+            "HML Snapshot PRÉ-RESTORE: ENABLED={Enabled} KEY_PRESENTE={Key} READ_TOKEN_PRESENTE={Read} WRITE_TOKEN_PRESENTE={Write} SQLITE_DB_PATH={DbPath}",
+            cfg.GetValue<bool>("HML_DB_SNAPSHOT_ENABLED"),
+            !string.IsNullOrWhiteSpace(cfg["HML_DB_SNAPSHOT_KEY"]),
+            !string.IsNullOrWhiteSpace(cfg["GITHUB_EQP_READ_TOKEN"]),
+            !string.IsNullOrWhiteSpace(cfg["GITHUB_EQP_WRITE_TOKEN"]),
+            cfg["SQLITE_DB_PATH"] ?? "(não definido — usando padrão do código)");
+
         await snapshotService.TryRestoreAtStartupAsync();
         var snapshotStatus = snapshotService.GetStatus();
         app.Logger.LogInformation(
-            "Persistência de homologação: solicitada={Enabled}; configurada={Configured}; caminho={Path}.",
-            snapshotStatus.EnabledRequested,
+            "HML Snapshot PÓS-RESTORE: restoreConfigurado={Configurado}; snapshotAtivo={Ativo}; caminho={Path}.",
+            snapshotService.RestoreConfigured,
             snapshotStatus.Configured,
             snapshotStatus.SnapshotPath);
     }
