@@ -2004,7 +2004,7 @@ body.soft-page {
 .coordenacao-sidebar-icon {
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: flex-end;
     color: #A26D85;
     width: 65px;
     height: 65px;
@@ -2012,9 +2012,10 @@ body.soft-page {
 }
 
 .coordenacao-sidebar-icon svg {
-    width: 28px;
-    height: 28px;
+    width: 48px;
+    height: 48px;
     fill: currentColor;
+    margin-bottom: -10px; /* Compensa o espaço vazio do viewBox do SVG para encostar os gráficos na borda de baixo */
 }
 
 .coordenacao-sidebar-content {
