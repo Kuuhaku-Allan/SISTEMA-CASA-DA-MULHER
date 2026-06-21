@@ -1966,18 +1966,94 @@ body.soft-page {
 }
 
 /* --- Coordenação: Recepção --- */
+.coordenacao-shell {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 24px 20px;
+}
+
+.coordenacao-sidebar {
+    width: 65px; /* Recolhida por padrão no desktop */
+    min-width: 65px;
+    background: rgba(255, 251, 253, 0.95);
+    border: 1px solid #F3D2DE;
+    border-radius: 22px;
+    padding: 20px 0;
+    box-shadow: 0 10px 22px rgba(190, 120, 150, 0.07);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    position: sticky;
+    top: 24px;
+    display: flex;
+    flex-direction: column;
+    z-index: 10;
+}
+
+.coordenacao-sidebar:hover,
+.coordenacao-sidebar:focus-within {
+    width: 280px;
+    min-width: 280px;
+    padding: 24px;
+    box-shadow: 0 20px 40px rgba(190, 120, 150, 0.15);
+}
+
+.coordenacao-sidebar-icon {
+    display: flex;
+    justify-content: center;
+    color: #A26D85;
+    margin-bottom: 20px;
+}
+
+.coordenacao-sidebar-icon svg {
+    width: 24px;
+    height: 24px;
+    fill: currentColor;
+}
+
+.coordenacao-sidebar-content {
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s;
+    width: 230px; /* Largura do conteúdo quando aberto */
+    display: none;
+}
+
+.coordenacao-sidebar:hover .coordenacao-sidebar-icon,
+.coordenacao-sidebar:focus-within .coordenacao-sidebar-icon {
+    display: none;
+}
+
+.coordenacao-sidebar:hover .coordenacao-sidebar-content,
+.coordenacao-sidebar:focus-within .coordenacao-sidebar-content {
+    display: block;
+    opacity: 1;
+    visibility: visible;
+    transition-delay: 0.1s;
+}
+
+.coordenacao-sidebar-title {
+    color: #8B586F;
+    font-size: 1.1rem;
+    font-weight: 800;
+    margin-bottom: 16px;
+    white-space: nowrap;
+}
+
 .coordenacao-indicadores-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
 }
 
 .coordenacao-indicador-card {
-    padding: 1rem 1.15rem;
-    border-radius: 22px;
-    background: rgba(255, 251, 253, 0.95);
-    border: 1px solid #F3D2DE;
-    box-shadow: 0 10px 22px rgba(190, 120, 150, 0.07);
+    padding: 0;
+    border: none;
+    background: transparent;
+    box-shadow: none;
+    border-radius: 0;
 }
 
 .coordenacao-indicador-label {
@@ -1994,13 +2070,28 @@ body.soft-page {
     margin-top: 0.25rem;
 }
 
-.coordenacao-pacientes-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 1rem;
+.coordenacao-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
 }
 
-.coordenacao-paciente-card {
+.coordenacao-search-bar {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.coordenacao-pacientes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 16px;
+}
+
+.coordenacao-perfil-card--compact {
     min-width: 0;
     padding: 1.1rem;
     border-radius: 22px;
@@ -2009,6 +2100,89 @@ body.soft-page {
     box-shadow: 0 12px 26px rgba(190, 120, 150, 0.08);
 }
 
-.coordenacao-paciente-card * {
+.coordenacao-perfil-card--compact * {
     overflow-wrap: anywhere;
+}
+
+.coordenacao-perfil-title {
+    font-weight: 800;
+    color: #8B586F;
+    font-size: 1.15rem;
+    margin-bottom: 0.35rem;
+}
+
+.coordenacao-perfil-line {
+    color: #A26D85;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.coordenacao-perfil-line strong {
+    color: #8B586F;
+}
+
+.coordenacao-perfil-info {
+    font-size: 0.9rem;
+    margin-bottom: 0.3rem;
+    color: #4A4A4A;
+}
+
+.coordenacao-perfil-info strong {
+    color: #8B586F;
+}
+
+.coordenacao-perfil-divider {
+    border: none;
+    border-top: 1px solid #F1C8D8;
+    margin: 0.75rem 0;
+}
+
+.coordenacao-perfil-footer {
+    font-size: 0.82rem;
+    color: #A26D85;
+}
+
+.coordenacao-perfil-footer strong {
+    color: #8B586F;
+}
+
+/* Fallback Mobile para Sidebar */
+@media (max-width: 768px) {
+    .coordenacao-shell {
+        flex-direction: column;
+    }
+    
+    .coordenacao-sidebar {
+        position: relative;
+        top: 0;
+        width: 100% !important;
+        min-width: 100%;
+        padding: 20px;
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+
+    .coordenacao-sidebar-icon {
+        display: none !important;
+    }
+
+    .coordenacao-sidebar-content {
+        display: block !important;
+        opacity: 1;
+        visibility: visible;
+        width: 100%;
+    }
+    
+    .coordenacao-indicadores-grid {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+    
+    .coordenacao-indicador-card {
+        flex: 1;
+        min-width: 140px;
+    }
 }
