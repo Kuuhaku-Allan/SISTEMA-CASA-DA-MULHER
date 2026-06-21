@@ -2012,11 +2012,11 @@ body.soft-page {
 }
 
 .coordenacao-sidebar-icon svg {
-    width: 36px;
-    height: 36px;
+    width: 80px;
+    height: 80px;
     fill: currentColor;
-    margin-bottom: -7px;
-    transform: translateX(-1px); /* Compensa a assimetria do desenho do SVG (as barras não são centralizadas nele) */
+    margin-bottom: -17px;
+    transform: translateX(-3.3px);
 }
 
 .coordenacao-sidebar-content {
