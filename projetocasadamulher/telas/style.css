@@ -2005,7 +2005,7 @@ body.soft-page {
     display: flex;
     justify-content: center;
     align-items: flex-end;
-    color: #C197AA; /* Cor mais suave e menos contrastante que o vinho original (#A26D85) */
+    color: #D194B1; /* Rosa com mais brilho/saturação para não parecer sujo/apagado */
     width: 48px;
     height: 48px;
     margin: 0;
