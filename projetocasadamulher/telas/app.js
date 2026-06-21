@@ -699,6 +699,10 @@ async function setupPainel() {
             linkRecepcao.classList.remove("hidden");
             if (usuario.perfil === "adm") {
                 linkRecepcao.href = "recepcao-coordenacao.html";
+                const subtitle = linkRecepcao.querySelector(".painel-action-card-subtitle");
+                if (subtitle) {
+                    subtitle.textContent = "Acompanhamento de acolhimentos";
+                }
             }
         }
     }
