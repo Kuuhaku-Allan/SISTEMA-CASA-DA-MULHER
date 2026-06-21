@@ -45,6 +45,7 @@ public class AuthController : ControllerBase
     private readonly IDataProtector _loginDoisFatoresProtector;
     private readonly IFido2 _fido2;
     private readonly WebAuthnEnvironmentInfo _webAuthn;
+    private readonly SecuritySnapshotPersistenceService _securitySnapshot;
 
     public AuthController(
         AppDbContext dbContext,
@@ -59,7 +60,8 @@ public class AuthController : ControllerBase
         IConfiguration configuration,
         IDataProtectionProvider dataProtectionProvider,
         IFido2 fido2,
-        WebAuthnEnvironmentInfo webAuthn)
+        WebAuthnEnvironmentInfo webAuthn,
+        SecuritySnapshotPersistenceService securitySnapshot)
     {
         _dbContext = dbContext;
         _userManager = userManager;
@@ -74,6 +76,7 @@ public class AuthController : ControllerBase
         _loginDoisFatoresProtector = dataProtectionProvider.CreateProtector("CasaMulher.LoginDoisFatores");
         _fido2 = fido2;
         _webAuthn = webAuthn;
+        _securitySnapshot = securitySnapshot;
     }
 
     [AllowAnonymous]
@@ -485,7 +488,7 @@ public class AuthController : ControllerBase
                     usuario.Id,
                     $"Login bloqueado temporariamente após falhas de 2FA para {usuario.IdentificadorFuncionario}.");
 
-                return Unauthorized(new { mensagem = "Acesso temporariamente bloqueado. Aguarde alguns minutos e tente novamente." });
+                return Unauthorized(new { mensagem = "Acesso temporariamente bloqueado por muitas tentativas. Aguarde alguns minutos ou solicite desbloqueio em homologação." });
             }
 
             await _auditoriaService.RegistrarAsync(
@@ -572,7 +575,50 @@ public class AuthController : ControllerBase
 
         await _userManager.SetTwoFactorEnabledAsync(usuario, true);
 
-        return Ok(new { mensagem = "Código de segurança ativado com sucesso." });
+        var snapshot = await _securitySnapshot.PersistAsync("security_2fa_enabled", HttpContext.RequestAborted);
+
+        return Ok(new
+        {
+            mensagem = "Código de segurança ativado com sucesso.",
+            snapshotPersistido = snapshot.SnapshotPersistido,
+            avisoSnapshot = snapshot.AvisoSnapshot
+        });
+    }
+
+    [Authorize]
+    [HttpPost("2fa/redefinir")]
+    public async Task<IActionResult> RedefinirDoisFatores()
+    {
+        var usuario = await ObterUsuarioAtual();
+
+        if (usuario is null)
+        {
+            return Unauthorized(new { mensagem = "Sessão expirada. Entre novamente." });
+        }
+
+        try 
+        {
+            await _auditoriaService.RegistrarAsync("2FA_RESET_SOLICITADO", "ApplicationUser", usuario.Id, $"2FA reset solicitado para {usuario.IdentificadorFuncionario}");
+
+            await _userManager.SetTwoFactorEnabledAsync(usuario, false);
+            await _userManager.ResetAuthenticatorKeyAsync(usuario);
+
+            var snapshot = await _securitySnapshot.PersistAsync("security_2fa_reset", HttpContext.RequestAborted);
+
+            await _auditoriaService.RegistrarAsync("2FA_RESET_CONCLUIDO", "ApplicationUser", usuario.Id, $"2FA reset concluído para {usuario.IdentificadorFuncionario}");
+
+            return Ok(new
+            {
+                mensagem = "Código de segurança redefinido. Configure o aplicativo novamente.",
+                requerConfiguracao = true,
+                snapshotPersistido = snapshot.SnapshotPersistido,
+                avisoSnapshot = snapshot.AvisoSnapshot
+            });
+        } 
+        catch 
+        {
+            return StatusCode(500, new { mensagem = "Erro interno ao redefinir o código de segurança." });
+        }
     }
 
     [Authorize]
@@ -588,13 +634,20 @@ public class AuthController : ControllerBase
 
         if (usuario.DoisFatoresObrigatorio)
         {
-            return BadRequest(new { mensagem = "O código de segurança é obrigatório para este perfil." });
+            return BadRequest(new { mensagem = "O código de segurança é obrigatório para este perfil. Se precisar trocar o aparelho, use a opção de Redefinir." });
         }
 
         await _userManager.SetTwoFactorEnabledAsync(usuario, false);
         await _userManager.ResetAuthenticatorKeyAsync(usuario);
 
-        return Ok(new { mensagem = "Código de segurança desativado." });
+        var snapshot = await _securitySnapshot.PersistAsync("security_2fa_disabled", HttpContext.RequestAborted);
+
+        return Ok(new
+        {
+            mensagem = "Código de segurança desativado.",
+            snapshotPersistido = snapshot.SnapshotPersistido,
+            avisoSnapshot = snapshot.AvisoSnapshot
+        });
     }
 
     [Authorize]
@@ -682,12 +735,15 @@ public class AuthController : ControllerBase
             usuario.Id,
             $"Solicitou confirmação de e-mail de recuperação para {MascararEmail(emailRecuperacao)}. Status do e-mail: {resultadoEmail.StatusEmail ?? "Não informado"}.");
 
-        return Ok(MapearEmailRecuperacaoResponse(
+        var snapshot = await _securitySnapshot.PersistAsync("security_recovery_email_changed", HttpContext.RequestAborted);
+
+        var payload = MapearEmailRecuperacaoResponse(
             usuario,
             resultadoEmail.EmailEnviado
                 ? "Enviamos um link de confirmação para o e-mail informado."
                 : resultadoEmail.AvisoEmail ?? "Não foi possível enviar o link de confirmação.",
-            resultadoEmail));
+            resultadoEmail);
+        return Ok(new { payload.Mensagem, payload.EmailRecuperacao, payload.EmailRecuperacaoConfirmado, payload.EmailRecuperacaoConfirmadoEm, payload.StatusEmail, payload.AvisoEmail, payload.LinkConfirmacaoDesenvolvimento, snapshotPersistido = snapshot.SnapshotPersistido, avisoSnapshot = snapshot.AvisoSnapshot });
     }
 
     [AllowAnonymous]
@@ -739,10 +795,13 @@ public class AuthController : ControllerBase
             usuario.Id,
             $"E-mail de recuperação confirmado para {usuario.IdentificadorFuncionario}.");
 
-        return Ok(MapearEmailRecuperacaoResponse(
+        var snapshot = await _securitySnapshot.PersistAsync("security_recovery_email_confirmed", HttpContext.RequestAborted);
+
+        var payload = MapearEmailRecuperacaoResponse(
             usuario,
             "E-mail de recuperação confirmado com sucesso.",
-            null));
+            null);
+        return Ok(new { payload.Mensagem, payload.EmailRecuperacao, payload.EmailRecuperacaoConfirmado, payload.EmailRecuperacaoConfirmadoEm, payload.StatusEmail, payload.AvisoEmail, payload.LinkConfirmacaoDesenvolvimento, snapshotPersistido = snapshot.SnapshotPersistido, avisoSnapshot = snapshot.AvisoSnapshot });
     }
 
     [Authorize]
@@ -772,7 +831,9 @@ public class AuthController : ControllerBase
             usuario.Id,
             $"Removeu o e-mail de recuperação de {usuario.IdentificadorFuncionario}.");
 
-        return Ok(new { mensagem = "E-mail de recuperação removido." });
+        var snapshot = await _securitySnapshot.PersistAsync("security_recovery_email_removed", HttpContext.RequestAborted);
+
+        return Ok(new { mensagem = "E-mail de recuperação removido.", snapshotPersistido = snapshot.SnapshotPersistido, avisoSnapshot = snapshot.AvisoSnapshot });
     }
 
     [Authorize]

@@ -113,6 +113,7 @@ public sealed class HomologacaoController : ControllerBase
     [AllowAnonymous]
     [HttpGet("owner-recovery/security-diagnostics")]
     public async Task<IActionResult> SecurityDiagnostics(
+        [FromQuery] string? identificador,
         [FromServices] Microsoft.AspNetCore.DataProtection.IDataProtectionProvider dataProtectionProvider,
         [FromServices] GitHubPortalSessionStore sessionStore,
         [FromServices] UserManager<ApplicationUser> userManager,
@@ -140,17 +141,20 @@ public sealed class HomologacaoController : ControllerBase
         if (!string.Equals(session.GitHubUsername, expectedOwner, StringComparison.OrdinalIgnoreCase))
             return StatusCode(StatusCodes.Status403Forbidden, new { mensagem = "Apenas o Owner do GitHub configurado pode executar esta ação." });
 
-        var eqpAlias = await dbContext.UserLoginIdentifiers.FirstOrDefaultAsync(u => u.Identificador == "EQP-000001");
-        var admAlias = await dbContext.UserLoginIdentifiers.FirstOrDefaultAsync(u => u.Identificador == "ADM-000003");
-
-        var mesmoUserId = eqpAlias?.UserId == admAlias?.UserId;
-        var usuario = eqpAlias != null ? await userManager.FindByIdAsync(eqpAlias.UserId) : null;
+        ApplicationUser? usuario = null;
+        string idfUsado = identificador ?? "EQP-000001";
+        
+        var aliasInfo = await dbContext.UserLoginIdentifiers.FirstOrDefaultAsync(u => u.Identificador == idfUsado);
+        if (aliasInfo != null)
+        {
+            usuario = await userManager.FindByIdAsync(aliasInfo.UserId);
+        }
 
         var snapshotStatus = snapshotService.GetStatus();
 
         if (usuario == null)
         {
-            return NotFound(new { mensagem = "Usuário Owner não encontrado no banco." });
+            return NotFound(new { mensagem = "Usuário não encontrado no banco." });
         }
 
         var authenticatorKey = await userManager.GetAuthenticatorKeyAsync(usuario);
@@ -166,12 +170,13 @@ public sealed class HomologacaoController : ControllerBase
 
         return Ok(new
         {
+            identificadorConsulta = idfUsado,
             userId = usuario.Id,
-            eqpId = "EQP-000001",
-            admId = "ADM-000003",
-            mesmoUserId,
             twoFactorEnabled = usuario.TwoFactorEnabled,
             authenticatorKeyExiste = !string.IsNullOrWhiteSpace(authenticatorKey),
+            accessFailedCount = await userManager.GetAccessFailedCountAsync(usuario),
+            lockoutEnd = await userManager.GetLockoutEndDateAsync(usuario),
+            serverTimeUtc = DateTimeOffset.UtcNow,
             recoveryCodesCount = recoveryCodes,
             passkeysCount = passkeys.Sum(p => p.Count),
             passkeysPorRpId = passkeys,
@@ -179,6 +184,105 @@ public sealed class HomologacaoController : ControllerBase
             email = usuario.Email,
             emailRecuperacao = usuario.EmailRecuperacao,
             snapshotAtivo = snapshotStatus.EnabledRequested && snapshotStatus.Configured
+        });
+    }
+
+    public class DesbloqueioRequest { public string Identificador { get; set; } = string.Empty; }
+
+    [AllowAnonymous]
+    [HttpPost("desbloquear-funcionario")]
+    public async Task<IActionResult> DesbloquearFuncionario(
+        [FromBody] DesbloqueioRequest req,
+        [FromServices] Microsoft.AspNetCore.DataProtection.IDataProtectionProvider dataProtectionProvider,
+        [FromServices] GitHubPortalSessionStore sessionStore,
+        [FromServices] UserManager<ApplicationUser> userManager,
+        [FromServices] AppDbContext dbContext,
+        [FromServices] AuditoriaService auditoriaService)
+    {
+        var env = HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>();
+        if (!env.IsDevelopment() && !env.IsStaging()) return NotFound();
+
+        var cookie = Request.Cookies[CasaMulher.Api.Middleware.RenderAccessGateMiddleware.AuthCookieName];
+        if (string.IsNullOrWhiteSpace(cookie)) return Unauthorized(new { mensagem = "Sessão do GitHub não encontrada." });
+
+        try
+        {
+            var protector = dataProtectionProvider.CreateProtector(CasaMulher.Api.Middleware.RenderAccessGateMiddleware.ProtectorPurpose);
+            var sessionId = protector.Unprotect(cookie);
+            if (!sessionStore.TryGet(sessionId, out var session) || session is null) return Unauthorized();
+            
+            var expectedOwner = HttpContext.RequestServices.GetRequiredService<IConfiguration>().GetValue("GitHub:OwnerLogin", HttpContext.RequestServices.GetRequiredService<IConfiguration>().GetValue("GITHUB_OWNER_LOGIN", "Kuuhaku-Allan"));
+            if (!string.Equals(session.GitHubUsername, expectedOwner, StringComparison.OrdinalIgnoreCase)) return StatusCode(403);
+        }
+        catch { return Unauthorized(); }
+
+        var aliasInfo = await dbContext.UserLoginIdentifiers.FirstOrDefaultAsync(u => u.Identificador == req.Identificador);
+        if (aliasInfo == null) return NotFound(new { mensagem = "Funcionário não encontrado." });
+        
+        var usuario = await userManager.FindByIdAsync(aliasInfo.UserId);
+        if (usuario == null) return NotFound();
+
+        await userManager.SetLockoutEndDateAsync(usuario, null);
+        await userManager.ResetAccessFailedCountAsync(usuario);
+
+        await auditoriaService.RegistrarAsync("SISTEMA_DESBLOQUEIO_HML", "ApplicationUser", usuario.Id, $"Conta desbloqueada via portal de homologação para {req.Identificador}.");
+
+        return Ok(new { mensagem = $"Conta {req.Identificador} desbloqueada com sucesso." });
+    }
+
+    public class DiagnosticoDoisFatoresRequest { public string Identificador { get; set; } = string.Empty; public string Codigo { get; set; } = string.Empty; }
+
+    [AllowAnonymous]
+    [HttpPost("diagnostico-2fa/verificar")]
+    public async Task<IActionResult> DiagnosticoDoisFatores(
+        [FromBody] DiagnosticoDoisFatoresRequest req,
+        [FromServices] Microsoft.AspNetCore.DataProtection.IDataProtectionProvider dataProtectionProvider,
+        [FromServices] GitHubPortalSessionStore sessionStore,
+        [FromServices] UserManager<ApplicationUser> userManager,
+        [FromServices] AppDbContext dbContext)
+    {
+        var env = HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>();
+        if (!env.IsDevelopment() && !env.IsStaging()) return NotFound();
+
+        var cookie = Request.Cookies[CasaMulher.Api.Middleware.RenderAccessGateMiddleware.AuthCookieName];
+        if (string.IsNullOrWhiteSpace(cookie)) return Unauthorized();
+
+        try
+        {
+            var protector = dataProtectionProvider.CreateProtector(CasaMulher.Api.Middleware.RenderAccessGateMiddleware.ProtectorPurpose);
+            var sessionId = protector.Unprotect(cookie);
+            if (!sessionStore.TryGet(sessionId, out var session) || session is null) return Unauthorized();
+            
+            var expectedOwner = HttpContext.RequestServices.GetRequiredService<IConfiguration>().GetValue("GitHub:OwnerLogin", HttpContext.RequestServices.GetRequiredService<IConfiguration>().GetValue("GITHUB_OWNER_LOGIN", "Kuuhaku-Allan"));
+            if (!string.Equals(session.GitHubUsername, expectedOwner, StringComparison.OrdinalIgnoreCase)) return StatusCode(403);
+        }
+        catch { return Unauthorized(); }
+
+        var aliasInfo = await dbContext.UserLoginIdentifiers.FirstOrDefaultAsync(u => u.Identificador == req.Identificador);
+        if (aliasInfo == null) return NotFound(new { mensagem = "Funcionário não encontrado." });
+        
+        var usuario = await userManager.FindByIdAsync(aliasInfo.UserId);
+        if (usuario == null) return NotFound();
+
+        var normalizedCode = req.Codigo?.Replace(" ", "")?.Replace("-", "")?.Trim() ?? string.Empty;
+        var authenticatorKey = await userManager.GetAuthenticatorKeyAsync(usuario);
+        
+        bool isCodeValid = false;
+        if (!string.IsNullOrWhiteSpace(normalizedCode) && !string.IsNullOrWhiteSpace(authenticatorKey))
+        {
+            isCodeValid = await userManager.VerifyTwoFactorTokenAsync(usuario, userManager.Options.Tokens.AuthenticatorTokenProvider, normalizedCode);
+        }
+
+        return Ok(new
+        {
+            identificador = req.Identificador,
+            twoFactorEnabled = usuario.TwoFactorEnabled,
+            authenticatorKeyExiste = !string.IsNullOrWhiteSpace(authenticatorKey),
+            codigoFormatoValido = normalizedCode.Length == 6 && normalizedCode.All(char.IsDigit),
+            codigoValido = isCodeValid,
+            accessFailedCount = await userManager.GetAccessFailedCountAsync(usuario),
+            lockoutEnd = await userManager.GetLockoutEndDateAsync(usuario),
+            serverTimeUtc = DateTimeOffset.UtcNow
         });
     }
 

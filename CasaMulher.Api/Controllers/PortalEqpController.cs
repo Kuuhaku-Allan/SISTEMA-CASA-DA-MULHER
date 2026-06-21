@@ -93,7 +93,7 @@ public class PortalEqpController : ControllerBase
         {
             ["client_id"] = ObterClientId(),
             ["redirect_uri"] = ObterCallbackUrl(),
-            ["scope"] = "read:org",
+            ["scope"] = "read:org user:email",
             ["state"] = state
         };
 
@@ -200,6 +200,21 @@ public class PortalEqpController : ControllerBase
         var document = arquivo.Document;
         var autorizado = await UsuarioAutorizadoAsync(ticket, document, cancellationToken);
         var membro = EncontrarMembroDoGitHub(document, ticket);
+        PortalEqpAccessRequestResponse? solicitacao = null;
+
+        if (!autorizado)
+        {
+            try
+            {
+                var requests = await _equipeDbService.LerSolicitacoesAcessoAsync(cancellationToken);
+                var request = EncontrarSolicitacao(requests.Document, ticket);
+                if (request is not null) solicitacao = MapearSolicitacao(request);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Não foi possível consultar a solicitação de acesso de {GitHub}.", ticket.GitHubUsername);
+            }
+        }
 
         return Ok(new PortalEqpMeResponse
         {
@@ -211,9 +226,113 @@ public class PortalEqpController : ControllerBase
             EhOwner = EhOwner(ticket, document),
             EhMembro = membro is not null,
             SessionExpiresAt = ticket.EmitidoEm.Add(AuthCookieLifetime),
-            Membro = membro is null ? null : MapearMembro(membro)
+            Membro = membro is null ? null : MapearMembro(membro),
+            SolicitacaoAcesso = solicitacao
         });
     }
+
+    [AllowAnonymous]
+    [EnableRateLimiting("rate-equipe-ativacao")]
+    [HttpPost("acesso/solicitar")]
+    public async Task<ActionResult<PortalEqpAccessRequestResponse>> SolicitarAcesso(CancellationToken cancellationToken)
+    {
+        var ticket = ObterTicket();
+        if (ticket is null) return Unauthorized(new { mensagem = "Entre com GitHub para solicitar acesso." });
+
+        var equipe = await _equipeDbService.LerAsync(cancellationToken);
+        var diagnostico = await ObterGitHubDiagnosticoAsync(ticket, equipe.Document, cancellationToken);
+        if (diagnostico.Autorizado)
+        {
+            return Ok(new { mensagem = "Seu GitHub já está autorizado. Recarregue a página." });
+        }
+
+        for (var tentativa = 0; tentativa < 3; tentativa++)
+        {
+            var arquivo = await _equipeDbService.LerSolicitacoesAcessoAsync(cancellationToken);
+            var request = EncontrarSolicitacao(arquivo.Document, ticket);
+            var agora = DateTime.UtcNow;
+
+            if (request is null || request.Status is EquipeAccessRequestStatus.Approved or EquipeAccessRequestStatus.Denied or EquipeAccessRequestStatus.Ignored)
+            {
+                request = new EquipeAccessRequest
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    GitHubId = ticket.GitHubId,
+                    GitHubUsername = ticket.GitHubUsername,
+                    RequestedAt = agora
+                };
+                arquivo.Document.Requests.Add(request);
+            }
+
+            AtualizarSolicitacaoComDiagnostico(request, diagnostico, agora);
+            request.Status = EquipeAccessRequestStatus.Pending;
+            request.DecidedAt = null;
+            request.DecidedByGitHub = null;
+            request.DecisionReason = null;
+
+            try
+            {
+                await _equipeDbService.SalvarSolicitacoesAcessoAsync(
+                    arquivo.Document,
+                    arquivo.Sha,
+                    $"Registra solicitação de acesso de @{ticket.GitHubUsername}",
+                    cancellationToken);
+
+                await RegistrarEventoAsync(new EquipeDbEvent
+                {
+                    Timestamp = agora,
+                    Tipo = "acesso_solicitado",
+                    EqpId = $"ACCESS-{request.Id[..8]}",
+                    GitHubId = ticket.GitHubId,
+                    GitHubUsername = ticket.GitHubUsername,
+                    Descricao = $"@{ticket.GitHubUsername} solicitou acesso ao Portal EQP."
+                }, $"Audita solicitação de @{ticket.GitHubUsername}", cancellationToken);
+
+                return Ok(MapearSolicitacao(request));
+            }
+            catch (EquipeDbGitHubException ex) when (ex.StatusCode == 409 && tentativa < 2)
+            {
+                _logger.LogInformation("Conflito ao registrar solicitação; tentando novamente.");
+            }
+        }
+
+        return StatusCode(StatusCodes.Status409Conflict, new { mensagem = "A lista de solicitações mudou agora. Tente novamente." });
+    }
+
+    [AllowAnonymous]
+    [HttpGet("admin/solicitacoes-acesso")]
+    public async Task<ActionResult<IReadOnlyCollection<PortalEqpAccessRequestResponse>>> ListarSolicitacoesAcesso(CancellationToken cancellationToken)
+    {
+        var acesso = await ObterAcessoOwnerAsync(cancellationToken);
+        if (acesso.Result is not null) return acesso.Result;
+
+        var arquivo = await _equipeDbService.LerSolicitacoesAcessoAsync(cancellationToken);
+        return Ok(arquivo.Document.Requests
+            .OrderBy(request => request.Status == EquipeAccessRequestStatus.Pending ? 0 : 1)
+            .ThenByDescending(request => request.LastSeenAt)
+            .Select(MapearSolicitacao)
+            .ToList());
+    }
+
+    [AllowAnonymous]
+    [HttpPost("admin/solicitacoes-acesso/{id}/aprovar")]
+    public Task<IActionResult> AprovarSolicitacaoAcesso(string id, PortalEqpAccessRequestDecisionRequest request, CancellationToken cancellationToken) =>
+        DecidirSolicitacaoAcessoAsync(id, EquipeAccessRequestStatus.Approved, request.Motivo, cancellationToken);
+
+    [AllowAnonymous]
+    [HttpPost("admin/solicitacoes-acesso/{id}/negar")]
+    public Task<IActionResult> NegarSolicitacaoAcesso(string id, PortalEqpAccessRequestDecisionRequest request, CancellationToken cancellationToken) =>
+        DecidirSolicitacaoAcessoAsync(id, EquipeAccessRequestStatus.Denied, request.Motivo, cancellationToken);
+
+    [AllowAnonymous]
+    [HttpPost("admin/solicitacoes-acesso/{id}/pedir-reauthorizacao")]
+    public Task<IActionResult> PedirReautorizacaoSolicitacaoAcesso(string id, PortalEqpAccessRequestDecisionRequest request, CancellationToken cancellationToken) =>
+        DecidirSolicitacaoAcessoAsync(id, EquipeAccessRequestStatus.ReauthorizationRequested, request.Motivo, cancellationToken);
+
+    [AllowAnonymous]
+    [HttpPost("admin/solicitacoes-acesso/{id}/ignorar")]
+    public Task<IActionResult> IgnorarSolicitacaoAcesso(string id, PortalEqpAccessRequestDecisionRequest request, CancellationToken cancellationToken) =>
+        DecidirSolicitacaoAcessoAsync(id, EquipeAccessRequestStatus.Ignored, request.Motivo, cancellationToken);
 
     [AllowAnonymous]
     [HttpGet("convites-disponiveis")]
@@ -586,6 +705,88 @@ public class PortalEqpController : ControllerBase
         return (null, ticket, arquivo.Document);
     }
 
+    private async Task<IActionResult> DecidirSolicitacaoAcessoAsync(
+        string id,
+        string status,
+        string? motivo,
+        CancellationToken cancellationToken)
+    {
+        var acesso = await ObterAcessoOwnerAsync(cancellationToken);
+        if (acesso.Result is not null) return acesso.Result;
+
+        for (var tentativa = 0; tentativa < 3; tentativa++)
+        {
+            var arquivo = await _equipeDbService.LerSolicitacoesAcessoAsync(cancellationToken);
+            var request = arquivo.Document.Requests.FirstOrDefault(item =>
+                string.Equals(item.Id, id, StringComparison.OrdinalIgnoreCase));
+            if (request is null) return NotFound(new { mensagem = "Solicitação não encontrada." });
+
+            if (status == EquipeAccessRequestStatus.Approved)
+            {
+                var allowlistResult = await AdicionarNaAllowlistAsync(request.GitHubUsername, cancellationToken);
+                if (allowlistResult is not null) return allowlistResult;
+            }
+
+            request.Status = status;
+            request.DecidedAt = DateTime.UtcNow;
+            request.DecidedByGitHub = acesso.Ticket!.GitHubUsername;
+            request.DecisionReason = string.IsNullOrWhiteSpace(motivo) ? null : motivo.Trim();
+
+            try
+            {
+                await _equipeDbService.SalvarSolicitacoesAcessoAsync(
+                    arquivo.Document,
+                    arquivo.Sha,
+                    $"Atualiza solicitação de @{request.GitHubUsername}: {status}",
+                    cancellationToken);
+
+                await RegistrarEventoAsync(new EquipeDbEvent
+                {
+                    Timestamp = DateTime.UtcNow,
+                    Tipo = $"acesso_{status}",
+                    EqpId = $"ACCESS-{request.Id[..8]}",
+                    GitHubId = request.GitHubId,
+                    GitHubUsername = request.GitHubUsername,
+                    Descricao = $"Owner @{acesso.Ticket.GitHubUsername} definiu a solicitação de @{request.GitHubUsername} como {status}."
+                }, $"Audita decisão de acesso de @{request.GitHubUsername}", cancellationToken);
+
+                return Ok(MapearSolicitacao(request));
+            }
+            catch (EquipeDbGitHubException ex) when (ex.StatusCode == 409 && tentativa < 2)
+            {
+                _logger.LogInformation("Conflito ao decidir solicitação; tentando novamente.");
+            }
+        }
+
+        return StatusCode(StatusCodes.Status409Conflict, new { mensagem = "A solicitação mudou agora. Tente novamente." });
+    }
+
+    private async Task<IActionResult?> AdicionarNaAllowlistAsync(string githubUsername, CancellationToken cancellationToken)
+    {
+        for (var tentativa = 0; tentativa < 3; tentativa++)
+        {
+            var arquivo = await _equipeDbService.LerAsync(cancellationToken);
+            if (arquivo.Document.AllowlistGitHub.Contains(githubUsername, StringComparer.OrdinalIgnoreCase)) return null;
+
+            arquivo.Document.AllowlistGitHub.Add(githubUsername.Trim());
+            try
+            {
+                await _equipeDbService.SalvarAsync(
+                    arquivo.Document,
+                    arquivo.Sha,
+                    $"Aprova acesso GitHub de @{githubUsername}",
+                    cancellationToken);
+                return null;
+            }
+            catch (EquipeDbGitHubException ex) when (ex.StatusCode == 409 && tentativa < 2)
+            {
+                _logger.LogInformation("Conflito ao atualizar allowlist; tentando novamente.");
+            }
+        }
+
+        return StatusCode(StatusCodes.Status409Conflict, new { mensagem = "A allowlist mudou agora. Tente novamente." });
+    }
+
     private async Task<ActionResult?> ValidarSenhaAsync(string nome, string username, string senha)
     {
         var usuario = CriarUsuarioParaHash(nome, username);
@@ -702,11 +903,7 @@ public class PortalEqpController : ControllerBase
         diagnostico.EstaEmMembrosEqp = document.Membros
             .Any(m => string.Equals(m.GitHubUsername, ticket.GitHubUsername, StringComparison.OrdinalIgnoreCase));
 
-        if (diagnostico.EhOwner || diagnostico.EstaNaAllowlist || diagnostico.EstaEmMembrosEqp)
-        {
-            diagnostico.Autorizado = true;
-            return diagnostico;
-        }
+        diagnostico.Autorizado = diagnostico.EhOwner || diagnostico.EstaNaAllowlist || diagnostico.EstaEmMembrosEqp;
 
         if (string.IsNullOrWhiteSpace(ticket.AccessToken) || string.IsNullOrWhiteSpace(diagnostico.OrgConfigurada))
         {
@@ -718,11 +915,32 @@ public class PortalEqpController : ControllerBase
         
         using var userRequest = CriarGitHubRequest(HttpMethod.Get, "https://api.github.com/user", ticket.AccessToken);
         using var userResponse = await client.SendAsync(userRequest, cancellationToken);
+        if (userResponse.IsSuccessStatusCode)
+        {
+            var profile = await userResponse.Content.ReadFromJsonAsync<GitHubUserResponse>(JsonOptions, cancellationToken);
+            diagnostico.PublicEmail = profile?.Email;
+        }
         if (userResponse.Headers.TryGetValues("X-OAuth-Scopes", out var scopesValues))
         {
             var scopes = string.Join(",", scopesValues).Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
             diagnostico.ScopesDetectados.AddRange(scopes);
-            diagnostico.ReadOrgPresente = diagnostico.ScopesDetectados.Contains("read:org");
+            diagnostico.ReadOrgPresente = diagnostico.ScopesDetectados.Contains("read:org", StringComparer.OrdinalIgnoreCase);
+            diagnostico.UserEmailScopePresente = diagnostico.ScopesDetectados.Contains("user:email", StringComparer.OrdinalIgnoreCase);
+        }
+
+        if (diagnostico.UserEmailScopePresente)
+        {
+            using var emailsRequest = CriarGitHubRequest(HttpMethod.Get, "https://api.github.com/user/emails", ticket.AccessToken);
+            using var emailsResponse = await client.SendAsync(emailsRequest, cancellationToken);
+            if (emailsResponse.IsSuccessStatusCode)
+            {
+                var emails = await emailsResponse.Content.ReadFromJsonAsync<List<GitHubEmailResponse>>(JsonOptions, cancellationToken) ?? [];
+                diagnostico.PrimaryVerifiedEmail = emails
+                    .Where(email => email.Verified)
+                    .OrderByDescending(email => email.Primary)
+                    .Select(email => email.Email)
+                    .FirstOrDefault(email => !string.IsNullOrWhiteSpace(email));
+            }
         }
 
         var membershipUrl = $"https://api.github.com/user/memberships/orgs/{Uri.EscapeDataString(diagnostico.OrgConfigurada)}";
@@ -730,7 +948,15 @@ public class PortalEqpController : ControllerBase
         using (var response = await client.SendAsync(request, cancellationToken))
         {
             diagnostico.OrgMembershipVerificado = true;
-            diagnostico.OrgMembership = response.IsSuccessStatusCode;
+            if (response.IsSuccessStatusCode)
+            {
+                var membership = await response.Content.ReadFromJsonAsync<GitHubMembershipResponse>(JsonOptions, cancellationToken);
+                diagnostico.OrgMembership = string.Equals(membership?.State, "active", StringComparison.OrdinalIgnoreCase);
+            }
+            else
+            {
+                diagnostico.OrgMembership = false;
+            }
         }
 
         if (diagnostico.OrgMembership != true)
@@ -929,6 +1155,37 @@ public class PortalEqpController : ControllerBase
             ));
     }
 
+    private static EquipeAccessRequest? EncontrarSolicitacao(
+        EquipeAccessRequestsDocument document,
+        GitHubPortalTicket ticket)
+    {
+        return document.Requests
+            .Where(request => string.Equals(request.GitHubId, ticket.GitHubId, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(request.GitHubUsername, ticket.GitHubUsername, StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(request => request.LastSeenAt)
+            .FirstOrDefault();
+    }
+
+    private static void AtualizarSolicitacaoComDiagnostico(
+        EquipeAccessRequest request,
+        GitHubDiagnostico diagnostico,
+        DateTime agora)
+    {
+        request.GitHubUsername = diagnostico.GitHubUsername;
+        request.PrimaryVerifiedEmail = diagnostico.PrimaryVerifiedEmail;
+        request.PublicEmail = diagnostico.PublicEmail;
+        request.Org = diagnostico.OrgConfigurada;
+        request.TeamSlug = diagnostico.TeamSlugConfigurado;
+        request.OrgMembership = diagnostico.OrgMembership;
+        request.TeamMembership = diagnostico.TeamMembership;
+        request.ReadOrgPresente = diagnostico.ReadOrgPresente;
+        request.UserEmailScopePresente = diagnostico.UserEmailScopePresente;
+        request.LastSeenAt = agora;
+        request.Motivo = string.IsNullOrWhiteSpace(diagnostico.MotivoNegacao)
+            ? "Usuário autenticado, mas não encontrado na allowlist/equipe-db."
+            : diagnostico.MotivoNegacao;
+    }
+
     private static bool ConvitePodeAparecerParaUsuario(EquipeDbConvite convite, string username)
     {
         if (string.Equals(convite.Status, EquipeDbStatusConvite.Disponivel, StringComparison.OrdinalIgnoreCase)
@@ -1024,6 +1281,31 @@ public class PortalEqpController : ControllerBase
         };
     }
 
+    private static PortalEqpAccessRequestResponse MapearSolicitacao(EquipeAccessRequest request)
+    {
+        return new PortalEqpAccessRequestResponse
+        {
+            Id = request.Id,
+            GitHubUsername = request.GitHubUsername,
+            GitHubId = request.GitHubId,
+            PrimaryVerifiedEmail = request.PrimaryVerifiedEmail,
+            PublicEmail = request.PublicEmail,
+            Org = request.Org,
+            TeamSlug = request.TeamSlug,
+            OrgMembership = request.OrgMembership,
+            TeamMembership = request.TeamMembership,
+            ReadOrgPresente = request.ReadOrgPresente,
+            UserEmailScopePresente = request.UserEmailScopePresente,
+            Status = request.Status,
+            RequestedAt = request.RequestedAt,
+            LastSeenAt = request.LastSeenAt,
+            Motivo = request.Motivo,
+            DecidedAt = request.DecidedAt,
+            DecidedByGitHub = request.DecidedByGitHub,
+            DecisionReason = request.DecisionReason
+        };
+    }
+
     private static string NormalizarId(string value)
     {
         return value.Trim().ToUpperInvariant();
@@ -1063,5 +1345,26 @@ public class PortalEqpController : ControllerBase
 
         [JsonPropertyName("login")]
         public string Login { get; set; } = string.Empty;
+
+        [JsonPropertyName("email")]
+        public string? Email { get; set; }
+    }
+
+    private sealed class GitHubEmailResponse
+    {
+        [JsonPropertyName("email")]
+        public string Email { get; set; } = string.Empty;
+
+        [JsonPropertyName("primary")]
+        public bool Primary { get; set; }
+
+        [JsonPropertyName("verified")]
+        public bool Verified { get; set; }
+    }
+
+    private sealed class GitHubMembershipResponse
+    {
+        [JsonPropertyName("state")]
+        public string State { get; set; } = string.Empty;
     }
 }

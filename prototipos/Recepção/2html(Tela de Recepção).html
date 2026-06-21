@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<title>Casa da Mulher de Itaquaquecetuba | Acolhimento e Gestão</title>
+
+<style>
+
+/* ========== RESET + VARIÁVEIS ========== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: system-ui, 'Segoe UI', 'Inter', 'Arial', sans-serif;
+}
+
+body {
+    background: linear-gradient(145deg, #FDF4F8 0%, #F9E9F2 100%);
+    min-height: 100vh;
+    padding: 24px 20px;
+}
+
+.app {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* ========== HEADER SUAVE E ACOLHEDOR ========== */
+.header {
+    background: rgba(255, 251, 253, 0.96);
+    backdrop-filter: blur(2px);
+    border-radius: 2rem;
+    padding: 1.25rem 2rem;
+    margin-bottom: 1.8rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    box-shadow: 0 12px 28px rgba(190, 120, 150, 0.08);
+    border: 1px solid rgba(245, 210, 225, 0.6);
+}
+
+.logo h1 {
+    background: linear-gradient(120deg, #B5838D, #9E6B7C);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    font-size: 1.75rem;
+    letter-spacing: -0.3px;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.logo p {
+    color: #A8889A;
+    font-weight: 500;
+    font-size: 0.85rem;
+}
+
+.date-time {
+    background: #FFF9FC;
+    padding: 0.6rem 1.2rem;
+    border-radius: 3rem;
+    text-align: right;
+    box-shadow: inset 0 1px 3px #FFEFF5, 0 4px 8px rgba(0,0,0,0.02);
+}
+
+#currentDate {
+    font-weight: 600;
+    color: #8B6C7E;
+    font-size: 0.9rem;
+}
+
+#currentTime {
+    font-size: 1.7rem;
+    font-weight: 700;
+    color: #C28B9E;
+    letter-spacing: 1px;
+    line-height: 1.2;
+}
+
+/* ========== NAV TABS PASTEL ========== */
+.nav-tabs {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 28px;
+}
+
+.tab-btn {
+    background: #FFFBFD;
+    border: none;
+    padding: 12px 28px;
+    border-radius: 60px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    box-shadow: 0 2px 6px rgba(160, 100, 120, 0.05);
+    color: #A57489;
+}
+
+.tab-btn:hover {
+    transform: translateY(-2px);
+    background: #FFF0F7;
+    box-shadow: 0 8px 18px rgba(180, 110, 140, 0.12);
+}
+
+.tab-btn.active {
+    background: #E7B4C5;
+    color: white;
+    box-shadow: 0 10px 18px rgba(215, 140, 165, 0.25);
+}
+
+/* ========== CONTEÚDO ========== */
+.tab-content {
+    display: none;
+    animation: fadeIn 0.25s ease;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px);}
+    to { opacity: 1; transform: translateY(0);}
+}
+
+/* ========== CARDS SUAVES ========== */
+.card {
+    background: rgba(255, 250, 252, 0.98);
+    border-radius: 1.8rem;
+    padding: 1.8rem;
+    margin-bottom: 1.8rem;
+    box-shadow: 0 12px 28px rgba(140, 90, 110, 0.06);
+    border: 1px solid #FDE8F0;
+}
+
+.card-title {
+    font-size: 1.6rem;
+    font-weight: 700;
+    background: linear-gradient(130deg, #8F6C7E, #C28FA8);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    margin-bottom: 1.4rem;
+    border-left: 5px solid #E7BBCB;
+    padding-left: 18px;
+}
+
+/* ========== DASHBOARD STATS ========== */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.6rem;
+    margin-top: 0.5rem;
+}
+
+.stat-box {
+    background: linear-gradient(125deg, #FEF1F7, #FDE9F2);
+    border-radius: 2rem;
+    padding: 1.8rem;
+    text-align: center;
+    transition: transform 0.2s;
+    box-shadow: 0 8px 16px rgba(140, 90, 110, 0.05);
+    border: 1px solid #FFF0F5;
+}
+
+.stat-box:hover {
+    transform: scale(1.02);
+    background: #FFFAFD;
+}
+
+.stat-number {
+    font-size: 3rem;
+    font-weight: 800;
+    color: #C48BA5;
+    line-height: 1;
+}
+
+.stat-label {
+    font-weight: 600;
+    color: #9B7588;
+    margin-top: 12px;
+    font-size: 1rem;
+    letter-spacing: 0.5px;
+}
+
+/* ========== FORMULÁRIO ========== */
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.3rem;
+    margin-bottom: 1.5rem;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+label {
+    font-weight: 700;
+    color: #AD859B;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+input, textarea, select {
+    border: 2px solid #F5E2EC;
+    border-radius: 1.2rem;
+    padding: 12px 14px;
+    font-size: 0.95rem;
+    background: white;
+    transition: all 0.2s;
+}
+
+input:focus, select:focus, textarea:focus {
+    border-color: #E2B8CC;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(210, 140, 165, 0.15);
+}
+
+/* ========== BOTÕES ========== */
+.btn {
+    border: none;
+    border-radius: 2rem;
+    padding: 10px 22px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.2s;
+    font-size: 0.85rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-primary {
+    background: linear-gradient(95deg, #CFA5BB, #E1B6CB);
+    color: white;
+    box-shadow: 0 4px 10px rgba(185, 120, 145, 0.2);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.02);
+}
+
+.btn-warning {
+    background: #FCE3EF;
+    color: #B47B94;
+}
+
+.btn-danger {
+    background: #FFE3E8;
+    color: #C1738B;
+}
+
+.btn-group {
+    display: flex;
+    gap: 12px;
+    margin-top: 18px;
+    flex-wrap: wrap;
+}
+
+/* ========== SEARCH ========== */
+.search-bar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+}
+
+.search-bar input {
+    flex: 1;
+    background: #FFFBFD;
+}
+
+/* ========== GRADE DE PACIENTES ========== */
+.patients-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.6rem;
+}
+
+.patient-card {
+    background: #FFFFFFF2;
+    border-radius: 1.5rem;
+    padding: 1.4rem;
+    transition: all 0.2s;
+    border: 1px solid #FDE5F0;
+    box-shadow: 0 6px 12px rgba(0,0,0,0.02);
+}
+
+.patient-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 14px 26px rgba(160, 100, 120, 0.1);
+    border-color: #FAD0E2;
+}
+
+.patient-name {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #A26D85;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.patient-info {
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+    color: #95748A;
+    border-left: 3px solid #F5D4E5;
+    padding-left: 10px;
+}
+
+/* ========== ALERTAS ========== */
+.alert {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    padding: 14px 26px;
+    border-radius: 60px;
+    font-weight: 600;
+    z-index: 9999;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 12px 24px rgba(0,0,0,0.1);
+    animation: slideIn 0.25s ease;
+}
+
+.alert-success {
+    background: #D9F0E5;
+    color: #557C6B;
+    border-left: 6px solid #86C8A4;
+}
+
+.alert-error {
+    background: #FFE7EA;
+    color: #BC7A8A;
+}
+
+@keyframes slideIn {
+    from { transform: translateX(80px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+.loading {
+    text-align: center;
+    padding: 2rem;
+    color: #CA9AB0;
+    font-weight: 500;
+}
+
+/* ========== RESPONSIVO ========== */
+@media (max-width: 720px) {
+    .form-row {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    .header {
+        flex-direction: column;
+        text-align: center;
+    }
+    .date-time {
+        text-align: center;
+    }
+    .tab-btn {
+        padding: 8px 20px;
+    }
+    .stat-number {
+        font-size: 2.2rem;
+    }
+}
+
+/* detalhe floral decorativo */
+.welcome-note {
+    font-size: 0.75rem;
+    text-align: center;
+    margin-top: 10px;
+    color: #D7B2C2;
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+    <!-- HEADER COM NOME INSTITUCIONAL -->
+    <header class="header">
+        <div class="logo">
+            <h1> Casa da Mulher de Itaquaquecetuba</h1>
+            <p>Acolhimento, cuidado e autonomia · Gestão de atendimentos</p>
+        </div>
+        <div class="date-time">
+            <div id="currentDate"></div>
+            <div id="currentTime"></div>
+        </div>
+    </header>
+
+    <!-- MENU PRINCIPAL -->
+    <nav class="nav-tabs">
+        <button class="tab-btn active" data-tab="dashboard"> Painel de Apoio</button>
+        <button class="tab-btn" data-tab="patients"> Mulheres atendidas</button>
+        <button class="tab-btn" data-tab="register"> Novo acolhimento</button>
+    </nav>
+
+    <!-- DASHBOARD -->
+    <section id="dashboard" class="tab-content active">
+        <div class="card">
+            <h2 class="card-title"> Indicadores de acolhimento</h2>
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-number" id="totalPatients">0</div>
+                    <div class="stat-label">Mulheres acolhidas</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number" id="totalCourses">0</div>
+                    <div class="stat-label">Matriculadas em cursos</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number" id="activeEnrollments">0</div>
+                    <div class="stat-label">Cursos em andamento</div>
+                </div>
+            </div>
+            <div class="welcome-note">
+                💖 "Autonomia e sororidade – Cada História Importa"
+            </div>
+        </div>
+    </section>
+
+    <!-- PACIENTES (MULHERES) -->
+    <section id="patients" class="tab-content">
+        <div class="card">
+            <h2 class="card-title"> Mulheres atendidas</h2>
+            <div class="search-bar">
+                <input type="text" id="searchPatient" placeholder="🔍 Buscar por nome...">
+                <button class="btn btn-primary" onclick="searchPatients()">Buscar</button>
+                <button class="btn btn-warning" onclick="resetSearch()" style="background:#FCE7F0;">Mostrar todas</button>
+            </div>
+            <div id="patientsList" class="patients-grid"></div>
+        </div>
+    </section>
+
+    <!-- CADASTRO (ACOLHIMENTO) -->
+    <section id="register" class="tab-content">
+        <div class="card">
+            <h2 class="card-title"> Registro de acolhimento</h2>
+            <form id="patientForm">
+                <input type="hidden" id="patientId">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label> Nome completo *</label>
+                        <input type="text" id="nome" placeholder="Ex: Ana Maria da Silva" required>
+                    </div>
+                    <div class="form-group">
+                        <label> CPF *</label>
+                        <input type="text" id="cpf" placeholder="000.000.000-00" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label> Telefone *</label>
+                        <input type="tel" id="telefone" placeholder="(11) 99999-9999" required>
+                    </div>
+                    <div class="form-group">
+                        <label> Data de Nascimento</label>
+                        <input type="date" id="dataNascimento" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label> Endereço</label>
+                        <input type="text" id="endereco" placeholder="Rua, número, bairro - Itaquá">
+                    </div>
+                    <div class="form-group">
+                        <label> Atendida por</label>
+                        <input type="text" id="atendido" placeholder="Equipe / Profissional">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label> Curso / Oficina</label>
+                        <select id="curso">
+                            <option value="">-- Selecione um curso --</option>
+                            <option value="Informática"> Informática e Inclusão Digital</option>
+                            <option value="Culinaria"> Culinária e Autonomia</option>
+                            <option value="Estetica"> Estética e Autoestima</option>
+                            <option value="Primeiros Socorros"> Primeiros Socorros</option>
+                            <option value="Dança"> Dança Circular</option>
+                            <option value="Pilates"> Pilates e Bem-estar</option>
+                            <option value="Empoderamento"> Empoderamento Feminino</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label> E-mail</label>
+                        <input type="email" id="email" placeholder="contato@email.com">
+                    </div>
+                </div>
+                <div style="display: flex; gap: 15px; justify-content: flex-end; margin-top: 18px;">
+                    <button type="button" class="btn btn-warning" onclick="resetForm()">Limpar campos</button>
+                    <button type="submit" class="btn btn-primary"> Salvar acolhimento</button>
+                </div>
+            </form>
+        </div>
+    </section>
+</div>
+
+<script>
+    // ---------- BASE DE DADOS ----------
+    let patients = [];
+
+    // ---------- INICIALIZAÇÃO ----------
+    function init() {
+        updateDateTime();
+        setInterval(updateDateTime, 1000);
+        loadData();
+        attachFormListener();
+        updateDashboard();
+        displayPatients();
+        attachMasks();
+    }
+
+    function updateDateTime() {
+        const now = new Date();
+        document.getElementById("currentDate").innerHTML = now.toLocaleDateString("pt-BR", {
+            weekday: 'long', day: '2-digit', month: 'long', year: 'numeric'
+        });
+        document.getElementById("currentTime").innerHTML = now.toLocaleTimeString("pt-BR");
+    }
+
+    function loadData() {
+        const stored = localStorage.getItem("casamulher_itaqua");
+        if(stored) {
+            patients = JSON.parse(stored);
+        } else {
+            patients = [];
+        }
+    }
+
+    function saveToLocal() {
+        localStorage.setItem("casamulher_itaqua", JSON.stringify(patients));
+    }
+
+    function attachFormListener() {
+        const form = document.getElementById("patientForm");
+        if(form) form.addEventListener("submit", savePatient);
+    }
+
+    function attachMasks() {
+        const cpfInput = document.getElementById("cpf");
+        const phoneInput = document.getElementById("telefone");
+        if(cpfInput) cpfInput.addEventListener("input", maskCPF);
+        if(phoneInput) phoneInput.addEventListener("input", maskPhone);
+    }
+
+    function maskCPF(e) {
+        let value = e.target.value.replace(/\D/g, '');
+        if(value.length > 11) value = value.slice(0,11);
+        if(value.length >= 4) value = value.replace(/^(\d{3})(\d)/, '$1.$2');
+        if(value.length >= 7) value = value.replace(/(\d{3})(\d{1,3})/, '$1.$2');
+        if(value.length >= 10) value = value.replace(/(\d{3})(\d{2})$/, '$1-$2');
+        e.target.value = value;
+    }
+
+    function maskPhone(e) {
+        let value = e.target.value.replace(/\D/g,'');
+        if(value.length > 11) value = value.slice(0,11);
+        if(value.length >= 2) value = value.replace(/^(\d{2})(\d)/, '($1) $2');
+        if(value.length >= 8) value = value.replace(/(\d{5})(\d{4})/, '$1-$2');
+        e.target.value = value;
+    }
+
+    function savePatient(event) {
+        event.preventDefault();
+
+        const id = document.getElementById("patientId").value;
+        const nome = document.getElementById("nome").value.trim();
+        const cpfRaw = document.getElementById("cpf").value.trim();
+        const telefone = document.getElementById("telefone").value.trim();
+        const dataNascimento = document.getElementById("dataNascimento").value;
+        const curso = document.getElementById("curso").value;
+        const email = document.getElementById("email").value.trim();
+        const endereco = document.getElementById("endereco").value.trim();
+        const atendido = document.getElementById("atendido").value.trim();
+
+        if(!nome) { showAlert(" Por favor, informe o nome completo", "error"); return; }
+        if(!cpfRaw) { showAlert("CPF é necessário para o cadastro", "error"); return; }
+        if(!telefone) { showAlert("Telefone para contato é obrigatório", "error"); return; }
+        if(!dataNascimento) { showAlert("Data de nascimento é essencial", "error"); return; }
+
+        const cpfClean = cpfRaw.replace(/\D/g,'');
+        const existingPatient = patients.find(p => p.cpfClean === cpfClean && (!id || p.id != id));
+        if(existingPatient) {
+            showAlert("⚠️ Já existe um cadastro com este CPF na Casa da Mulher!", "error");
+            return;
+        }
+
+        const patientData = {
+            id: id ? parseInt(id) : Date.now(),
+            nome: nome,
+            cpf: cpfRaw,
+            cpfClean: cpfClean,
+            telefone: telefone,
+            dataNascimento: dataNascimento,
+            curso: curso,
+            email: email || "",
+            endereco: endereco || "",
+            atendido: atendido || "",
+        };
+
+        if(id) {
+            const index = patients.findIndex(p => p.id == id);
+            if(index !== -1) patients[index] = patientData;
+            showAlert(" Dados atualizados com carinho!", "success");
+        } else {
+            patients.push(patientData);
+            showAlert("✅ Novo acolhimento registrado! Bem-vinda à nossa rede.", "success");
+        }
+
+        saveToLocal();
+        displayPatients();
+        updateDashboard();
+        resetForm();
+
+        const patientsTabBtn = document.querySelectorAll(".tab-btn")[1];
+        if(patientsTabBtn) showTab('patients', patientsTabBtn);
+    }
+
+    function displayPatients(searchTerm = "") {
+        const container = document.getElementById("patientsList");
+        if(!container) return;
+
+        let filtered = [...patients];
+        if(searchTerm && searchTerm.trim() !== "") {
+            filtered = patients.filter(p => p.nome.toLowerCase().includes(searchTerm.toLowerCase()));
+        }
+
+        if(filtered.length === 0) {
+            container.innerHTML = `<div class="loading"> Nenhuma mulher cadastrada. Clique em "Novo acolhimento" para incluir.</div>`;
+            return;
+        }
+
+        container.innerHTML = filtered.map(patient => `
+            <div class="patient-card">
+                <div class="patient-name"> ${escapeHtml(patient.nome)}</div>
+                <div class="patient-info"> CPF: ${patient.cpf || '---'}</div>
+                <div class="patient-info"> Telefone: ${patient.telefone}</div>
+                <div class="patient-info"> Nascimento: ${formatDate(patient.dataNascimento)}</div>
+                <div class="patient-info"> Curso: ${patient.curso || 'A definir'}</div>
+                <div class="patient-info"> Email: ${patient.email || '-'}</div>
+                ${patient.endereco ? `<div class="patient-info"> Endereço: ${escapeHtml(patient.endereco)}</div>` : ''}
+                ${patient.atendido ? `<div class="patient-info"> Atendida por: ${escapeHtml(patient.atendido)}</div>` : ''}
+                <div class="btn-group">
+                    <button class="btn btn-warning" onclick="editPatient(${patient.id})"> Editar</button>
+                    <button class="btn btn-danger" onclick="deletePatient(${patient.id})"> Remover</button>
+                </div>
+            </div>
+        `).join("");
+    }
+
+    function escapeHtml(str) {
+        if(!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if(m === '&') return '&amp;';
+            if(m === '<') return '&lt;';
+            if(m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    function formatDate(dateString) {
+        if(!dateString) return '—';
+        const [year, month, day] = dateString.split('-');
+        if(!year || !month || !day) return dateString;
+        return `${day}/${month}/${year}`;
+    }
+
+    function editPatient(id) {
+        const patient = patients.find(p => p.id == id);
+        if(!patient) return;
+
+        document.getElementById("patientId").value = patient.id;
+        document.getElementById("nome").value = patient.nome;
+        document.getElementById("cpf").value = patient.cpf;
+        document.getElementById("telefone").value = patient.telefone;
+        document.getElementById("dataNascimento").value = patient.dataNascimento;
+        document.getElementById("curso").value = patient.curso || "";
+        document.getElementById("email").value = patient.email || "";
+        document.getElementById("endereco").value = patient.endereco || "";
+        document.getElementById("atendido").value = patient.atendido || "";
+
+        const registerBtn = document.querySelectorAll(".tab-btn")[2];
+        if(registerBtn) showTab('register', registerBtn);
+        showAlert(" Editando informações. Altere e salve.", "success");
+    }
+
+    function deletePatient(id) {
+        const confirmar = confirm("Tem certeza que deseja excluir este registro? Essa ação é irreversível.");
+        if(!confirmar) return;
+        patients = patients.filter(p => p.id != id);
+        saveToLocal();
+        displayPatients();
+        updateDashboard();
+        showAlert("Registro removido com segurança.", "success");
+    }
+
+    function searchPatients() {
+        const term = document.getElementById("searchPatient").value;
+        displayPatients(term);
+    }
+
+    function resetSearch() {
+        document.getElementById("searchPatient").value = "";
+        displayPatients("");
+    }
+
+    function updateDashboard() {
+        const total = patients.length;
+        document.getElementById("totalPatients").innerText = total;
+        const totalCursos = patients.filter(p => p.curso && p.curso.trim() !== "").length;
+        document.getElementById("totalCourses").innerText = totalCursos;
+        const uniqueCourses = new Set();
+        patients.forEach(p => { if(p.curso && p.curso.trim()) uniqueCourses.add(p.curso); });
+        document.getElementById("activeEnrollments").innerText = uniqueCourses.size;
+    }
+
+    function resetForm() {
+        document.getElementById("patientForm").reset();
+        document.getElementById("patientId").value = "";
+        document.getElementById("endereco").value = "";
+        document.getElementById("atendido").value = "";
+    }
+
+    function showAlert(msg, type) {
+        const alertDiv = document.createElement("div");
+        alertDiv.className = `alert alert-${type}`;
+        alertDiv.innerText = msg;
+        document.body.appendChild(alertDiv);
+        setTimeout(() => alertDiv.remove(), 3000);
+    }
+
+    function showTab(tabName, element) {
+        document.querySelectorAll(".tab-content").forEach(tab => tab.classList.remove("active"));
+        document.getElementById(tabName).classList.add("active");
+        document.querySelectorAll(".tab-btn").forEach(btn => btn.classList.remove("active"));
+        element.classList.add("active");
+
+        if(tabName === 'patients') {
+            displayPatients(document.getElementById("searchPatient")?.value || "");
+        }
+        if(tabName === 'dashboard') updateDashboard();
+    }
+
+    // expor globalmente
+    window.showTab = showTab;
+    window.searchPatients = searchPatients;
+    window.resetSearch = resetSearch;
+    window.editPatient = editPatient;
+    window.deletePatient = deletePatient;
+    window.resetForm = resetForm;
+
+    document.querySelectorAll(".tab-btn").forEach(btn => {
+        btn.addEventListener("click", (e) => {
+            const tabId = btn.getAttribute("data-tab");
+            if(tabId) showTab(tabId, btn);
+            else {
+                if(btn.innerText.includes("Painel")) showTab('dashboard', btn);
+                else if(btn.innerText.includes("Mulheres")) showTab('patients', btn);
+                else if(btn.innerText.includes("acolhimento")) showTab('register', btn);
+            }
+        });
+    });
+
+    init();
+</script>
+</body>
+</html>

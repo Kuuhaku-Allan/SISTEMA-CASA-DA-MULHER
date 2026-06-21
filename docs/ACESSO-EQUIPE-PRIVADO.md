@@ -15,6 +15,7 @@ Esse repositorio privado e o ponto fixo da equipe e tambem guarda a fonte versio
 ```text
 data/equipe-db.json
 data/equipe-events.ndjson
+data/access-requests.json
 data/equipe-db.example.json
 data/README.md
 README.md
@@ -22,6 +23,7 @@ README.md
 
 - `data/equipe-db.json`: fonte de verdade dos convites EQP, ADMs pareados e membros ativados.
 - `data/equipe-events.ndjson`: log de eventos do portal.
+- `data/access-requests.json`: solicitações GitHub pendentes e decisões do owner.
 - `README.md`: instrucoes para a equipe e link do portal Render quando estiver publicado.
 
 ## Portal central
@@ -49,6 +51,15 @@ Para forçar a sincronização no Windows:
 ```powershell
 .\casa_da_mulher.cmd equipe sync
 ```
+
+Para baixar ou publicar especificamente a base privada (isso não faz parte de `hml push`):
+
+```powershell
+.\casa_da_mulher.cmd equipe pull
+.\casa_da_mulher.cmd equipe push
+```
+
+O `equipe push` mescla a allowlist local no arquivo remoto e preserva membros, convites e configurações existentes.
 
 Para forçar a sincronização no Codespaces:
 

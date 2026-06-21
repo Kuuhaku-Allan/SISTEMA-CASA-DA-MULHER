@@ -59,7 +59,7 @@ public sealed class HmlDbSnapshotAutoService : BackgroundService
                 if (currentWriteTime > lastWriteTime)
                 {
                     _logger.LogInformation("Mudança detectada no banco SQLite. Iniciando auto-snapshot.");
-                    await snapshotService.CreateAndUploadAsync(stoppingToken);
+                    await snapshotService.CreateAndUploadAsync(stoppingToken, "auto_timer");
                     lastWriteTime = currentWriteTime;
                 }
             }

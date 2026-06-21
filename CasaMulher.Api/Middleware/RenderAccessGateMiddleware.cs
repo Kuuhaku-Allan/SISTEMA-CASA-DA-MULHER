@@ -19,7 +19,9 @@ public sealed class RenderAccessGateMiddleware
         "/api/portal-eqp/github/login",
         "/api/portal-eqp/github/callback",
         "/api/portal-eqp/github/logout",
-        "/api/portal-eqp/me"
+        "/api/portal-eqp/me",
+        "/api/portal-eqp/github/diagnostico",
+        "/api/portal-eqp/acesso/solicitar"
     };
 
     private static readonly HashSet<string> PublicExtensions = new(StringComparer.OrdinalIgnoreCase)

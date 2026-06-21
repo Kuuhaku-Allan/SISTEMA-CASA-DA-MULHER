@@ -46,6 +46,8 @@ function Show-Help {
     Write-Host "  .\casa_da_mulher.cmd equipe"
     Write-Host "  .\casa_da_mulher.cmd equipe bootstrap"
     Write-Host "  .\casa_da_mulher.cmd equipe sync"
+    Write-Host "  .\casa_da_mulher.cmd equipe pull"
+    Write-Host "  .\casa_da_mulher.cmd equipe push"
     Write-Host "  .\casa_da_mulher.cmd equipe reparar-seguranca [apply]"
     Write-Host "  .\casa_da_mulher.cmd equipe reparar-seguranca-owner"
     Write-Host "  .\casa_da_mulher.cmd homologacao exportar-seed"
@@ -450,6 +452,59 @@ function Invoke-EquipeSync {
     return $true
 }
 
+function Invoke-EquipeDbGitOps {
+    param([ValidateSet("pull", "push")][string]$Action)
+
+    $gh = Get-RequiredCommand -Name "gh" -InstallMessage "GitHub CLI não encontrado. Instale o gh e execute gh auth login."
+    $repoPath = "repos/Sistema-Casa-da-Mulher/ACESSO-EQUIPE/contents/data/equipe-db.json"
+    $localPath = Join-Path $ProjectRoot "data\equipe-db.json"
+
+    if ($Action -eq "pull") {
+        Write-Info "Baixando ACESSO-EQUIPE/data/equipe-db.json..."
+        $contentBase64 = (& $gh api $repoPath --jq ".content") -join ""
+        if ($LASTEXITCODE -ne 0) { throw "Não foi possível ler o equipe-db.json privado." }
+        $json = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String(($contentBase64 -replace "\s", "")))
+        $document = $json | ConvertFrom-Json
+        if ($null -eq $document.allowlistGitHub) { throw "Arquivo remoto inválido: allowlistGitHub ausente." }
+        [IO.File]::WriteAllText($localPath, $json, [Text.UTF8Encoding]::new($false))
+        Write-Ok "Arquivo privado copiado para data/equipe-db.json."
+        return
+    }
+
+    if (-not (Test-Path $localPath)) { throw "Arquivo local data/equipe-db.json não encontrado." }
+    $json = [IO.File]::ReadAllText($localPath, [Text.Encoding]::UTF8)
+    $document = $json | ConvertFrom-Json
+    if ($null -eq $document.allowlistGitHub) { throw "Arquivo local inválido: allowlistGitHub ausente." }
+
+    $remotePayloadJson = (& $gh api $repoPath) -join ""
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($remotePayloadJson)) { throw "Não foi possível ler o equipe-db.json privado atual." }
+    $remotePayload = $remotePayloadJson | ConvertFrom-Json
+    $sha = $remotePayload.sha
+    $remoteJsonAtual = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String(($remotePayload.content -replace "\s", "")))
+    $remoteDocumentAtual = $remoteJsonAtual | ConvertFrom-Json
+    if ($null -eq $remoteDocumentAtual.allowlistGitHub) { $remoteDocumentAtual | Add-Member -NotePropertyName allowlistGitHub -NotePropertyValue @() }
+
+    $mergedAllowlist = @($remoteDocumentAtual.allowlistGitHub)
+    foreach ($name in @($document.allowlistGitHub)) {
+        if (-not ($mergedAllowlist | Where-Object { $_ -ieq $name })) { $mergedAllowlist += $name }
+    }
+    $remoteDocumentAtual.allowlistGitHub = $mergedAllowlist
+    if ($null -ne $remoteDocumentAtual.updatedAt) { $remoteDocumentAtual.updatedAt = [DateTime]::UtcNow.ToString("o") }
+    $jsonToPublish = $remoteDocumentAtual | ConvertTo-Json -Depth 100
+
+    Write-Info "Mesclando a allowlist local em ACESSO-EQUIPE sem apagar membros ou convites remotos..."
+    $contentBase64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($jsonToPublish))
+    & $gh api --method PUT $repoPath -f "message=Atualiza allowlist e base do Portal EQP" -f "content=$contentBase64" -f "sha=$sha" | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Falha ao publicar o equipe-db.json privado." }
+
+    $remoteBase64 = (& $gh api $repoPath --jq ".content") -join ""
+    $remoteJson = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String(($remoteBase64 -replace "\s", "")))
+    $remoteDocument = $remoteJson | ConvertFrom-Json
+    $missing = @($document.allowlistGitHub | Where-Object { $name = $_; -not ($remoteDocument.allowlistGitHub | Where-Object { $_ -ieq $name }) })
+    if ($missing.Count -gt 0) { throw "Publicação não confirmada; faltam no remoto: $($missing -join ', ')." }
+    Write-Ok "Allowlist confirmada no ACESSO-EQUIPE real."
+}
+
 function Invoke-EquipeSecurityRepair {
     param([switch]$Apply)
 
@@ -584,6 +639,12 @@ try {
                 }
                 "sync" {
                     Invoke-EquipeSync
+                }
+                "pull" {
+                    Invoke-EquipeDbGitOps -Action "pull"
+                }
+                "push" {
+                    Invoke-EquipeDbGitOps -Action "push"
                 }
                 "reparar-seguranca" {
                     $aplicar = $CommandArgs.Count -gt 2 -and $CommandArgs[2].ToLowerInvariant() -eq "apply"

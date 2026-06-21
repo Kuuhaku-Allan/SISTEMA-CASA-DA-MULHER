@@ -81,6 +81,7 @@ GITHUB_EQP_DB_REPO_OWNER=Sistema-Casa-da-Mulher
 GITHUB_EQP_DB_REPO=ACESSO-EQUIPE
 GITHUB_EQP_DB_PATH=data/equipe-db.json
 GITHUB_EQP_EVENTS_PATH=data/equipe-events.ndjson
+GITHUB_EQP_ACCESS_REQUESTS_PATH=data/access-requests.json
 GITHUB_EQP_WRITE_TOKEN=...
 
 Jwt__Key=CHAVE_FORTE_E_EXCLUSIVA
@@ -138,6 +139,8 @@ https://SEU-SERVICE.onrender.com/api/portal-eqp/github/callback
 ```
 
 O `Client Secret` nunca deve aparecer no front-end nem em commits.
+
+O OAuth solicita `read:org` e `user:email`. O e-mail usado no diagnóstico e nas solicitações é obtido de `/user/emails` e precisa estar marcado como verificado; texto digitado pela pessoa não é aceito como prova de identidade.
 
 ## Token do ACESSO-EQUIPE
 
@@ -209,8 +212,10 @@ O Render Free usa filesystem efemero: dados em `/tmp` sao perdidos em redeploys 
 1. Configure `HML_DB_SNAPSHOT_ENABLED=true` e `HML_DB_SNAPSHOT_KEY` no Render.
 2. A chave deve ser Base64 de exatamente 32 bytes gerado com `openssl rand -base64 32` ou equivalente.
 3. **Nunca commitar a chave.** Ela fica somente em variavel de ambiente.
-4. Apos configurar 2FA/passkeys, clique em "Gerar snapshot seguro agora" na tela Seguranca.
+4. Alterações críticas (2FA, passkeys, e-mail de recuperação e owner recovery) tentam gravar o snapshot imediatamente. Se falhar, a UI avisa para gerar o snapshot antes de reiniciar.
 5. No proximo startup, a API restaura o banco automaticamente antes das migrations.
+
+O owner pode consultar hashes, geração e o caminho SQLite efetivo em `GET /api/homologacao/snapshot/status`. Se o banco local divergir do snapshot remoto no startup, a API preserva o arquivo local, bloqueia novos uploads e registra o conflito para evitar sobrescrever uma geração válida.
 
 A tela Seguranca mostra aviso se o banco for temporario. O botao de snapshot aparece somente para owner quando snapshot esta configurado.
 

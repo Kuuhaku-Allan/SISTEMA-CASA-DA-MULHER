@@ -12,6 +12,8 @@ public interface IEquipeDbGitHubService
 
     string EventsPath { get; }
 
+    string AccessRequestsPath { get; }
+
     Task<EquipeDbFile> LerAsync(CancellationToken cancellationToken = default);
 
     Task SalvarAsync(
@@ -22,6 +24,14 @@ public interface IEquipeDbGitHubService
 
     Task AcrescentarEventoAsync(
         EquipeDbEvent evento,
+        string commitMessage,
+        CancellationToken cancellationToken = default);
+
+    Task<EquipeAccessRequestsFile> LerSolicitacoesAcessoAsync(CancellationToken cancellationToken = default);
+
+    Task SalvarSolicitacoesAcessoAsync(
+        EquipeAccessRequestsDocument document,
+        string? sha,
         string commitMessage,
         CancellationToken cancellationToken = default);
 }

@@ -48,6 +48,10 @@ public class EquipeDbGitHubService : IEquipeDbGitHubService
         ?? _configuration["GITHUB_EQP_EVENTS_PATH"]
         ?? "data/equipe-events.ndjson";
 
+    public string AccessRequestsPath => _configuration["GitHub:EqpAccessRequestsPath"]
+        ?? _configuration["GITHUB_EQP_ACCESS_REQUESTS_PATH"]
+        ?? "data/access-requests.json";
+
     private string RepoOwner => _configuration["GitHub:EqpDbRepoOwner"]
         ?? _configuration["GITHUB_EQP_DB_REPO_OWNER"]
         ?? "Sistema-Casa-da-Mulher";
@@ -121,6 +125,33 @@ public class EquipeDbGitHubService : IEquipeDbGitHubService
 
         conteudo += linha + Environment.NewLine;
         await SalvarArquivoTextoAsync(EventsPath, conteudo, arquivoAtual?.Sha, commitMessage, ObterTokenEscrita(), cancellationToken);
+    }
+
+    public async Task<EquipeAccessRequestsFile> LerSolicitacoesAcessoAsync(CancellationToken cancellationToken = default)
+    {
+        var arquivo = await LerArquivoTextoAsync(AccessRequestsPath, ObterTokenLeitura(), cancellationToken);
+        if (arquivo is null) return new EquipeAccessRequestsFile { Exists = false };
+
+        var document = JsonSerializer.Deserialize<EquipeAccessRequestsDocument>(arquivo.Value.Content, JsonOptions)
+            ?? new EquipeAccessRequestsDocument();
+        document.Requests ??= [];
+        return new EquipeAccessRequestsFile { Document = document, Sha = arquivo.Value.Sha, Exists = true };
+    }
+
+    public async Task SalvarSolicitacoesAcessoAsync(
+        EquipeAccessRequestsDocument document,
+        string? sha,
+        string commitMessage,
+        CancellationToken cancellationToken = default)
+    {
+        if (!EscritaConfigurada)
+        {
+            throw new EquipeDbGitHubException(403, "GITHUB_EQP_WRITE_TOKEN não configurado.");
+        }
+
+        document.Requests ??= [];
+        var content = JsonSerializer.Serialize(document, JsonOptions) + Environment.NewLine;
+        await SalvarArquivoTextoAsync(AccessRequestsPath, content, sha, commitMessage, ObterTokenEscrita(), cancellationToken);
     }
 
     private async Task<(string Content, string Sha)?> LerArquivoTextoAsync(

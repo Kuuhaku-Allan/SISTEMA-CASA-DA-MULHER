@@ -135,6 +135,51 @@ public class EquipeDbFile
     public bool Exists { get; set; }
 }
 
+public class EquipeAccessRequestsDocument
+{
+    public int SchemaVersion { get; set; } = 1;
+
+    public List<EquipeAccessRequest> Requests { get; set; } = [];
+}
+
+public class EquipeAccessRequest
+{
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+    public string GitHubUsername { get; set; } = string.Empty;
+    public string GitHubId { get; set; } = string.Empty;
+    public string? PrimaryVerifiedEmail { get; set; }
+    public string? PublicEmail { get; set; }
+    public string? Org { get; set; }
+    public string? TeamSlug { get; set; }
+    public bool? OrgMembership { get; set; }
+    public bool? TeamMembership { get; set; }
+    public bool ReadOrgPresente { get; set; }
+    public bool UserEmailScopePresente { get; set; }
+    public string Status { get; set; } = EquipeAccessRequestStatus.Pending;
+    public DateTime RequestedAt { get; set; } = DateTime.UtcNow;
+    public DateTime LastSeenAt { get; set; } = DateTime.UtcNow;
+    public string Motivo { get; set; } = string.Empty;
+    public DateTime? DecidedAt { get; set; }
+    public string? DecidedByGitHub { get; set; }
+    public string? DecisionReason { get; set; }
+}
+
+public static class EquipeAccessRequestStatus
+{
+    public const string Pending = "pending";
+    public const string Approved = "approved";
+    public const string Denied = "denied";
+    public const string ReauthorizationRequested = "reauthorization_requested";
+    public const string Ignored = "ignored";
+}
+
+public class EquipeAccessRequestsFile
+{
+    public EquipeAccessRequestsDocument Document { get; set; } = new();
+    public string? Sha { get; set; }
+    public bool Exists { get; set; }
+}
+
 public class EquipeDbGitHubException : Exception
 {
     public int StatusCode { get; }

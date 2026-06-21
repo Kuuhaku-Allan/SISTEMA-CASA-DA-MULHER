@@ -26,19 +26,22 @@ public class PasskeysController : ControllerBase
     private readonly IFido2 _fido2;
     private readonly IAuditoriaService _auditoriaService;
     private readonly WebAuthnEnvironmentInfo _webAuthn;
+    private readonly SecuritySnapshotPersistenceService _securitySnapshot;
 
     public PasskeysController(
         AppDbContext dbContext,
         UserManager<ApplicationUser> userManager,
         IFido2 fido2,
         IAuditoriaService auditoriaService,
-        WebAuthnEnvironmentInfo webAuthn)
+        WebAuthnEnvironmentInfo webAuthn,
+        SecuritySnapshotPersistenceService securitySnapshot)
     {
         _dbContext = dbContext;
         _userManager = userManager;
         _fido2 = fido2;
         _auditoriaService = auditoriaService;
         _webAuthn = webAuthn;
+        _securitySnapshot = securitySnapshot;
     }
 
     // ── GET /api/passkeys ──────────────────────────────────────────────────
@@ -240,7 +243,9 @@ public class PasskeysController : ControllerBase
             usuario.Id,
             $"Chave de acesso '{nomePadrao}' cadastrada para {usuario.IdentificadorFuncionario}.");
 
-        return Ok(new { mensagem = "Chave de acesso cadastrada com sucesso." });
+        var snapshot = await _securitySnapshot.PersistAsync("security_passkey_registered", HttpContext.RequestAborted);
+
+        return Ok(new { mensagem = "Chave de acesso cadastrada com sucesso.", snapshotPersistido = snapshot.SnapshotPersistido, avisoSnapshot = snapshot.AvisoSnapshot });
     }
 
     // ── DELETE /api/passkeys/{id} ──────────────────────────────────────────
@@ -273,7 +278,9 @@ public class PasskeysController : ControllerBase
             usuario.Id,
             $"Chave de acesso '{nomeDispositivo}' removida por {usuario.IdentificadorFuncionario}.");
 
-        return Ok(new { mensagem = "Chave de acesso removida." });
+        var snapshot = await _securitySnapshot.PersistAsync("security_passkey_removed", HttpContext.RequestAborted);
+
+        return Ok(new { mensagem = "Chave de acesso removida.", snapshotPersistido = snapshot.SnapshotPersistido, avisoSnapshot = snapshot.AvisoSnapshot });
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────

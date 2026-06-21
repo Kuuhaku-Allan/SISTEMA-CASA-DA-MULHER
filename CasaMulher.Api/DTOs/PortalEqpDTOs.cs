@@ -44,6 +44,8 @@ public class PortalEqpMeResponse
     public DateTimeOffset? SessionExpiresAt { get; set; }
 
     public PortalEqpMembroResponse? Membro { get; set; }
+
+    public PortalEqpAccessRequestResponse? SolicitacaoAcesso { get; set; }
 }
 
 public class PortalEqpConviteResponse
@@ -82,7 +84,38 @@ public class GitHubDiagnostico
     public bool? TeamMembership { get; set; }
     public List<string> ScopesDetectados { get; set; } = new();
     public bool ReadOrgPresente { get; set; }
+    public bool UserEmailScopePresente { get; set; }
+    public string? PrimaryVerifiedEmail { get; set; }
+    public string? PublicEmail { get; set; }
     public string MotivoNegacao { get; set; } = string.Empty;
+}
+
+public class PortalEqpAccessRequestResponse
+{
+    public string Id { get; set; } = string.Empty;
+    public string GitHubUsername { get; set; } = string.Empty;
+    public string GitHubId { get; set; } = string.Empty;
+    public string? PrimaryVerifiedEmail { get; set; }
+    public string? PublicEmail { get; set; }
+    public string? Org { get; set; }
+    public string? TeamSlug { get; set; }
+    public bool? OrgMembership { get; set; }
+    public bool? TeamMembership { get; set; }
+    public bool ReadOrgPresente { get; set; }
+    public bool UserEmailScopePresente { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public DateTime RequestedAt { get; set; }
+    public DateTime LastSeenAt { get; set; }
+    public string Motivo { get; set; } = string.Empty;
+    public DateTime? DecidedAt { get; set; }
+    public string? DecidedByGitHub { get; set; }
+    public string? DecisionReason { get; set; }
+}
+
+public class PortalEqpAccessRequestDecisionRequest
+{
+    [MaxLength(500)]
+    public string? Motivo { get; set; }
 }
 
 public class PortalEqpMembroResponse
