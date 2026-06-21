@@ -1980,8 +1980,8 @@ body.soft-page {
     min-width: 65px;
     background: rgba(255, 251, 253, 0.95);
     border: 1px solid #F3D2DE;
-    border-radius: 22px;
-    padding: 20px 0;
+    border-radius: 18px; /* Mais quadrado, menos pílula */
+    padding: 0; /* Padding 0 para ficar exato 65x65 no card fechado */
     box-shadow: 0 10px 22px rgba(190, 120, 150, 0.07);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     overflow: hidden;
@@ -1997,19 +1997,23 @@ body.soft-page {
     width: 280px;
     min-width: 280px;
     padding: 24px;
+    border-radius: 22px; /* Volta ao border radius padrão de card quando abre */
     box-shadow: 0 20px 40px rgba(190, 120, 150, 0.15);
 }
 
 .coordenacao-sidebar-icon {
     display: flex;
     justify-content: center;
+    align-items: center;
     color: #A26D85;
-    margin-bottom: 20px;
+    width: 65px;
+    height: 65px;
+    margin: 0;
 }
 
 .coordenacao-sidebar-icon svg {
-    width: 24px;
-    height: 24px;
+    width: 28px;
+    height: 28px;
     fill: currentColor;
 }
 
