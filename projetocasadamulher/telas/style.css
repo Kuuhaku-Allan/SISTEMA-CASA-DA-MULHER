@@ -1976,12 +1976,12 @@ body.soft-page {
 }
 
 .coordenacao-sidebar {
-    width: 65px; /* Recolhida por padrão no desktop */
-    min-width: 65px;
+    width: 48px; /* Recolhida por padrão no desktop */
+    min-width: 48px;
     background: rgba(255, 251, 253, 0.95);
     border: 1px solid #F3D2DE;
-    border-radius: 18px; /* Mais quadrado, menos pílula */
-    padding: 0; /* Padding 0 para ficar exato 65x65 no card fechado */
+    border-radius: 14px; /* Mais quadrado, menos pílula */
+    padding: 0; /* Padding 0 para ficar exato no card fechado */
     box-shadow: 0 10px 22px rgba(190, 120, 150, 0.07);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     overflow: hidden;
@@ -2006,17 +2006,17 @@ body.soft-page {
     justify-content: center;
     align-items: flex-end;
     color: #A26D85;
-    width: 65px;
-    height: 65px;
+    width: 48px;
+    height: 48px;
     margin: 0;
 }
 
 .coordenacao-sidebar-icon svg {
-    width: 80px;
-    height: 80px;
+    width: 60px;
+    height: 60px;
     fill: currentColor;
-    margin-bottom: -17px;
-    transform: translateX(-3.3px);
+    margin-bottom: -13px; /* Puxa para baixo fazendo o overflow:hidden do pai cortar o excesso perfeitamente na borda */
+    transform: translateX(-2.5px);
 }
 
 .coordenacao-sidebar-content {
