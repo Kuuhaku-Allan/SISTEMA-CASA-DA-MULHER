@@ -694,7 +694,13 @@ async function setupPainel() {
     }
 
     if (CasaMulherAuth.podeAcessar("recepcao")) {
-        document.getElementById("linkRecepcao")?.classList.remove("hidden");
+        const linkRecepcao = document.getElementById("linkRecepcao");
+        if (linkRecepcao) {
+            linkRecepcao.classList.remove("hidden");
+            if (usuario.perfil === "adm") {
+                linkRecepcao.href = "recepcao-coordenacao.html";
+            }
+        }
     }
 
     if (CasaMulherAuth.podeAcessar("auditoria")) {

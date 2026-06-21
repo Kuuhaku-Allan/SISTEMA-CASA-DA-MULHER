@@ -1964,3 +1964,51 @@ body.soft-page {
 .email-card {
     min-width: 0;
 }
+
+/* --- Coordenação: Recepção --- */
+.coordenacao-indicadores-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+}
+
+.coordenacao-indicador-card {
+    padding: 1rem 1.15rem;
+    border-radius: 22px;
+    background: rgba(255, 251, 253, 0.95);
+    border: 1px solid #F3D2DE;
+    box-shadow: 0 10px 22px rgba(190, 120, 150, 0.07);
+}
+
+.coordenacao-indicador-label {
+    color: #A26D85;
+    font-size: 0.82rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.coordenacao-indicador-value {
+    color: #8B586F;
+    font-size: 1.55rem;
+    font-weight: 900;
+    margin-top: 0.25rem;
+}
+
+.coordenacao-pacientes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+}
+
+.coordenacao-paciente-card {
+    min-width: 0;
+    padding: 1.1rem;
+    border-radius: 22px;
+    background: rgba(255, 251, 253, 0.96);
+    border: 1px solid #F1C8D8;
+    box-shadow: 0 12px 26px rgba(190, 120, 150, 0.08);
+}
+
+.coordenacao-paciente-card * {
+    overflow-wrap: anywhere;
+}
