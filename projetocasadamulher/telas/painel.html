@@ -1,47 +1,113 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Painel - Casa da Mulher</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=7">
     <script src="config.js" defer></script>
     <script src="auth.js" defer></script>
-    <script src="app.js" defer></script>
+    <script src="app.js?v=5" defer></script>
 </head>
-<body>
-    <main class="auth-container">
-        <section class="auth-box">
-            <img src="IMAGENS/logo_oficial.png" alt="Logo Casa da Mulher" class="logo-login">
-            <h1 class="auth-title">Painel do funcion&aacute;rio</h1>
-            <p class="auth-subtitle">Confira seus dados e acesse as &aacute;reas dispon&iacute;veis.</p>
+<body class="soft-page">
+    <main style="max-width: 1400px; margin: 0 auto; padding: 24px 20px;">
+        <header class="soft-header">
+            <div>
+                <h1 class="soft-header-title">Casa da Mulher de Itaquaquecetuba</h1>
+                <p class="soft-header-subtitle">Painel do funcion&aacute;rio</p>
+            </div>
+            
+            <div class="soft-session-card" id="sessionCard">
+                <div class="soft-clock session-trigger" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false" id="sessionTrigger">
+                    <div id="currentDate"></div>
+                    <div id="currentTime"></div>
+                </div>
+                
+                <div class="session-dropdown" id="sessionDropdown">
+                    <div class="session-user-name" id="sessionUserName">-</div>
+                    <div class="session-user-role" id="sessionUserRole">-</div>
+                    <div class="session-user-meta" id="sessionUserEmail">-</div>
+                    <div class="session-user-meta" style="margin-top: 4px;">ID: <span id="sessionUserId">-</span></div>
+                    
+                    <div class="session-actions">
+                        <button type="button" id="btnSair" class="soft-btn soft-btn-danger" style="flex: 1; justify-content: center;">Sair</button>
+                    </div>
+                </div>
+            </div>
+        </header>
 
-            <dl class="profile-list">
-                <div>
-                    <dt>Funcion&aacute;rio</dt>
-                    <dd id="painelNome">-</dd>
+        <section class="soft-stack painel-stack">
+            <!-- Card 1: Meu Acesso -->
+            <div class="soft-card">
+                <h2 class="soft-card-title">Meu acesso</h2>
+                
+                <div class="soft-profile-card">
+                    <dl class="profile-list compact-list painel-profile-grid">
+                        <div>
+                            <dt style="color: #AD859B; font-weight: 700; font-size: 0.85rem; text-transform: uppercase;">Funcion&aacute;rio</dt>
+                            <dd id="painelNome" class="responsavel-name" style="font-size: 1rem;">-</dd>
+                        </div>
+                        <div>
+                            <dt style="color: #AD859B; font-weight: 700; font-size: 0.85rem; text-transform: uppercase;">Perfil de acesso</dt>
+                            <dd id="painelPerfil" class="responsavel-title" style="color: #A26D85;">-</dd>
+                        </div>
+                        <div>
+                            <dt style="color: #AD859B; font-weight: 700; font-size: 0.85rem; text-transform: uppercase;">E-mail</dt>
+                            <dd id="painelEmail" class="responsavel-meta">-</dd>
+                        </div>
+                        <div>
+                            <dt style="color: #AD859B; font-weight: 700; font-size: 0.85rem; text-transform: uppercase;">ID</dt>
+                            <dd id="painelIdentificador" class="responsavel-meta">-</dd>
+                        </div>
+                    </dl>
                 </div>
-                <div>
-                    <dt>ID</dt>
-                    <dd id="painelIdentificador">-</dd>
-                </div>
-                <div>
-                    <dt>E-mail</dt>
-                    <dd id="painelEmail">-</dd>
-                </div>
-                <div>
-                    <dt>Perfil de acesso</dt>
-                    <dd id="painelPerfil">-</dd>
-                </div>
-            </dl>
+            </div>
 
-            <a class="btn-secondary button-link" href="seguranca.html">Seguran&ccedil;a da conta</a>
-            <a id="linkRecepcao" class="btn-primary button-link hidden" href="recepcao.html">Recep&ccedil;&atilde;o</a>
-            <a id="linkFuncionarios" class="btn-primary button-link hidden" href="funcionarios.html">Gerenciar funcion&aacute;rios</a>
-            <a id="linkConvites" class="btn-primary button-link hidden" href="convites.html">Gerenciar convites</a>
-            <a id="linkAuditoria" class="btn-primary button-link hidden" href="auditoria.html">Hist&oacute;rico de a&ccedil;&otilde;es</a>
-            <a id="linkEmails" class="btn-primary button-link hidden" href="emails.html">E-mails</a>
-            <button type="button" id="btnSair" class="btn-secondary">Sair</button>
+            <!-- Card 2: Áreas disponíveis -->
+            <div class="soft-card">
+                <h2 class="soft-card-title">&Aacute;reas dispon&iacute;veis</h2>
+                
+                <div class="painel-action-grid">
+                    <a id="linkFuncionarios" class="painel-action-card painel-action-card--funcionarios hidden" href="funcionarios.html">
+                        <span class="painel-action-card-title">Gerenciar funcion&aacute;rios</span>
+                        <span class="painel-action-card-subtitle">Cadastros, perfis e acessos</span>
+                    </a>
+                    <a id="linkConvites" class="painel-action-card painel-action-card--convites hidden" href="convites.html">
+                        <span class="painel-action-card-title">Gerenciar convites</span>
+                        <span class="painel-action-card-subtitle">Convites da equipe institucional</span>
+                    </a>
+                    <a id="linkAuditoria" class="painel-action-card painel-action-card--auditoria hidden" href="auditoria.html">
+                        <span class="painel-action-card-title">Hist&oacute;rico de a&ccedil;&otilde;es</span>
+                        <span class="painel-action-card-subtitle">Auditoria do sistema</span>
+                    </a>
+                    <a id="linkEmails" class="painel-action-card painel-action-card--emails hidden" href="emails.html">
+                        <span class="painel-action-card-title">E-mails</span>
+                        <span class="painel-action-card-subtitle">Logs e envios do sistema</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Card 2.5: Outras áreas -->
+            <div class="soft-card" style="margin-top: 10px;">
+                <h2 class="soft-card-title">Outras &aacute;reas</h2>
+                <div class="painel-action-grid" style="margin-top: 16px;">
+                    <a id="linkRecepcao" class="painel-action-card painel-action-card--recepcao-outros hidden" href="recepcao.html">
+                        <span class="painel-action-card-title">Recep&ccedil;&atilde;o</span>
+                        <span class="painel-action-card-subtitle">Registro inicial de acolhimentos</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Card 3: Conta e Segurança -->
+            <div class="soft-card" style="margin-top: 10px;">
+                <h2 class="soft-card-title">Conta e seguran&ccedil;a</h2>
+                <div class="painel-action-grid" style="margin-top: 16px;">
+                    <a class="painel-action-card painel-action-card--account" href="seguranca.html">
+                        <span class="painel-action-card-title">Seguran&ccedil;a da conta</span>
+                        <span class="painel-action-card-subtitle">C&oacute;digo de seguran&ccedil;a, e-mail de recupera&ccedil;&atilde;o e passkeys</span>
+                    </a>
+                </div>
+            </div>
         </section>
     </main>
 </body>

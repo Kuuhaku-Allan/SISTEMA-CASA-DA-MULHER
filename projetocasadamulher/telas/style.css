@@ -12,6 +12,11 @@
     --border-radius: 6px;
 }
 
+html, body {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
 body {
     min-height: 100vh;
     margin: 0;
@@ -235,7 +240,7 @@ select {
 }
 
 .message.info {
-    color: #315b84;
+    color: #8E5B72;
 }
 
 .message.success {
@@ -570,8 +575,8 @@ th {
 }
 
 .status-pendente {
-    color: #6a4a00;
-    background: #fff2bf;
+    color: #C26A4A;
+    background: #FFF5EC;
 }
 
 .status-disponivel {
@@ -954,6 +959,7 @@ body.soft-page {
     font-size: 0.85rem;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 8px;
 }
 
@@ -1026,6 +1032,444 @@ body.soft-page {
     padding: 2rem;
     color: #CA9AB0;
     font-weight: 500;
+}
+
+/* --- Grids --- */
+.soft-grid-2col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.8rem;
+    align-items: start;
+}
+
+.soft-profile-card {
+    background: #FEF6F9;
+    border: 1px solid #FAD0E2;
+    padding: 20px;
+    border-radius: 1.2rem;
+}
+
+/* --- Segurança UI (Stack Vertical & Navegação) --- */
+.soft-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    max-width: 980px;
+    margin: 0 auto;
+}
+
+.security-nav {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+}
+
+.security-nav-link {
+    background: #FFF9FC;
+    color: #A26D85;
+    text-decoration: none;
+    font-weight: 600;
+    padding: 10px 24px;
+    border-radius: 3rem;
+    border: 1px solid #FDE8F0;
+    transition: all 0.2s;
+    font-size: 0.95rem;
+}
+
+.security-nav-link:hover {
+    background: #FFEFF5;
+    border-color: #FAD0E2;
+    transform: translateY(-1px);
+}
+
+.security-card {
+    background: #FFFFFF;
+    border: 1px solid #FDE8F0;
+    border-radius: 1.5rem;
+    padding: 24px 32px;
+    box-shadow: 0 4px 12px rgba(160, 100, 120, 0.04);
+}
+
+.security-card .soft-card-title {
+    margin-bottom: 8px;
+}
+
+.security-status-box {
+    background: #FEF6F9;
+    border: 1px solid #FAD0E2;
+    padding: 16px 20px;
+    border-radius: 1rem;
+    margin-bottom: 16px;
+}
+
+.security-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+}
+
+.security-empty-state {
+    background: #FFF9FC;
+    border: 1px dashed #FAD0E2;
+    padding: 20px;
+    border-radius: 1rem;
+    text-align: center;
+    color: #A8889A;
+    font-size: 0.95rem;
+}
+
+/* --- Painel Action Cards (Módulos e Segurança) --- */
+.painel-action-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 340px));
+    gap: 1.2rem;
+    align-items: stretch;
+    justify-content: start;
+}
+
+.painel-action-card {
+    border-radius: 1rem;
+    padding: 20px 24px;
+    text-decoration: none;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    transition: all 0.2s;
+    min-height: 96px;
+    box-shadow: 0 4px 10px rgba(160, 100, 120, 0.05);
+}
+
+.painel-action-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(180, 110, 140, 0.1);
+}
+
+.painel-action-card.hidden {
+    display: none !important;
+}
+
+.painel-action-card-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+    display: block;
+}
+
+.painel-action-card-subtitle {
+    font-size: 0.85rem;
+    font-weight: 400;
+    line-height: 1.3;
+    display: block;
+}
+
+/* Variação Primária (Legado) */
+.painel-action-card--primary {
+    background: linear-gradient(135deg, #FDE8F1 0%, #F5D3E3 100%);
+    border: 1px solid #F0C2D6;
+}
+.painel-action-card--primary .painel-action-card-title {
+    color: #8B586F;
+}
+.painel-action-card--primary .painel-action-card-subtitle {
+    color: #A26D85;
+}
+.painel-action-card--primary:hover {
+    background: linear-gradient(135deg, #FFEDF5 0%, #FADAE8 100%);
+    border-color: #E8B4CB;
+}
+
+/* Variação Secundária (Legado) */
+.painel-action-card--secondary {
+    background: #FFFBFD;
+    border: 1px solid #FDE8F0;
+}
+.painel-action-card--secondary .painel-action-card-title {
+    color: #A26D85;
+}
+.painel-action-card--secondary .painel-action-card-subtitle {
+    color: #AD859B;
+}
+.painel-action-card--secondary:hover {
+    background: #FFEFF5;
+    border-color: #FAD0E2;
+}
+
+/* Variação: Funcionários */
+.painel-action-card--funcionarios {
+    background: linear-gradient(135deg, #FDE8F1 0%, #F5D3E3 100%);
+    border: 1px solid #F0C2D6;
+}
+.painel-action-card--funcionarios:hover {
+    background: linear-gradient(135deg, #FFEDF5 0%, #FADAE8 100%);
+    border-color: #E8B4CB;
+}
+
+/* Variação: Convites */
+.painel-action-card--convites {
+    background: linear-gradient(135deg, #FFF0F4 0%, #F8D9E3 100%);
+    border: 1px solid #F2C7D4;
+}
+.painel-action-card--convites:hover {
+    background: linear-gradient(135deg, #FFF5F8 0%, #FAE0E9 100%);
+    border-color: #F8CEDB;
+}
+
+/* Variação: Auditoria */
+.painel-action-card--auditoria {
+    background: linear-gradient(135deg, #F8ECF6 0%, #EED8EA 100%);
+    border: 1px solid #E5C4DD;
+}
+.painel-action-card--auditoria:hover {
+    background: linear-gradient(135deg, #FBF2F9 0%, #F3DFEF 100%);
+    border-color: #EDCCE4;
+}
+
+/* Variação: E-mails */
+.painel-action-card--emails {
+    background: linear-gradient(135deg, #FDF0F5 0%, #F5CFE1 100%);
+    border: 1px solid #EBBAD0;
+}
+.painel-action-card--emails:hover {
+    background: linear-gradient(135deg, #FFF4F8 0%, #F9DBEA 100%);
+    border-color: #EBBAD0;
+}
+
+/* Variação: Recepção (Outros) */
+.painel-action-card--recepcao-outros {
+    background: linear-gradient(135deg, #F6EAF1 0%, #ECD3E2 100%);
+    border: 1px solid #E3BED5;
+}
+.painel-action-card--recepcao-outros:hover {
+    background: linear-gradient(135deg, #FDF0F7 0%, #F2E0EB 100%);
+    border-color: #E3BED5;
+}
+
+/* Cores de texto padronizadas para as novas variações */
+.painel-action-card--funcionarios .painel-action-card-title,
+.painel-action-card--convites .painel-action-card-title,
+.painel-action-card--auditoria .painel-action-card-title,
+.painel-action-card--emails .painel-action-card-title,
+.painel-action-card--recepcao-outros .painel-action-card-title {
+    color: #8B586F;
+}
+
+.painel-action-card--funcionarios .painel-action-card-subtitle,
+.painel-action-card--convites .painel-action-card-subtitle,
+.painel-action-card--auditoria .painel-action-card-subtitle,
+.painel-action-card--emails .painel-action-card-subtitle,
+.painel-action-card--recepcao-outros .painel-action-card-subtitle {
+    color: #A26D85;
+}
+
+/* Variação Conta (Segurança da conta) */
+.painel-action-card--account {
+    background: #FBE4EE;
+    border: 1px solid #FAD0E2;
+}
+.painel-action-card--account .painel-action-card-title {
+    color: #8B586F;
+}
+.painel-action-card--account .painel-action-card-subtitle {
+    color: #9A6A81;
+}
+.painel-action-card--account:hover {
+    background: #FFEFF5;
+    border-color: #FAD0E2;
+}
+
+/* --- Soft Auth (Login e Esqueci a Senha) --- */
+.soft-auth-page {
+    background: linear-gradient(135deg, #FDE8F0 0%, #F5D3E3 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+
+.soft-auth-shell {
+    width: 100%;
+    max-width: 440px;
+}
+
+.soft-auth-card {
+    background: #FFFFFF;
+    border-radius: 1.5rem;
+    padding: 40px;
+    box-shadow: 0 8px 24px rgba(160, 100, 120, 0.08);
+    text-align: center;
+    border: 1px solid #FDE8F0;
+}
+
+.soft-auth-logo {
+    width: 140px;
+    height: auto;
+    margin: 0 auto 18px auto;
+    display: block;
+    object-fit: contain;
+}
+
+.soft-auth-title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #8B586F;
+    margin-bottom: 8px;
+}
+
+.soft-auth-subtitle {
+    font-size: 0.95rem;
+    color: #A26D85;
+    margin-bottom: 24px;
+    line-height: 1.4;
+}
+
+.soft-auth-form {
+    text-align: left;
+    margin-bottom: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+}
+
+.soft-auth-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 0.35rem;
+}
+
+.soft-auth-actions .soft-btn,
+.soft-auth-form .soft-btn {
+    width: 100%;
+    min-height: 46px;
+}
+
+.soft-auth-divider {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 32px 0;
+}
+
+.soft-auth-divider::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: #FDE8F0;
+    z-index: 1;
+}
+
+.soft-auth-divider span {
+    background: #FFFFFF;
+    padding: 0 16px;
+    color: #AD859B;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    position: relative;
+    z-index: 2;
+}
+
+.soft-auth-link {
+    color: #8B586F;
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-decoration: none;
+    display: inline-block;
+    transition: all 0.2s;
+}
+
+.soft-auth-link:hover {
+    color: #A26D85;
+    text-decoration: underline;
+}
+
+.soft-auth-secondary-panel {
+    background: #FFF9FC;
+    border: 1px solid #FDE8F0;
+    padding: 20px;
+    border-radius: 1rem;
+    margin-top: 24px;
+}
+
+.soft-quick-access-card-1 {
+    background: #FDF2F7;
+    border: 1px solid #EAC8D7;
+}
+.soft-quick-access-card-1:hover {
+    background: #F8E8EF;
+    border-color: #E2B8CC;
+}
+
+.soft-quick-access-card-2 {
+    background: #FBF0F4;
+    border: 1px solid #EAC8D7;
+}
+.soft-quick-access-card-2:hover {
+    background: #F5EAF0;
+    border-color: #E2B8CC;
+}
+
+.soft-auth-passkey {
+    margin-top: 24px;
+    text-align: center;
+}
+
+.soft-auth-passkey-title {
+    color: #8B586F;
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+.soft-auth-passkey-button {
+    width: 100%;
+    min-height: 46px;
+    border: 1px solid #FAD0E2;
+    border-radius: 999px;
+    background: #FBE4EE;
+    color: #8B586F;
+    font-weight: 800;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    font-family: inherit;
+    font-size: 1rem;
+}
+
+.soft-auth-passkey-button:hover {
+    background: #FAD0E2;
+    box-shadow: 0 10px 18px rgba(190, 120, 150, 0.14);
+    transform: translateY(-1px);
+}
+
+.soft-auth-passkey-help {
+    color: #AD859B;
+    font-size: 0.8rem;
+    margin-top: 12px;
+    line-height: 1.4;
+}
+
+.soft-auth-message {
+    margin-top: 16px;
+}
+
+.soft-auth-message:empty {
+    display: none;
+    margin-top: 0;
+}
+
+.painel-profile-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 0;
 }
 
 /* --- Menu Expansível da Sessão --- */
@@ -1136,4 +1580,387 @@ body.soft-page {
     .soft-header { flex-direction: column; text-align: center; }
     .soft-clock { text-align: center; }
     .soft-tab { padding: 8px 20px; }
+    .soft-grid-2col { grid-template-columns: 1fr; }
+    .painel-action-grid { grid-template-columns: 1fr; }
+    .painel-profile-grid { grid-template-columns: 1fr; }
+}
+
+/* --- Soft Admin Components (Convites, Funcionarios, Auditoria, Emails) --- */
+.soft-admin-main {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 24px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.soft-admin-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.soft-record-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.soft-record-card {
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(8px);
+    border: 1px solid #FAD0E2;
+    border-radius: 1.5rem;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(180, 110, 140, 0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+    transition: all 0.3s ease;
+}
+.soft-record-card:hover {
+    box-shadow: 0 8px 24px rgba(180, 110, 140, 0.1);
+    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.9);
+}
+
+.soft-record-main {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.soft-record-title {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #8B586F;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.soft-record-subtitle {
+    font-size: 0.9rem;
+    color: #A26D85;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.soft-record-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: rgba(253, 232, 241, 0.3);
+    border-radius: 1rem;
+    padding: 12px 16px;
+}
+
+.soft-record-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+@media (min-width: 600px) {
+    .soft-record-row {
+        flex-direction: row;
+        align-items: baseline;
+        gap: 12px;
+    }
+}
+
+.soft-record-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #AD859B;
+    min-width: 80px;
+}
+
+.soft-record-value {
+    font-size: 0.95rem;
+    color: #8F6C7E;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.soft-record-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.soft-empty-state {
+    background: rgba(255, 255, 255, 0.4);
+    border: 1px dashed #E8B4CB;
+    border-radius: 1.5rem;
+    padding: 32px;
+    text-align: center;
+    color: #A8889A;
+    font-weight: 600;
+}
+
+.soft-action-secondary {
+    padding: 6px 12px;
+    background: #FDF0F5;
+    color: #8F6C7E;
+    border: 1px solid #F0C2D6;
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+}
+.soft-action-secondary:hover {
+    background: #FFEDF5;
+    border-color: #E8B4CB;
+    transform: translateY(-1px);
+    color: #8F6C7E;
+}
+
+.soft-action-danger {
+    padding: 6px 12px;
+    background: #FFF0F4;
+    color: #D35D7A;
+    border: 1px solid #F8CEDB;
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+}
+.soft-action-danger:hover {
+    background: #FFE5EC;
+    border-color: #F4B8C9;
+    color: #B9445F;
+    transform: translateY(-1px);
+}
+
+.soft-status-pill {
+    display: inline-flex;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+.soft-status-pill.success { background: #E8F5E9; color: #2E7D32; border: 1px solid #C8E6C9; }
+.soft-status-pill.info { background: #F0F4F8; color: #648299; border: 1px solid #DFE7ED; }
+.soft-status-pill.warning { background: #FFF5EC; color: #C26A4A; border: 1px solid #F5E0D5; }
+.soft-status-pill.danger { background: #FFEBEE; color: #C62828; border: 1px solid #FFCDD2; }
+.soft-status-pill.neutral { background: #F3E5F5; color: #6A1B9A; border: 1px solid #E1BEE7; }
+
+.soft-checkbox {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #F0C2D6;
+    border-radius: 6px;
+    background-color: #FFF;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s ease;
+    margin: 0;
+}
+.soft-checkbox:checked {
+    background-color: #D3A4BC;
+    border-color: #D3A4BC;
+}
+.soft-checkbox:checked::after {
+    content: '';
+    position: absolute;
+    top: 1px;
+    left: 5px;
+    width: 5px;
+    height: 10px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+/* --- Soft Custom Select --- */
+.soft-custom-select-wrapper {
+    position: relative;
+    width: 100%;
+}
+.soft-custom-select-trigger {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+    background: #FFF;
+}
+.soft-custom-select-arrow {
+    font-size: 0.7rem;
+    color: #A26D85;
+    transition: transform 0.2s;
+}
+.soft-custom-select-wrapper.open .soft-custom-select-arrow {
+    transform: rotate(180deg);
+}
+.soft-custom-select-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(8px);
+    border: 1px solid #FAD0E2;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(180, 110, 140, 0.15);
+    z-index: 100;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    max-height: 250px;
+    overflow-y: auto;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.soft-custom-select-wrapper.open .soft-custom-select-dropdown {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+.soft-custom-select-item {
+    padding: 8px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    color: #8F6C7E;
+    font-size: 0.95rem;
+    transition: background 0.2s;
+}
+.soft-custom-select-item:not(.disabled):hover {
+    background: #FFF0F5;
+    color: #8B586F;
+    font-weight: 600;
+}
+.soft-custom-select-item.disabled {
+    color: #CBAEBD;
+    cursor: default;
+}
+
+/* Fix z-index for dropdowns inside cards */
+.soft-record-card:has(.soft-custom-select-wrapper.open) {
+    z-index: 999;
+}
+
+/* Compact the select trigger inside card rows */
+.soft-record-meta .soft-custom-select-trigger {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.9rem;
+    border-radius: 8px;
+}
+.soft-record-meta .soft-custom-select-item {
+    padding: 6px 10px;
+    font-size: 0.85rem;
+}
+
+/* --- Compact Grid & Pagination --- */
+.convites-compact-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+    align-items: stretch;
+}
+
+.convite-compact-card {
+    min-width: 0;
+    padding: 1.1rem;
+    border-radius: 22px;
+    border: 1px solid #F1C8D8;
+    background: rgba(255, 251, 253, 0.94);
+    box-shadow: 0 12px 26px rgba(190, 120, 150, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: all 0.3s ease;
+}
+
+.convite-compact-card:hover {
+    box-shadow: 0 16px 32px rgba(190, 120, 150, 0.12);
+    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.98);
+}
+
+.convite-compact-card .soft-record-title,
+.convite-compact-card .soft-record-subtitle,
+.convite-compact-card .soft-record-value {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.soft-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-top: 1.25rem;
+}
+
+.soft-pagination-info {
+    width: 100%;
+    text-align: center;
+    color: #A26D85;
+    font-size: 0.9rem;
+    margin-bottom: 0.35rem;
+}
+
+.soft-page-button {
+    border: 1px solid #F1C8D8;
+    background: #FFF7FB;
+    color: #8B586F;
+    border-radius: 999px;
+    padding: 0.4rem 0.8rem;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.soft-page-button:hover:not(:disabled) {
+    background: #FDE8F1;
+    border-color: #E8B4CB;
+}
+
+.soft-page-button.active {
+    background: #D7A1BB;
+    color: #FFFFFF;
+    border-color: #D7A1BB;
+}
+
+.soft-page-button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+/* --- Common Grids --- */
+.funcionarios-grid,
+.auditoria-list,
+.emails-list {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+
+.funcionario-card,
+.auditoria-card,
+.email-card {
+    min-width: 0;
 }

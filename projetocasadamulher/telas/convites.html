@@ -1,27 +1,39 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Convites - Casa da Mulher</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Gerenciar Convites - Casa da Mulher</title>
+    <link rel="stylesheet" href="style.css?v=10">
     <script src="config.js" defer></script>
     <script src="auth.js" defer></script>
-    <script src="app.js" defer></script>
+    <script src="app.js?v=10" defer></script>
 </head>
-<body>
-    <main id="convitesPage" class="admin-shell">
-        <header class="admin-header">
+<body class="soft-page">
+    <main id="convitesPage" class="soft-admin-main">
+        <header class="soft-header">
             <div>
-                <img src="IMAGENS/logo_oficial.png" alt="Logo Casa da Mulher" class="logo-admin">
-                <div>
-                    <h1>Convites de funcion&aacute;rios</h1>
-                    <p>Crie links seguros para novos acessos.</p>
-                </div>
+                <h1 class="soft-header-title">Casa da Mulher de Itaquaquecetuba</h1>
+                <p class="soft-header-subtitle">Gerenciar convites</p>
             </div>
-            <div class="header-actions">
-                <a class="btn-secondary btn-compact button-link" href="painel.html" data-painel-link>Voltar</a>
-                <button type="button" id="btnSairConvites" class="btn-secondary btn-compact">Sair</button>
+            
+            <div class="soft-session-card" id="sessionCard">
+                <div class="soft-clock session-trigger" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false" id="sessionTrigger">
+                    <div id="currentDate"></div>
+                    <div id="currentTime"></div>
+                </div>
+                
+                <div class="session-dropdown" id="sessionDropdown">
+                    <div class="session-user-name" id="sessionUserName">-</div>
+                    <div class="session-user-role" id="sessionUserRole">-</div>
+                    <div class="session-user-meta" id="sessionUserEmail">-</div>
+                    <div class="session-user-meta" style="margin-top: 4px;">ID: <span id="sessionUserId">-</span></div>
+                    
+                    <div class="session-actions">
+                        <a class="soft-btn soft-btn-warning" href="painel.html" data-painel-link style="text-decoration:none; flex: 1; justify-content: center;">Voltar</a>
+                        <button type="button" id="btnSairConvites" class="soft-btn soft-btn-danger" style="flex: 1; justify-content: center;">Sair</button>
+                    </div>
+                </div>
             </div>
         </header>
 
@@ -29,108 +41,104 @@
             <h2>Acesso restrito &agrave; coordena&ccedil;&atilde;o</h2>
         </section>
 
-        <section id="convitesConteudo" class="admin-layout">
-            <form id="formConvite" class="admin-panel" novalidate>
-                <h2>Novo convite</h2>
-                <p class="section-intro">Preencha os dados e envie o link gerado para o funcion&aacute;rio criar a conta.</p>
+        <section id="convitesConteudo" class="soft-admin-stack">
+            <!-- Formulario de Convite -->
+            <div class="soft-card">
+                <h2 class="soft-card-title">Novo convite</h2>
+                <p style="color: #8F6C7E; font-size: 0.95rem; margin-top: -4px; margin-bottom: 16px;">Preencha os dados e envie o link gerado para o funcion&aacute;rio criar a conta.</p>
 
-                <div class="input-group">
-                    <label for="conviteNome">Nome do funcion&aacute;rio</label>
-                    <input type="text" id="conviteNome" name="nomeCompleto" required>
-                </div>
-
-                <div class="input-group">
-                    <label for="conviteEmail">E-mail</label>
-                    <input type="email" id="conviteEmail" name="email" required>
-                </div>
-
-                <div class="input-group">
-                    <label for="conviteConfirmarEmail">Confirmar e-mail</label>
-                    <input type="email" id="conviteConfirmarEmail" name="confirmarEmail" required>
-                    <p id="avisoEmailAlias" class="field-help hidden">Este e-mail cont&eacute;m um alias com "+". Confira se o envio deve ser feito exatamente para esse endere&ccedil;o.</p>
-                </div>
-
-                <div class="input-grid">
-                    <div class="input-group">
-                        <label for="convitePerfil">Perfil de acesso</label>
-                        <select id="convitePerfil" name="perfil" required>
-                            <option value="" disabled selected>Selecione</option>
-                            <option value="adm">Coordena&ccedil;&atilde;o / ADM</option>
-                            <option value="recepcao">Recep&ccedil;&atilde;o</option>
-                            <option value="professor">Professor</option>
-                            <option value="as_social">Assistente Social</option>
-                            <option value="juridico">Jur&iacute;dico</option>
-                        </select>
+                <form id="formConvite" novalidate style="display: flex; flex-direction: column; gap: 16px;">
+                    <div class="soft-form-row" style="display: grid; grid-template-columns: 1fr; gap: 1rem;">
+                        <div class="soft-input-group">
+                            <label for="conviteNome" class="soft-label">Nome do funcion&aacute;rio</label>
+                            <input type="text" id="conviteNome" name="nomeCompleto" class="soft-input" required>
+                        </div>
                     </div>
 
-                    <div class="input-group">
-                        <label for="conviteDias">Validade do convite</label>
-                        <input type="number" id="conviteDias" name="diasParaExpirar" min="1" max="90" value="7" required>
+                    <div class="soft-form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="soft-input-group">
+                            <label for="conviteEmail" class="soft-label">E-mail</label>
+                            <input type="email" id="conviteEmail" name="email" class="soft-input" required>
+                        </div>
+                        <div class="soft-input-group">
+                            <label for="conviteConfirmarEmail" class="soft-label">Confirmar e-mail</label>
+                            <input type="email" id="conviteConfirmarEmail" name="confirmarEmail" class="soft-input" required>
+                            <p id="avisoEmailAlias" class="field-help hidden" style="font-size: 0.8rem; color: #D35D7A; margin-top: 4px;">Este e-mail cont&eacute;m um alias com "+". Confira se o envio deve ser feito exatamente para esse endere&ccedil;o.</p>
+                        </div>
                     </div>
-                </div>
 
-                <label class="checkbox-field">
-                    <input type="checkbox" id="conviteEnviarEmail" name="enviarEmail" checked>
-                    <span>Enviar convite por e-mail</span>
-                </label>
+                    <div class="soft-form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="soft-input-group">
+                            <label for="convitePerfil" class="soft-label">Perfil de acesso</label>
+                            <select id="convitePerfil" name="perfil" class="soft-input" required>
+                                <option value="" disabled selected>Selecione</option>
+                                <option value="adm">Coordena&ccedil;&atilde;o / ADM</option>
+                                <option value="recepcao">Recep&ccedil;&atilde;o</option>
+                                <option value="professor">Professor</option>
+                                <option value="as_social">Assistente Social</option>
+                                <option value="juridico">Jur&iacute;dico</option>
+                            </select>
+                        </div>
+                        <div class="soft-input-group">
+                            <label for="conviteDias" class="soft-label">Validade do convite</label>
+                            <input type="number" id="conviteDias" name="diasParaExpirar" class="soft-input" min="1" max="90" value="7" required>
+                        </div>
+                    </div>
 
-                <div id="mensagemConvite" class="message" aria-live="polite"></div>
+                    <label class="checkbox-field" style="display: flex; align-items: center; gap: 8px; color: #8F6C7E; font-weight: 600; font-size: 0.95rem; cursor: pointer;">
+                        <input type="checkbox" id="conviteEnviarEmail" name="enviarEmail" class="soft-checkbox" checked>
+                        <span>Enviar convite por e-mail</span>
+                    </label>
 
-                <button type="submit" class="btn-primary">Gerar convite</button>
-            </form>
+                    <div id="mensagemConvite" class="message" aria-live="polite"></div>
 
-            <section id="conviteGerado" class="admin-panel result-panel hidden">
-                <h2>Convite criado</h2>
-                <p class="section-intro">Envie este link para o funcion&aacute;rio criar a conta. O c&oacute;digo tamb&eacute;m pode ser informado separadamente.</p>
+                    <button type="submit" class="soft-btn soft-btn-primary" style="align-self: flex-start;">Gerar convite</button>
+                </form>
+            </div>
 
-                <dl class="profile-list compact-list">
+            <!-- Resultado do Convite -->
+            <div id="conviteGerado" class="soft-card hidden" style="border: 1px solid #C8E6C9; background: #F1F8E9;">
+                <h2 class="soft-card-title" style="color: #2E7D32;">Convite criado</h2>
+                <p style="color: #388E3C; font-size: 0.95rem; margin-top: -4px; margin-bottom: 16px;">Envie este link para o funcion&aacute;rio criar a conta. O c&oacute;digo tamb&eacute;m pode ser informado separadamente.</p>
+                
+                <dl class="profile-list compact-list painel-profile-grid" style="background: rgba(255, 255, 255, 0.7); padding: 16px; border-radius: 12px;">
                     <div>
-                        <dt>ID do funcion&aacute;rio</dt>
-                        <dd id="identificadorGerado">-</dd>
-                    </div>
-                    <div>
-                        <dt>C&oacute;digo</dt>
-                        <dd id="codigoGerado">-</dd>
-                    </div>
-                    <div>
-                        <dt>Link</dt>
-                        <dd id="linkGerado">-</dd>
+                        <dt style="color: #388E3C; font-weight: 700; font-size: 0.85rem; text-transform: uppercase;">ID do funcion&aacute;rio</dt>
+                        <dd id="identificadorGerado" style="color: #1B5E20; font-weight: 800;">-</dd>
                     </div>
                     <div>
-                        <dt>E-mail</dt>
-                        <dd id="emailConviteStatus">-</dd>
+                        <dt style="color: #388E3C; font-weight: 700; font-size: 0.85rem; text-transform: uppercase;">E-mail do convite</dt>
+                        <dd id="emailConviteStatus" style="color: #1B5E20; overflow-wrap: anywhere; word-break: break-word;">-</dd>
+                    </div>
+                    <div>
+                        <dt style="color: #388E3C; font-weight: 700; font-size: 0.85rem; text-transform: uppercase;">C&oacute;digo</dt>
+                        <dd id="codigoGerado" style="color: #1B5E20; font-family: monospace; font-size: 1.1rem; letter-spacing: 1px;">-</dd>
+                    </div>
+                    <div>
+                        <dt style="color: #388E3C; font-weight: 700; font-size: 0.85rem; text-transform: uppercase;">Link</dt>
+                        <dd id="linkGerado" style="color: #1B5E20; overflow-wrap: anywhere; word-break: break-word; font-family: monospace;">-</dd>
                     </div>
                 </dl>
 
-                <div class="action-row">
-                    <button type="button" id="btnCopiarCodigo" class="btn-secondary">Copiar c&oacute;digo</button>
-                    <button type="button" id="btnCopiarLink" class="btn-secondary">Copiar link</button>
+                <div style="display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap;">
+                    <button type="button" id="btnCopiarCodigo" class="soft-action-secondary" style="border-color: #A5D6A7; color: #2E7D32; background: #E8F5E9;">Copiar c&oacute;digo</button>
+                    <button type="button" id="btnCopiarLink" class="soft-action-secondary" style="border-color: #A5D6A7; color: #2E7D32; background: #E8F5E9;">Copiar link</button>
                 </div>
-            </section>
+            </div>
 
-            <section class="admin-panel table-panel">
-                <div class="table-heading">
-                    <h2>Convites</h2>
-                    <button type="button" id="btnAtualizarConvites" class="btn-secondary btn-compact">Atualizar</button>
+            <!-- Lista de Convites -->
+            <div class="soft-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+                    <h2 class="soft-card-title">Convites</h2>
+                    <button type="button" id="btnAtualizarConvites" class="soft-action-secondary">Atualizar Lista</button>
                 </div>
-
-                <div class="table-wrap">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Nome</th>
-                                <th>E-mail</th>
-                                <th>Perfil</th>
-                                <th>Status</th>
-                                <th>Expira</th>
-                                <th>A&ccedil;&otilde;es</th>
-                            </tr>
-                        </thead>
-                        <tbody id="listaConvites"></tbody>
-                    </table>
+                
+                <div id="listaConvites" class="soft-record-list convites-compact-grid">
+                    <div class="soft-empty-state">Carregando convites...</div>
                 </div>
-            </section>
+                
+                <div id="convitesPagination" class="soft-pagination"></div>
+            </div>
         </section>
     </main>
 </body>

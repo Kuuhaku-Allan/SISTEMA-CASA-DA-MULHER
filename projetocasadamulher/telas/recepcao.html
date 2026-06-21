@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Recep&ccedil;&atilde;o - Casa da Mulher</title>
-    <link rel="stylesheet" href="style.css?v=2">
+    <link rel="stylesheet" href="style.css?v=3">
     <style>
         .recepcao-panel {
             display: none;
@@ -22,7 +22,7 @@
     </style>
     <script src="config.js" defer></script>
     <script src="auth.js" defer></script>
-    <script src="app.js" defer></script>
+    <script src="app.js?v=3" defer></script>
     <script defer>
         (function () {
             "use strict";
@@ -38,10 +38,7 @@
                     return;
                 }
 
-                document.getElementById("sessionUserName").textContent = usuario.nomeCompleto || "-";
-                document.getElementById("sessionUserRole").textContent = formatPerfilLocal(usuario.perfil);
-                document.getElementById("sessionUserEmail").textContent = usuario.email || "-";
-                document.getElementById("sessionUserId").textContent = usuario.identificadorFuncionario || "-";
+                inicializarSoftSessionCard(usuario);
                 usuarioLogado = usuario;
 
                 const atendidaPorNomeDisplay = document.getElementById("atendidaPorNomeDisplay");
@@ -76,26 +73,8 @@
             }
 
             function bindEvents() {
-                const sessionCard = document.getElementById("sessionCard");
-                const sessionTrigger = document.getElementById("sessionTrigger");
-                if (sessionCard && sessionTrigger) {
-                    sessionTrigger.addEventListener("click", function (e) {
-                        e.stopPropagation();
-                        sessionCard.classList.toggle("open");
-                        const isOpen = sessionCard.classList.contains("open");
-                        sessionTrigger.setAttribute("aria-expanded", isOpen);
-                    });
-                    document.addEventListener("click", function (e) {
-                        if (!sessionCard.contains(e.target)) {
-                            sessionCard.classList.remove("open");
-                            sessionTrigger.setAttribute("aria-expanded", "false");
-                        }
-                    });
-                }
-
-                document.getElementById("btnSairRecepcao")?.addEventListener("click", function () {
-                    CasaMulherAuth.logout();
-                });
+                // Eventos do sessionCard foram migrados para o app.js
+                // O btnSairRecepcao também é bindado via inicializarSoftSessionCard
 
                 document.querySelectorAll("[data-tab]").forEach(function (button) {
                     button.addEventListener("click", function () {

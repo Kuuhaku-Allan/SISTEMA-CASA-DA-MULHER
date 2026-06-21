@@ -154,6 +154,33 @@
                     </table>
                 </div>
             </section>
+
+            <section class="admin-panel table-panel">
+                <div class="table-heading">
+                    <div>
+                        <h2>Solicitações de acesso GitHub</h2>
+                        <div id="mensagemSolicitacoesAcesso" class="message" aria-live="polite"></div>
+                    </div>
+                    <button type="button" id="btnAtualizarSolicitacoesAcesso" class="btn-secondary btn-compact">Atualizar</button>
+                </div>
+                <p class="section-intro">O e-mail exibido vem da API do GitHub e só é usado quando está marcado como verificado.</p>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>GitHub</th>
+                                <th>E-mail verificado</th>
+                                <th>Organização/time</th>
+                                <th>Scopes</th>
+                                <th>Status</th>
+                                <th>Solicitada em</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="listaSolicitacoesAcesso"></tbody>
+                    </table>
+                </div>
+            </section>
         </section>
     </main>
 </body>

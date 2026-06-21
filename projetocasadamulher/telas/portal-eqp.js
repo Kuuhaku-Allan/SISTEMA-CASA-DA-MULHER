@@ -131,6 +131,7 @@
         const memberBox = $("portalEqpMemberBox");
         const convitesBox = $("portalEqpConvitesBox");
         const activationBox = $("portalEqpActivationBox");
+        const accessRequestBox = $("portalEqpAccessRequestBox");
         const userName = $("portalEqpUserName");
         const userStatus = $("portalEqpUserStatus");
         const inviteList = $("portalEqpInviteList");
@@ -139,6 +140,7 @@
         show(memberBox, false);
         show(convitesBox, false);
         show(activationBox, false);
+        show(accessRequestBox, false);
 
         try {
             show(loginBox, !me.autenticado && !me.logado);
@@ -156,22 +158,11 @@
             if (!me.autorizado) {
                 try {
                     const diagnostico = await apiFetch("/api/portal-eqp/github/diagnostico", { method: "GET" });
-                    
-                    let motivoHtml = `<strong>Motivo:</strong> ${diagnostico.motivoNegacao || "Acesso negado."}<br>`;
-                    
-                    if (!diagnostico.readOrgPresente) {
-                        motivoHtml += `<br>A permissão <strong>read:org</strong> não foi concedida.<br>
-                        <a href="/api/portal-eqp/github/login" class="btn-primary button-link" style="margin-top: 10px;">Reautorizar GitHub</a>
-                        <p style="font-size: 11px; margin-top: 5px;">Se o problema persistir, revogue o acesso do app nas configurações do seu GitHub e tente novamente.</p>`;
-                    } else if (diagnostico.orgMembership === false) {
-                        motivoHtml += `<br>Você não é membro da organização <strong>${diagnostico.orgConfigurada}</strong>.`;
-                    } else if (diagnostico.teamMembership === false) {
-                        motivoHtml += `<br>Você não pertence ao time <strong>${diagnostico.teamSlugConfigurado}</strong> na organização.`;
-                    }
-
-                    setMessage($("portalEqpActivationMessage"), `Seu GitHub não está autorizado.<br><br>${motivoHtml}`, "error");
+                    renderAccessRequest(me, diagnostico);
+                    show(accessRequestBox, true);
                 } catch (err) {
-                    setMessage($("portalEqpActivationMessage"), "Seu GitHub ainda não está autorizado na organização ou na lista de acesso.", "error");
+                    renderAccessRequest(me, null);
+                    show(accessRequestBox, true);
                 }
                 return;
             }
@@ -265,6 +256,33 @@
         return wrapper;
     }
 
+    function renderAccessRequest(me, diagnostico) {
+        const username = me.gitHubUsername || me.githubUsername || "";
+        const request = me.solicitacaoAcesso;
+        const summary = $("portalEqpAccessRequestSummary");
+        const info = $("portalEqpAccessRequestInfo");
+        const message = $("portalEqpAccessRequestMessage");
+
+        if (summary) summary.textContent = `Você entrou com GitHub como @${username}, mas seu acesso ainda não foi liberado.`;
+        if (info) {
+            info.replaceChildren(
+                profileItem("E-mail verificado", diagnostico?.primaryVerifiedEmail || request?.primaryVerifiedEmail || "Não disponível"),
+                profileItem("Organização", diagnostico?.orgMembership === true ? diagnostico.orgConfigurada : "Não confirmada"),
+                profileItem("Time", diagnostico?.teamMembership === true ? diagnostico.teamSlugConfigurado : "Não confirmado"),
+                profileItem("Permissão read:org", diagnostico?.readOrgPresente ? "Concedida" : "Ausente"),
+                profileItem("Permissão user:email", diagnostico?.userEmailScopePresente ? "Concedida" : "Ausente")
+            );
+        }
+
+        if (request?.status === "pending") {
+            setMessage(message, `Solicitação pendente desde ${new Date(request.requestedAt).toLocaleString()}.`, "info");
+        } else if (request?.status === "reauthorization_requested") {
+            setMessage(message, "O owner pediu que você reautorize o GitHub com e-mail e organização.", "error");
+        } else {
+            setMessage(message, diagnostico?.motivoNegacao || "Envie uma solicitação para o owner analisar seu acesso.", "info");
+        }
+    }
+
     function renderInvites(convites, container) {
         if (!container) {
             return;
@@ -311,6 +329,8 @@
         const resetForm = $("formPortalEqpReset");
         const logoutButton = $("portalEqpLogout");
         const copyButton = $("portalEqpCopySync");
+        const requestAccessButton = $("portalEqpRequestAccess");
+        const requestLogoutButton = $("portalEqpRequestLogout");
 
         if (activationForm) {
             activationForm.addEventListener("submit", submitActivation);
@@ -326,6 +346,23 @@
                 window.location.reload();
             });
         }
+
+        requestAccessButton?.addEventListener("click", async () => {
+            requestAccessButton.disabled = true;
+            try {
+                const request = await apiFetch("/api/portal-eqp/acesso/solicitar", { method: "POST", body: "{}" });
+                setMessage($("portalEqpAccessRequestMessage"), `Sua solicitação foi enviada para o owner em ${new Date(request.requestedAt).toLocaleString()}.`, "success");
+            } catch (error) {
+                setMessage($("portalEqpAccessRequestMessage"), error.message, "error");
+            } finally {
+                requestAccessButton.disabled = false;
+            }
+        });
+
+        requestLogoutButton?.addEventListener("click", async () => {
+            await apiFetch("/api/portal-eqp/github/logout", { method: "POST", body: "{}" });
+            window.location.reload();
+        });
 
         const btnGithubLogout = $("btn-github-logout");
         if (btnGithubLogout) {

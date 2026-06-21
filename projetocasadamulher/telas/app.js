@@ -25,25 +25,29 @@ function setMessage(element, text, type) {
 }
 
 async function readApiMessage(response) {
+    let raw = "";
+
     try {
-        const data = await response.json();
-
-        if (data.mensagem) {
-            return data.mensagem;
-        }
-
-        if (Array.isArray(data.erros) && data.erros.length > 0) {
-            return data.erros.join(" ");
-        }
-
-        if (data.errors) {
-            return Object.values(data.errors).flat().join(" ");
-        }
+        raw = await response.text();
     } catch {
-        return "Não foi possível ler a resposta da API.";
+        return `HTTP ${response.status} ${response.statusText || ""}`.trim();
     }
 
-    return "Não foi possível concluir a operação.";
+    if (raw) {
+        try {
+            const data = JSON.parse(raw);
+
+            if (data.mensagem) return data.mensagem;
+            if (Array.isArray(data.erros) && data.erros.length > 0) return data.erros.join(" ");
+            if (data.errors) return Object.values(data.errors).flat().join(" ");
+
+            return raw.slice(0, 300);
+        } catch {
+            return `HTTP ${response.status} ${response.statusText || ""}: ${raw.slice(0, 300)}`.trim();
+        }
+    }
+
+    return `HTTP ${response.status} ${response.statusText || ""}`.trim();
 }
 
 function disableSubmit(form, disabled) {
@@ -93,6 +97,95 @@ function bindLogoutButton(id) {
     });
 }
 
+function initSoftSelect(selectElement) {
+    if (!selectElement || selectElement.dataset.softSelectInitialized) return;
+    selectElement.dataset.softSelectInitialized = "true";
+
+    selectElement.style.position = "absolute";
+    selectElement.style.opacity = "0";
+    selectElement.style.pointerEvents = "none";
+    selectElement.style.height = "0";
+    selectElement.style.width = "0";
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "soft-custom-select-wrapper";
+    
+    const trigger = document.createElement("div");
+    trigger.className = "soft-input soft-custom-select-trigger";
+    trigger.tabIndex = 0;
+    
+    const displayValue = document.createElement("span");
+    displayValue.className = "soft-custom-select-value";
+    
+    const arrow = document.createElement("span");
+    arrow.className = "soft-custom-select-arrow";
+    arrow.innerHTML = "▼";
+
+    trigger.appendChild(displayValue);
+    trigger.appendChild(arrow);
+
+    const dropdown = document.createElement("div");
+    dropdown.className = "soft-custom-select-dropdown";
+    
+    const options = Array.from(selectElement.options);
+    
+    function updateDisplay() {
+        const selected = options.find(o => o.selected);
+        if (selected) {
+            displayValue.textContent = selected.text;
+            if (selected.disabled) {
+                displayValue.style.color = "#A8889A";
+            } else {
+                displayValue.style.color = "#8F6C7E";
+            }
+        }
+    }
+    
+    options.forEach((opt, index) => {
+        const item = document.createElement("div");
+        item.className = "soft-custom-select-item";
+        item.textContent = opt.text;
+        if (opt.disabled) {
+            item.classList.add("disabled");
+        } else {
+            item.addEventListener("click", () => {
+                selectElement.selectedIndex = index;
+                selectElement.dispatchEvent(new Event("change", { bubbles: true }));
+                updateDisplay();
+                closeDropdown();
+            });
+        }
+        dropdown.appendChild(item);
+    });
+    
+    wrapper.appendChild(trigger);
+    wrapper.appendChild(dropdown);
+    
+    selectElement.parentNode.insertBefore(wrapper, selectElement.nextSibling);
+    
+    function toggleDropdown(e) {
+        e.preventDefault();
+        wrapper.classList.toggle("open");
+    }
+    
+    function closeDropdown() {
+        wrapper.classList.remove("open");
+    }
+    
+    trigger.addEventListener("click", toggleDropdown);
+    
+    document.addEventListener("click", (e) => {
+        if (!wrapper.contains(e.target)) {
+            closeDropdown();
+        }
+    });
+
+    selectElement.addEventListener("change", updateDisplay);
+
+    updateDisplay();
+}
+
+
 function formatDate(value) {
     if (!value) {
         return "-";
@@ -113,6 +206,56 @@ function formatPerfil(perfil) {
     return PERFIS_LABEL[perfil] || perfil || "-";
 }
 
+function inicializarSoftSessionCard(usuario) {
+    const sessionUserName = document.getElementById("sessionUserName");
+    if (!sessionUserName) return;
+
+    sessionUserName.textContent = usuario.nomeCompleto || "-";
+    document.getElementById("sessionUserRole").textContent = formatPerfil(usuario.perfil);
+    document.getElementById("sessionUserEmail").textContent = usuario.email || "-";
+    document.getElementById("sessionUserId").textContent = usuario.identificadorFuncionario || "-";
+
+    const sessionCard = document.getElementById("sessionCard");
+    const sessionTrigger = document.getElementById("sessionTrigger");
+    
+    if (sessionCard && sessionTrigger && !sessionTrigger.dataset.bound) {
+        sessionTrigger.addEventListener("click", function (e) {
+            e.stopPropagation();
+            sessionCard.classList.toggle("open");
+            const isOpen = sessionCard.classList.contains("open");
+            sessionTrigger.setAttribute("aria-expanded", isOpen);
+        });
+        document.addEventListener("click", function (e) {
+            if (!sessionCard.contains(e.target)) {
+                sessionCard.classList.remove("open");
+                sessionTrigger.setAttribute("aria-expanded", "false");
+            }
+        });
+        sessionTrigger.dataset.bound = "true";
+    }
+
+    const btnSair = document.getElementById("btnSairRecepcao") || document.getElementById("btnSair") || document.getElementById("btnSairSeguranca") || document.querySelector(".session-actions button");
+    if (btnSair && !btnSair.dataset.bound) {
+        btnSair.addEventListener("click", function () {
+            CasaMulherAuth.logout();
+        });
+        btnSair.dataset.bound = "true";
+    }
+
+    const currentDate = document.getElementById("currentDate");
+    const currentTime = document.getElementById("currentTime");
+    if (currentDate && currentTime && !window.clockInterval) {
+        function updateDateTime() {
+            const now = new Date();
+            const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            currentDate.textContent = now.toLocaleDateString('pt-BR', dateOptions);
+            currentTime.textContent = now.toLocaleTimeString('pt-BR');
+        }
+        updateDateTime();
+        window.clockInterval = setInterval(updateDateTime, 1000);
+    }
+}
+
 function formatAcaoAuditoria(acao) {
     const acoes = {
         CONVITE_CRIADO: "Convite criado",
@@ -120,6 +263,8 @@ function formatAcaoAuditoria(acao) {
         CONVITE_PUBLICO_INVALIDO: "Convite público inválido",
         FUNCIONARIO_DESATIVADO: "Acesso desativado",
         FUNCIONARIO_REATIVADO: "Acesso reativado",
+        "2FA_RESET_SOLICITADO": "Reset de 2FA solicitado",
+        "2FA_RESET_CONCLUIDO": "Reset de 2FA concluído",
         LOGIN_FALHA: "Falha de login",
         LOGIN_BLOQUEADO: "Login bloqueado",
         LOGIN_2FA_FALHA: "Falha no código de segurança",
@@ -363,6 +508,16 @@ function setupCadastro() {
     carregarConvite();
 }
 
+function mostrarAuthView(nome) {
+    if (nome === "login") {
+        sessionStorage.removeItem("loginTemporario2fa");
+    }
+    
+    document.querySelectorAll("[data-auth-view]").forEach(function (view) {
+        view.hidden = view.dataset.authView !== nome;
+    });
+}
+
 function setupLogin() {
     const form = document.getElementById("formLogin");
     const mensagem = document.getElementById("mensagemLogin");
@@ -372,6 +527,8 @@ function setupLogin() {
     if (!form) {
         return;
     }
+
+    sessionStorage.removeItem("loginTemporario2fa");
 
     const mensagemSessao = sessionStorage.getItem("mensagemLogin");
 
@@ -396,6 +553,7 @@ function setupLogin() {
 
         setMessage(mensagem, "Entrando...", "info");
         disableSubmit(form, true);
+        sessionStorage.removeItem("loginTemporario2fa");
 
         const dados = {
             identificador: document.getElementById("identificador").value.trim(),
@@ -420,8 +578,7 @@ function setupLogin() {
 
             if (resultado.requerDoisFatores) {
                 sessionStorage.setItem("loginTemporario2fa", resultado.loginTemporario);
-                form.classList.add("hidden");
-                form2fa.classList.remove("hidden");
+                mostrarAuthView("doisFatores");
                 setMessage(mensagem2fa, "Informe o código de segurança do seu aplicativo autenticador.", "info");
                 return;
             }
@@ -447,6 +604,23 @@ function setupLogin() {
             return;
         }
 
+        const loginTemporario = sessionStorage.getItem("loginTemporario2fa");
+        const codigoRaw = document.getElementById("codigo2fa").value;
+        const codigo = codigoRaw ? codigoRaw.replace(/\D/g, "").trim() : "";
+
+        if (!loginTemporario) {
+            setMessage(mensagem2fa, "Entre com ID e senha primeiro. O código de segurança é solicitado após a senha.", "error");
+            mostrarAuthView("login");
+            disableSubmit(form2fa, false);
+            return;
+        }
+
+        if (codigo.length !== 6) {
+            setMessage(mensagem2fa, "O código de segurança deve conter exatamente 6 números.", "error");
+            disableSubmit(form2fa, false);
+            return;
+        }
+
         setMessage(mensagem2fa, "Validando código...", "info");
         disableSubmit(form2fa, true);
 
@@ -457,8 +631,8 @@ function setupLogin() {
                     "Content-Type": "application/json"
                 },
                 body: JSON.stringify({
-                    loginTemporario: sessionStorage.getItem("loginTemporario2fa"),
-                    codigo: document.getElementById("codigo2fa").value.trim()
+                    loginTemporario: loginTemporario,
+                    codigo: codigo
                 })
             });
 
@@ -506,6 +680,8 @@ async function setupPainel() {
     document.getElementById("painelIdentificador").textContent = usuario.identificadorFuncionario || "-";
     document.getElementById("painelEmail").textContent = usuario.email || "-";
     document.getElementById("painelPerfil").textContent = formatPerfil(usuario.perfil);
+
+    inicializarSoftSessionCard(usuario);
 
     CasaMulherAuth.salvarUsuario(usuario);
 
@@ -555,11 +731,20 @@ async function setupConvites() {
         return;
     }
 
+    if (typeof inicializarSoftSessionCard === "function") {
+        inicializarSoftSessionCard(usuario);
+    }
+
     const form = document.getElementById("formConvite");
     const resultPanel = document.getElementById("conviteGerado");
     const conviteEmailInput = document.getElementById("conviteEmail");
     const conviteConfirmarEmailInput = document.getElementById("conviteConfirmarEmail");
+    const convitePerfil = document.getElementById("convitePerfil");
     const avisoEmailAlias = document.getElementById("avisoEmailAlias");
+    
+    if (convitePerfil) {
+        initSoftSelect(convitePerfil);
+    }
     let ultimoCodigo = "";
     let ultimoLink = "";
 
@@ -581,18 +766,118 @@ async function setupConvites() {
 
     conviteEmailInput.addEventListener("input", atualizarAvisoEmailAlias);
 
+    const CONVITES_POR_PAGINA = 12;
+    let convitesPaginaAtual = 1;
+    let convitesCache = [];
+
+    function renderizarConviteCard(convite) {
+        const podeCancelar = convite.status === "Pendente";
+        const cancelar = podeCancelar
+            ? `<button type="button" class="soft-action-danger" data-cancelar="${convite.id}">Cancelar convite</button>`
+            : `<span style="color: #A8889A; font-size: 0.85rem; font-weight: 600;">Sem ações disponíveis</span>`;
+
+        let statusClass = "neutral";
+        const st = convite.status.toLowerCase();
+        if (st === "pendente") statusClass = "warning";
+        else if (st === "usado") statusClass = "success";
+        else if (st === "cancelado" || st === "revogado" || st === "expirado") statusClass = "danger";
+
+        return `
+            <article class="convite-compact-card">
+                <div class="soft-record-main">
+                    <h3 class="soft-record-title">${escapeHtml(convite.nomeCompleto)}</h3>
+                    <p class="soft-record-subtitle">${escapeHtml(convite.identificadorFuncionario || "-")}</p>
+                </div>
+
+                <div class="soft-record-meta" style="flex: 1;">
+                    <div class="soft-record-row">
+                        <span class="soft-record-label">E-mail</span>
+                        <span class="soft-record-value">${escapeHtml(convite.email)}</span>
+                    </div>
+                    <div class="soft-record-row">
+                        <span class="soft-record-label">Perfil</span>
+                        <span class="soft-record-value">${escapeHtml(formatPerfil(convite.perfil))}</span>
+                    </div>
+                    <div class="soft-record-row">
+                        <span class="soft-record-label">Status</span>
+                        <span class="soft-record-value">
+                            <span class="soft-status-pill ${statusClass}">${escapeHtml(convite.status)}</span>
+                        </span>
+                    </div>
+                    <div class="soft-record-row">
+                        <span class="soft-record-label">Expira em</span>
+                        <span class="soft-record-value">${formatDate(convite.expiraEm)}</span>
+                    </div>
+                </div>
+
+                <div class="soft-record-actions" style="margin-top: auto; padding-top: 10px; border-top: 1px solid rgba(241, 200, 216, 0.3);">
+                    ${cancelar}
+                </div>
+            </article>
+        `;
+    }
+
+    function renderizarPaginacaoConvites() {
+        const paginacao = document.getElementById("convitesPagination");
+        if (!paginacao) return;
+
+        const totalPaginas = Math.ceil(convitesCache.length / CONVITES_POR_PAGINA);
+        
+        if (totalPaginas <= 1) {
+            paginacao.innerHTML = "";
+            return;
+        }
+
+        const inicio = (convitesPaginaAtual - 1) * CONVITES_POR_PAGINA + 1;
+        const fim = Math.min(convitesPaginaAtual * CONVITES_POR_PAGINA, convitesCache.length);
+
+        let html = `<div class="soft-pagination-info">Mostrando ${inicio}–${fim} de ${convitesCache.length} convites</div>`;
+        
+        html += `<button type="button" class="soft-page-button" data-page="${convitesPaginaAtual - 1}" ${convitesPaginaAtual === 1 ? "disabled" : ""}>Anterior</button>`;
+        
+        for (let i = 1; i <= totalPaginas; i++) {
+            html += `<button type="button" class="soft-page-button ${i === convitesPaginaAtual ? "active" : ""}" data-page="${i}">${i}</button>`;
+        }
+        
+        html += `<button type="button" class="soft-page-button" data-page="${convitesPaginaAtual + 1}" ${convitesPaginaAtual === totalPaginas ? "disabled" : ""}>Próxima</button>`;
+
+        paginacao.innerHTML = html;
+
+        const botoes = paginacao.querySelectorAll(".soft-page-button:not(:disabled)");
+        botoes.forEach(btn => {
+            btn.addEventListener("click", () => {
+                convitesPaginaAtual = parseInt(btn.dataset.page, 10);
+                renderizarConvites();
+            });
+        });
+    }
+
+    function renderizarConvites() {
+        const lista = document.getElementById("listaConvites");
+        if (convitesCache.length === 0) {
+            lista.innerHTML = "<div class=\"soft-empty-state\">Nenhum convite cadastrado.</div>";
+            document.getElementById("convitesPagination").innerHTML = "";
+            return;
+        }
+
+        const inicio = (convitesPaginaAtual - 1) * CONVITES_POR_PAGINA;
+        const fim = inicio + CONVITES_POR_PAGINA;
+        const convitesPagina = convitesCache.slice(inicio, fim);
+
+        lista.innerHTML = convitesPagina.map(renderizarConviteCard).join("");
+        renderizarPaginacaoConvites();
+    }
+
     async function carregarConvites() {
         const lista = document.getElementById("listaConvites");
-        lista.innerHTML = "<tr><td colspan=\"7\">Carregando...</td></tr>";
+        lista.innerHTML = "<div class=\"soft-empty-state\">Carregando convites...</div>";
 
         try {
             const response = await CasaMulherAuth.apiFetch("/api/convites-funcionarios", {
                 mensagemElement: mensagem
             });
 
-            if (response.status === 401) {
-                return;
-            }
+            if (response.status === 401) return;
 
             if (response.status === 403) {
                 conteudo.classList.add("hidden");
@@ -601,37 +886,22 @@ async function setupConvites() {
             }
 
             if (!response.ok) {
-                lista.innerHTML = "<tr><td colspan=\"7\">Não foi possível carregar os convites.</td></tr>";
+                lista.innerHTML = "<div class=\"soft-empty-state\">Não foi possível carregar os convites.</div>";
                 return;
             }
 
-            const convites = await response.json();
-
-            if (convites.length === 0) {
-                lista.innerHTML = "<tr><td colspan=\"7\">Nenhum convite cadastrado.</td></tr>";
-                return;
+            convitesCache = await response.json();
+            
+            const totalPaginas = Math.ceil(convitesCache.length / CONVITES_POR_PAGINA);
+            if (convitesPaginaAtual > totalPaginas && totalPaginas > 0) {
+                convitesPaginaAtual = totalPaginas;
+            } else if (totalPaginas === 0) {
+                convitesPaginaAtual = 1;
             }
 
-            lista.innerHTML = convites.map(function (convite) {
-                const podeCancelar = convite.status === "Pendente";
-                const cancelar = podeCancelar
-                    ? `<button type="button" class="btn-link-danger" data-cancelar="${convite.id}">Cancelar convite</button>`
-                    : "-";
-
-                return `
-                    <tr>
-                        <td>${escapeHtml(convite.identificadorFuncionario || "-")}</td>
-                        <td>${escapeHtml(convite.nomeCompleto)}</td>
-                        <td>${escapeHtml(convite.email)}</td>
-                        <td>${escapeHtml(formatPerfil(convite.perfil))}</td>
-                        <td><span class="status-badge status-${convite.status.toLowerCase()}">${escapeHtml(convite.status)}</span></td>
-                        <td>${formatDate(convite.expiraEm)}</td>
-                        <td>${cancelar}</td>
-                    </tr>
-                `;
-            }).join("");
+            renderizarConvites();
         } catch {
-            lista.innerHTML = "<tr><td colspan=\"7\">Não foi possível conectar à API.</td></tr>";
+            lista.innerHTML = "<div class=\"soft-empty-state\">Não foi possível conectar à API.</div>";
         }
     }
 
@@ -705,9 +975,13 @@ async function setupConvites() {
 
             setMessage(mensagem, mensagemSucesso, tipoMensagem);
             form.reset();
+            if (convitePerfil) {
+                convitePerfil.dispatchEvent(new Event("change"));
+            }
             document.getElementById("conviteDias").value = "7";
             document.getElementById("conviteEnviarEmail").checked = true;
             avisoEmailAlias.classList.add("hidden");
+            convitesPaginaAtual = 1;
             await carregarConvites();
         } catch {
             setMessage(mensagem, "Não foi possível conectar à API.", "error");
@@ -724,7 +998,10 @@ async function setupConvites() {
         copyText(ultimoLink, mensagem);
     });
 
-    document.getElementById("btnAtualizarConvites").addEventListener("click", carregarConvites);
+    document.getElementById("btnAtualizarConvites").addEventListener("click", () => {
+        convitesPaginaAtual = 1;
+        carregarConvites();
+    });
 
     document.getElementById("listaConvites").addEventListener("click", async function (event) {
         const button = event.target.closest("[data-cancelar]");
@@ -986,7 +1263,7 @@ async function setupConfirmarEmailRecuperacao() {
             return;
         }
 
-        setMessage(mensagem, resultado.mensagem || "E-mail de recuperação confirmado com sucesso.", "success");
+        setMessage(mensagem, resultado.avisoSnapshot || resultado.mensagem || "E-mail de recuperação confirmado com sucesso.", resultado.avisoSnapshot ? "error" : "success");
     } catch {
         setMessage(mensagem, "Não foi possível conectar à API.", "error");
     }
@@ -1014,18 +1291,154 @@ async function setupFuncionarios() {
         return;
     }
 
+    if (typeof inicializarSoftSessionCard === "function") {
+        inicializarSoftSessionCard(usuario);
+    }
+
+    const FUNCIONARIOS_POR_PAGINA = 12;
+    let funcionariosPaginaAtual = 1;
+    let funcionariosCache = [];
+
+    function renderizarFuncionarioCard(funcionario) {
+        let statusPillClass = "neutral";
+        if (funcionario.ativo) statusPillClass = "success";
+        else statusPillClass = "danger";
+
+        if (funcionario.deveTrocarSenha) statusPillClass = "warning";
+
+        const statusLabel = funcionario.ativo ? "Ativo" : "Acesso desativado";
+        const statusHtml = `<span class="soft-status-pill ${statusPillClass}">${statusLabel}${funcionario.deveTrocarSenha ? " (Troca de senha)" : ""}</span>`;
+
+        let codigoSegurancaClass = "neutral";
+        let codigoSeguranca = "";
+        if (funcionario.doisFatoresAtivo) {
+            codigoSeguranca = "Ativo";
+            codigoSegurancaClass = "success";
+        } else if (funcionario.doisFatoresObrigatorio) {
+            codigoSeguranca = "Obrigatório, pendente";
+            codigoSegurancaClass = "warning";
+        } else {
+            codigoSeguranca = "Opcional";
+        }
+
+        const codigoSegurancaHtml = `<span class="soft-status-pill ${codigoSegurancaClass}">${codigoSeguranca}</span>`;
+
+        const ativar = funcionario.ativo
+            ? `<button type="button" class="soft-action-danger" data-action="desativar" data-id="${funcionario.id}">Desativar</button>`
+            : `<button type="button" class="soft-action-secondary" data-action="reativar" data-id="${funcionario.id}">Reativar</button>`;
+
+        return `
+            <article class="soft-record-card funcionario-card" style="display: flex; flex-direction: column; gap: 10px; transition: all 0.3s ease; min-width: 0; padding: 1.1rem; border-radius: 22px; border: 1px solid #F1C8D8; background: rgba(255, 251, 253, 0.94); box-shadow: 0 12px 26px rgba(190, 120, 150, 0.08);">
+                <div class="soft-record-main">
+                    <h3 class="soft-record-title" style="overflow-wrap: anywhere; word-break: break-word;">${escapeHtml(funcionario.nomeCompleto)}</h3>
+                    <p class="soft-record-subtitle" style="overflow-wrap: anywhere; word-break: break-word;">${escapeHtml(funcionario.identificadorFuncionario || "-")}</p>
+                </div>
+
+                <div class="soft-record-meta" style="flex: 1;">
+                    <div class="soft-record-row">
+                        <span class="soft-record-label">E-mail</span>
+                        <span class="soft-record-value" style="overflow-wrap: anywhere; word-break: break-word;">${escapeHtml(funcionario.email)}</span>
+                    </div>
+
+                    <div class="soft-record-row" style="align-items: center;">
+                        <span class="soft-record-label">Perfil</span>
+                        <span class="soft-record-value">
+                            <select class="soft-input" data-action="perfil" data-id="${funcionario.id}" style="padding: 4px 8px; font-size: 0.9rem; margin: -4px 0; width: 100%; max-width: 200px;">
+                                ${Object.keys(PERFIS_FUNCIONARIOS_LABEL).map(function (perfil) {
+                                    return `<option value="${perfil}" ${perfil === funcionario.perfil ? "selected" : ""}>${PERFIS_FUNCIONARIOS_LABEL[perfil]}</option>`;
+                                }).join("")}
+                            </select>
+                        </span>
+                    </div>
+
+                    <div class="soft-record-row">
+                        <span class="soft-record-label">Status</span>
+                        <span class="soft-record-value">${statusHtml}</span>
+                    </div>
+
+                    <div class="soft-record-row">
+                        <span class="soft-record-label">Cód. 2FA</span>
+                        <span class="soft-record-value">${codigoSegurancaHtml}</span>
+                    </div>
+                </div>
+
+                <div class="soft-record-actions" style="margin-top: auto; padding-top: 10px; border-top: 1px solid rgba(241, 200, 216, 0.3); display: flex; flex-wrap: wrap; gap: 8px;">
+                    ${ativar}
+                    <button type="button" class="soft-action-secondary" data-action="resetar-senha" data-id="${funcionario.id}">Redefinir senha</button>
+                    <button type="button" class="soft-action-secondary" data-action="resetar-2fa" data-id="${funcionario.id}">Redefinir 2FA</button>
+                </div>
+            </article>
+        `;
+    }
+
+    function renderizarPaginacaoFuncionarios() {
+        const paginacao = document.getElementById("funcionariosPagination");
+        if (!paginacao) return;
+
+        const totalPaginas = Math.ceil(funcionariosCache.length / FUNCIONARIOS_POR_PAGINA);
+        
+        if (totalPaginas <= 1) {
+            paginacao.innerHTML = "";
+            return;
+        }
+
+        const inicio = (funcionariosPaginaAtual - 1) * FUNCIONARIOS_POR_PAGINA + 1;
+        const fim = Math.min(funcionariosPaginaAtual * FUNCIONARIOS_POR_PAGINA, funcionariosCache.length);
+
+        let html = `<div class="soft-pagination-info">Mostrando ${inicio}–${fim} de ${funcionariosCache.length} funcionários</div>`;
+        
+        html += `<button type="button" class="soft-page-button" data-page="${funcionariosPaginaAtual - 1}" ${funcionariosPaginaAtual === 1 ? "disabled" : ""}>Anterior</button>`;
+        
+        for (let i = 1; i <= totalPaginas; i++) {
+            html += `<button type="button" class="soft-page-button ${i === funcionariosPaginaAtual ? "active" : ""}" data-page="${i}">${i}</button>`;
+        }
+        
+        html += `<button type="button" class="soft-page-button" data-page="${funcionariosPaginaAtual + 1}" ${funcionariosPaginaAtual === totalPaginas ? "disabled" : ""}>Próxima</button>`;
+
+        paginacao.innerHTML = html;
+
+        const botoes = paginacao.querySelectorAll(".soft-page-button:not(:disabled)");
+        botoes.forEach(btn => {
+            btn.addEventListener("click", () => {
+                funcionariosPaginaAtual = parseInt(btn.dataset.page, 10);
+                renderizarFuncionarios();
+            });
+        });
+    }
+
+    function renderizarFuncionarios() {
+        const lista = document.getElementById("listaFuncionarios");
+        if (funcionariosCache.length === 0) {
+            lista.innerHTML = "<div class=\"soft-empty-state\">Nenhum funcionário encontrado.</div>";
+            document.getElementById("funcionariosPagination").innerHTML = "";
+            return;
+        }
+
+        const inicio = (funcionariosPaginaAtual - 1) * FUNCIONARIOS_POR_PAGINA;
+        const fim = inicio + FUNCIONARIOS_POR_PAGINA;
+        const pagina = funcionariosCache.slice(inicio, fim);
+
+        lista.innerHTML = pagina.map(renderizarFuncionarioCard).join("");
+        
+        lista.querySelectorAll("select[data-action='perfil']").forEach(select => {
+            if (typeof initSoftSelect === "function") {
+                initSoftSelect(select);
+            }
+        });
+        
+        renderizarPaginacaoFuncionarios();
+    }
+
     async function carregarFuncionarios() {
         const lista = document.getElementById("listaFuncionarios");
-        lista.innerHTML = "<tr><td colspan=\"6\">Carregando...</td></tr>";
+        lista.innerHTML = "<div class=\"soft-empty-state\">Carregando funcionários...</div>";
 
         try {
             const response = await CasaMulherAuth.apiFetch("/api/funcionarios", {
                 mensagemElement: mensagem
             });
 
-            if (response.status === 401) {
-                return;
-            }
+            if (response.status === 401) return;
 
             if (response.status === 403) {
                 conteudo.classList.add("hidden");
@@ -1034,50 +1447,29 @@ async function setupFuncionarios() {
             }
 
             if (!response.ok) {
-                lista.innerHTML = "<tr><td colspan=\"6\">Não foi possível carregar funcionários.</td></tr>";
+                lista.innerHTML = "<div class=\"soft-empty-state\">Não foi possível carregar funcionários.</div>";
                 return;
             }
 
-            const funcionarios = await response.json();
+            funcionariosCache = await response.json();
+            
+            const totalPaginas = Math.ceil(funcionariosCache.length / FUNCIONARIOS_POR_PAGINA);
+            if (funcionariosPaginaAtual > totalPaginas && totalPaginas > 0) {
+                funcionariosPaginaAtual = totalPaginas;
+            } else if (totalPaginas === 0) {
+                funcionariosPaginaAtual = 1;
+            }
 
-            lista.innerHTML = funcionarios.map(function (funcionario) {
-                const status = funcionario.ativo ? "Ativo" : "Acesso desativado";
-                const codigoSeguranca = funcionario.doisFatoresAtivo
-                    ? "Ativo"
-                    : funcionario.doisFatoresObrigatorio
-                        ? "Obrigatório, pendente"
-                        : "Opcional";
-                const ativar = funcionario.ativo
-                    ? `<button type="button" class="btn-link-danger" data-action="desativar" data-id="${funcionario.id}">Desativar acesso</button>`
-                    : `<button type="button" class="btn-link" data-action="reativar" data-id="${funcionario.id}">Reativar acesso</button>`;
-
-                return `
-                    <tr>
-                        <td>${escapeHtml(funcionario.identificadorFuncionario)}</td>
-                        <td>${escapeHtml(funcionario.nomeCompleto)}<br><small>${escapeHtml(funcionario.email)}</small></td>
-                        <td>
-                            <select data-action="perfil" data-id="${funcionario.id}">
-                                ${Object.keys(PERFIS_FUNCIONARIOS_LABEL).map(function (perfil) {
-                                    return `<option value="${perfil}" ${perfil === funcionario.perfil ? "selected" : ""}>${PERFIS_FUNCIONARIOS_LABEL[perfil]}</option>`;
-                                }).join("")}
-                            </select>
-                        </td>
-                        <td>${status}${funcionario.deveTrocarSenha ? "<br><small>Troca de senha pendente</small>" : ""}</td>
-                        <td>${codigoSeguranca}</td>
-                        <td class="actions-cell">
-                            ${ativar}
-                            <button type="button" class="btn-link" data-action="resetar-senha" data-id="${funcionario.id}">Redefinir senha</button>
-                            <button type="button" class="btn-link" data-action="resetar-2fa" data-id="${funcionario.id}">Redefinir autenticador</button>
-                        </td>
-                    </tr>
-                `;
-            }).join("");
+            renderizarFuncionarios();
         } catch {
-            lista.innerHTML = "<tr><td colspan=\"6\">Não foi possível conectar à API.</td></tr>";
+            lista.innerHTML = "<div class=\"soft-empty-state\">Não foi possível conectar à API.</div>";
         }
     }
 
-    document.getElementById("btnAtualizarFuncionarios").addEventListener("click", carregarFuncionarios);
+    document.getElementById("btnAtualizarFuncionarios").addEventListener("click", () => {
+        funcionariosPaginaAtual = 1;
+        carregarFuncionarios();
+    });
 
     document.getElementById("listaFuncionarios").addEventListener("change", async function (event) {
         const select = event.target.closest("[data-action='perfil']");
@@ -1204,18 +1596,112 @@ async function setupAuditoria() {
         return;
     }
 
+    if (typeof inicializarSoftSessionCard === "function") {
+        inicializarSoftSessionCard(usuario);
+    }
+
+    const AUDITORIA_POR_PAGINA = 12;
+    let auditoriaPaginaAtual = 1;
+    let auditoriaCache = [];
+
+    function renderizarAuditoriaCard(evento) {
+        const funcionario = evento.identificadorFuncionario
+            ? `${escapeHtml(evento.identificadorFuncionario)} · ${escapeHtml(evento.nomeFuncionario)}`
+            : "-";
+
+        let ipDisplay = evento.ipOrigem || "-";
+        if (ipDisplay === "::1" || ipDisplay === "127.0.0.1") {
+            ipDisplay = `Localhost (${ipDisplay})`;
+        }
+
+        return `
+            <article class="soft-record-card auditoria-card" style="display: flex; flex-direction: column; gap: 10px; transition: all 0.3s ease; min-width: 0; padding: 1.1rem; border-radius: 22px; border: 1px solid #F1C8D8; background: rgba(255, 251, 253, 0.94); box-shadow: 0 12px 26px rgba(190, 120, 150, 0.08);">
+                <div class="soft-record-main">
+                    <h3 class="soft-record-title" style="overflow-wrap: anywhere; word-break: break-word;">${escapeHtml(formatAcaoAuditoria(evento.acao))}</h3>
+                    <p class="soft-record-subtitle" style="overflow-wrap: anywhere; word-break: break-word;">${formatDateTime(evento.criadoEm)}</p>
+                </div>
+
+                <div class="soft-record-meta" style="flex: 1;">
+                    <div class="soft-record-row">
+                        <span class="soft-record-label">Funcionário</span>
+                        <span class="soft-record-value" style="overflow-wrap: anywhere; word-break: break-word;">${funcionario}</span>
+                    </div>
+
+                    <div class="soft-record-row">
+                        <span class="soft-record-label">Descrição</span>
+                        <span class="soft-record-value" style="overflow-wrap: anywhere; word-break: break-word;">${escapeHtml(formatDescricaoAuditoria(evento.descricao))}</span>
+                    </div>
+
+                    <div class="soft-record-row">
+                        <span class="soft-record-label">IP</span>
+                        <span class="soft-record-value" style="overflow-wrap: anywhere; word-break: break-word;">${escapeHtml(ipDisplay)}</span>
+                    </div>
+                </div>
+            </article>
+        `;
+    }
+
+    function renderizarPaginacaoAuditoria() {
+        const paginacao = document.getElementById("auditoriaPagination");
+        if (!paginacao) return;
+
+        const totalPaginas = Math.ceil(auditoriaCache.length / AUDITORIA_POR_PAGINA);
+        
+        if (totalPaginas <= 1) {
+            paginacao.innerHTML = "";
+            return;
+        }
+
+        const inicio = (auditoriaPaginaAtual - 1) * AUDITORIA_POR_PAGINA + 1;
+        const fim = Math.min(auditoriaPaginaAtual * AUDITORIA_POR_PAGINA, auditoriaCache.length);
+
+        let html = `<div class="soft-pagination-info">Mostrando ${inicio}–${fim} de ${auditoriaCache.length} eventos</div>`;
+        
+        html += `<button type="button" class="soft-page-button" data-page="${auditoriaPaginaAtual - 1}" ${auditoriaPaginaAtual === 1 ? "disabled" : ""}>Anterior</button>`;
+        
+        for (let i = 1; i <= totalPaginas; i++) {
+            html += `<button type="button" class="soft-page-button ${i === auditoriaPaginaAtual ? "active" : ""}" data-page="${i}">${i}</button>`;
+        }
+        
+        html += `<button type="button" class="soft-page-button" data-page="${auditoriaPaginaAtual + 1}" ${auditoriaPaginaAtual === totalPaginas ? "disabled" : ""}>Próxima</button>`;
+
+        paginacao.innerHTML = html;
+
+        const botoes = paginacao.querySelectorAll(".soft-page-button:not(:disabled)");
+        botoes.forEach(btn => {
+            btn.addEventListener("click", () => {
+                auditoriaPaginaAtual = parseInt(btn.dataset.page, 10);
+                renderizarAuditoria();
+            });
+        });
+    }
+
+    function renderizarAuditoria() {
+        const lista = document.getElementById("listaAuditoria");
+        if (auditoriaCache.length === 0) {
+            lista.innerHTML = "<div class=\"soft-empty-state\">Nenhum evento registrado.</div>";
+            document.getElementById("auditoriaPagination").innerHTML = "";
+            return;
+        }
+
+        const inicio = (auditoriaPaginaAtual - 1) * AUDITORIA_POR_PAGINA;
+        const fim = inicio + AUDITORIA_POR_PAGINA;
+        const pagina = auditoriaCache.slice(inicio, fim);
+
+        lista.innerHTML = pagina.map(renderizarAuditoriaCard).join("");
+        renderizarPaginacaoAuditoria();
+    }
+
     async function carregarAuditoria() {
         const lista = document.getElementById("listaAuditoria");
-        lista.innerHTML = "<tr><td colspan=\"5\">Carregando...</td></tr>";
+        lista.innerHTML = "<div class=\"soft-empty-state\">Carregando histórico...</div>";
 
         try {
             const response = await CasaMulherAuth.apiFetch("/api/auditoria", {
                 mensagemElement: mensagem
             });
 
-            if (response.status === 401) {
-                return;
-            }
+            if (response.status === 401) return;
 
             if (response.status === 403) {
                 conteudo.classList.add("hidden");
@@ -1224,40 +1710,29 @@ async function setupAuditoria() {
             }
 
             if (!response.ok) {
-                lista.innerHTML = "<tr><td colspan=\"5\">Não foi possível carregar auditoria.</td></tr>";
+                lista.innerHTML = "<div class=\"soft-empty-state\">Não foi possível carregar auditoria.</div>";
                 return;
             }
 
-            const eventos = await response.json();
-
-            if (eventos.length === 0) {
-                lista.innerHTML = "<tr><td colspan=\"5\">Nenhum evento registrado.</td></tr>";
-                return;
+            auditoriaCache = await response.json();
+            
+            const totalPaginas = Math.ceil(auditoriaCache.length / AUDITORIA_POR_PAGINA);
+            if (auditoriaPaginaAtual > totalPaginas && totalPaginas > 0) {
+                auditoriaPaginaAtual = totalPaginas;
+            } else if (totalPaginas === 0) {
+                auditoriaPaginaAtual = 1;
             }
 
-            lista.innerHTML = eventos.map(function (evento) {
-                const funcionario = evento.identificadorFuncionario
-                    ? `${escapeHtml(evento.identificadorFuncionario)}<br><small>${escapeHtml(evento.nomeFuncionario)}</small>`
-                    : "-";
-
-                return `
-                    <tr>
-                        <td>${formatDateTime(evento.criadoEm)}</td>
-                        <td>${funcionario}</td>
-                        <td>${escapeHtml(formatAcaoAuditoria(evento.acao))}</td>
-                        <td>${escapeHtml(formatDescricaoAuditoria(evento.descricao))}</td>
-                        <td>${escapeHtml(evento.ipOrigem || "-")}</td>
-                    </tr>
-                `;
-            }).join("");
-
-            setMessage(mensagem, "Historico atualizado.", "success");
+            renderizarAuditoria();
         } catch {
-            lista.innerHTML = "<tr><td colspan=\"5\">Não foi possível conectar à API.</td></tr>";
+            lista.innerHTML = "<div class=\"soft-empty-state\">Não foi possível conectar à API.</div>";
         }
     }
 
-    document.getElementById("btnAtualizarAuditoria").addEventListener("click", carregarAuditoria);
+    document.getElementById("btnAtualizarAuditoria").addEventListener("click", () => {
+        auditoriaPaginaAtual = 1;
+        carregarAuditoria();
+    });
     carregarAuditoria();
 }
 
@@ -1283,18 +1758,117 @@ async function setupEmails() {
         return;
     }
 
+    if (typeof inicializarSoftSessionCard === "function") {
+        inicializarSoftSessionCard(usuario);
+    }
+
+    const EMAILS_POR_PAGINA = 12;
+    let emailsPaginaAtual = 1;
+    let emailsCache = [];
+
+    function renderizarEmailCard(evento) {
+        const statusClass = String(evento.status || "").toLowerCase();
+        let pillClass = "neutral";
+        if (statusClass === "enviado") pillClass = "success";
+        else if (statusClass === "falhou" || statusClass === "erro") pillClass = "danger";
+        else if (statusClass === "simulado") pillClass = "info";
+        else if (statusClass === "não configurado" || statusClass === "nao configurado") pillClass = "warning";
+
+        return `
+            <article class="soft-record-card email-card" style="display: flex; flex-direction: column; gap: 10px; transition: all 0.3s ease; min-width: 0; padding: 1.1rem; border-radius: 22px; border: 1px solid #F1C8D8; background: rgba(255, 251, 253, 0.94); box-shadow: 0 12px 26px rgba(190, 120, 150, 0.08);">
+                <div class="soft-record-main">
+                    <h3 class="soft-record-title" style="overflow-wrap: anywhere; word-break: break-word;">${escapeHtml(formatTipoEmail(evento.tipo))}</h3>
+                    <p class="soft-record-subtitle" style="overflow-wrap: anywhere; word-break: break-word;">${formatDateTime(evento.criadoEm)}</p>
+                </div>
+
+                <div class="soft-record-meta" style="flex: 1;">
+                    <div class="soft-record-row">
+                        <span class="soft-record-label">Destinatário</span>
+                        <span class="soft-record-value" style="overflow-wrap: anywhere; word-break: break-word;">${escapeHtml(evento.destinatario)}</span>
+                    </div>
+
+                    <div class="soft-record-row">
+                        <span class="soft-record-label">Assunto</span>
+                        <span class="soft-record-value" style="overflow-wrap: anywhere; word-break: break-word;">${escapeHtml(evento.assunto)}</span>
+                    </div>
+
+                    <div class="soft-record-row">
+                        <span class="soft-record-label">Status</span>
+                        <span class="soft-record-value">
+                            <span class="soft-status-pill ${pillClass}">${escapeHtml(evento.status)}</span>
+                        </span>
+                    </div>
+
+                    <div class="soft-record-row">
+                        <span class="soft-record-label">Erro</span>
+                        <span class="soft-record-value" style="overflow-wrap: anywhere; word-break: break-word;">${escapeHtml(evento.erro || "Sem erro registrado")}</span>
+                    </div>
+                </div>
+            </article>
+        `;
+    }
+
+    function renderizarPaginacaoEmails() {
+        const paginacao = document.getElementById("emailsPagination");
+        if (!paginacao) return;
+
+        const totalPaginas = Math.ceil(emailsCache.length / EMAILS_POR_PAGINA);
+        
+        if (totalPaginas <= 1) {
+            paginacao.innerHTML = "";
+            return;
+        }
+
+        const inicio = (emailsPaginaAtual - 1) * EMAILS_POR_PAGINA + 1;
+        const fim = Math.min(emailsPaginaAtual * EMAILS_POR_PAGINA, emailsCache.length);
+
+        let html = `<div class="soft-pagination-info">Mostrando ${inicio}–${fim} de ${emailsCache.length} e-mails</div>`;
+        
+        html += `<button type="button" class="soft-page-button" data-page="${emailsPaginaAtual - 1}" ${emailsPaginaAtual === 1 ? "disabled" : ""}>Anterior</button>`;
+        
+        for (let i = 1; i <= totalPaginas; i++) {
+            html += `<button type="button" class="soft-page-button ${i === emailsPaginaAtual ? "active" : ""}" data-page="${i}">${i}</button>`;
+        }
+        
+        html += `<button type="button" class="soft-page-button" data-page="${emailsPaginaAtual + 1}" ${emailsPaginaAtual === totalPaginas ? "disabled" : ""}>Próxima</button>`;
+
+        paginacao.innerHTML = html;
+
+        const botoes = paginacao.querySelectorAll(".soft-page-button:not(:disabled)");
+        botoes.forEach(btn => {
+            btn.addEventListener("click", () => {
+                emailsPaginaAtual = parseInt(btn.dataset.page, 10);
+                renderizarEmails();
+            });
+        });
+    }
+
+    function renderizarEmails() {
+        const lista = document.getElementById("listaEmails");
+        if (emailsCache.length === 0) {
+            lista.innerHTML = "<div class=\"soft-empty-state\">Nenhum envio registrado.</div>";
+            document.getElementById("emailsPagination").innerHTML = "";
+            return;
+        }
+
+        const inicio = (emailsPaginaAtual - 1) * EMAILS_POR_PAGINA;
+        const fim = inicio + EMAILS_POR_PAGINA;
+        const pagina = emailsCache.slice(inicio, fim);
+
+        lista.innerHTML = pagina.map(renderizarEmailCard).join("");
+        renderizarPaginacaoEmails();
+    }
+
     async function carregarEmails() {
         const lista = document.getElementById("listaEmails");
-        lista.innerHTML = "<tr><td colspan=\"6\">Carregando...</td></tr>";
+        lista.innerHTML = "<div class=\"soft-empty-state\">Carregando logs de e-mail...</div>";
 
         try {
             const response = await CasaMulherAuth.apiFetch("/api/emails", {
                 mensagemElement: mensagem
             });
 
-            if (response.status === 401) {
-                return;
-            }
+            if (response.status === 401) return;
 
             if (response.status === 403) {
                 conteudo.classList.add("hidden");
@@ -1303,39 +1877,29 @@ async function setupEmails() {
             }
 
             if (!response.ok) {
-                lista.innerHTML = "<tr><td colspan=\"6\">Não foi possível carregar os e-mails.</td></tr>";
+                lista.innerHTML = "<div class=\"soft-empty-state\">Não foi possível carregar os e-mails.</div>";
                 return;
             }
 
-            const eventos = await response.json();
-
-            if (eventos.length === 0) {
-                lista.innerHTML = "<tr><td colspan=\"6\">Nenhum envio registrado.</td></tr>";
-                return;
+            emailsCache = await response.json();
+            
+            const totalPaginas = Math.ceil(emailsCache.length / EMAILS_POR_PAGINA);
+            if (emailsPaginaAtual > totalPaginas && totalPaginas > 0) {
+                emailsPaginaAtual = totalPaginas;
+            } else if (totalPaginas === 0) {
+                emailsPaginaAtual = 1;
             }
 
-            lista.innerHTML = eventos.map(function (evento) {
-                const statusClass = String(evento.status || "").toLowerCase();
-
-                return `
-                    <tr>
-                        <td>${formatDateTime(evento.criadoEm)}</td>
-                        <td>${escapeHtml(evento.destinatario)}</td>
-                        <td>${escapeHtml(formatTipoEmail(evento.tipo))}</td>
-                        <td>${escapeHtml(evento.assunto)}</td>
-                        <td><span class="status-badge status-${escapeHtml(statusClass)}">${escapeHtml(evento.status)}</span></td>
-                        <td>${escapeHtml(evento.erro || "-")}</td>
-                    </tr>
-                `;
-            }).join("");
-
-            setMessage(mensagem, "Logs de e-mail atualizados.", "success");
+            renderizarEmails();
         } catch {
-            lista.innerHTML = "<tr><td colspan=\"6\">Não foi possível conectar à API.</td></tr>";
+            lista.innerHTML = "<div class=\"soft-empty-state\">Não foi possível conectar à API.</div>";
         }
     }
 
-    document.getElementById("btnAtualizarEmails").addEventListener("click", carregarEmails);
+    document.getElementById("btnAtualizarEmails").addEventListener("click", () => {
+        emailsPaginaAtual = 1;
+        carregarEmails();
+    });
     carregarEmails();
 }
 
@@ -1895,7 +2459,103 @@ async function setupEquipeConvites() {
         }
     });
 
+    const listaSolicitacoes = document.getElementById("listaSolicitacoesAcesso");
+    const mensagemSolicitacoes = document.getElementById("mensagemSolicitacoesAcesso");
+
+    async function carregarSolicitacoesAcesso() {
+        if (!listaSolicitacoes) return;
+        listaSolicitacoes.innerHTML = "<tr><td colspan=\"7\">Carregando...</td></tr>";
+
+        // Endpoint do portal EQP usa cookie de sessão GitHub (não JWT Bearer).
+        // Deve-se usar fetch com credentials: include, não CasaMulherAuth.apiFetch.
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/portal-eqp/admin/solicitacoes-acesso`, {
+                credentials: "include"
+            });
+
+            if (response.status === 401 || response.status === 403) {
+                listaSolicitacoes.innerHTML = "<tr><td colspan=\"7\">Disponível somente para o owner autenticado no GitHub Gate.</td></tr>";
+                return;
+            }
+
+            if (!response.ok) {
+                listaSolicitacoes.innerHTML = `<tr><td colspan="7">Erro ao carregar solicitações (${response.status}).</td></tr>`;
+                return;
+            }
+
+            const requests = await response.json();
+            if (!Array.isArray(requests) || !requests.length) {
+                listaSolicitacoes.innerHTML = "<tr><td colspan=\"7\">Nenhuma solicitação de acesso.</td></tr>";
+                return;
+            }
+
+            listaSolicitacoes.innerHTML = requests.map(function (request) {
+                const org = request.orgMembership === true ? "Org confirmada" : "Org não confirmada";
+                const team = request.teamMembership === true ? "Time confirmado" : "Time não confirmado";
+                const scopes = `${request.readOrgPresente ? "read:org ✓" : "read:org ausente"}<br>${request.userEmailScopePresente ? "user:email ✓" : "user:email ausente"}`;
+                const statusLabel = { pending: "⏳ Pendente", approved: "✅ Aprovado", denied: "❌ Negado", reauthorization_requested: "🔄 Reauth pedida", ignored: "— Ignorado" }[request.status] || request.status;
+                const acoes = request.status === "pending" || request.status === "reauthorization_requested"
+                    ? `<button type="button" class="btn-link" data-access-action="aprovar" data-access-id="${escapeHtml(request.id)}">Aprovar</button>
+                       <button type="button" class="btn-link-danger" data-access-action="negar" data-access-id="${escapeHtml(request.id)}">Negar</button>
+                       <button type="button" class="btn-link" data-access-action="pedir-reauthorizacao" data-access-id="${escapeHtml(request.id)}">Pedir reautorização</button>
+                       <button type="button" class="btn-link" data-access-action="ignorar" data-access-id="${escapeHtml(request.id)}">Ignorar</button>`
+                    : "-";
+                return `<tr>
+                    <td><a href="https://github.com/${encodeURIComponent(request.gitHubUsername)}" target="_blank" rel="noopener">@${escapeHtml(request.gitHubUsername)}</a><br><small>ID ${escapeHtml(request.gitHubId)}</small></td>
+                    <td>${escapeHtml(request.primaryVerifiedEmail || "Não disponível")}</td>
+                    <td>${escapeHtml(org)}<br>${escapeHtml(team)}</td>
+                    <td>${scopes}</td>
+                    <td>${statusLabel}</td>
+                    <td>${formatDateTime(request.requestedAt)}</td>
+                    <td class="actions-cell">${acoes}</td>
+                </tr>`;
+            }).join("");
+        } catch (err) {
+            console.error("Erro ao carregar solicitações de acesso:", err);
+            listaSolicitacoes.innerHTML = "<tr><td colspan=\"7\">Não foi possível carregar as solicitações. Verifique o console.</td></tr>";
+        }
+    }
+
+    listaSolicitacoes?.addEventListener("click", async function (event) {
+        const button = event.target.closest("[data-access-action]");
+        if (!button) return;
+
+        const action = button.dataset.accessAction;
+        const id = button.dataset.accessId;
+        const motivo = action === "aprovar" ? "" : (window.prompt("Motivo ou orientação para esta decisão (opcional):") || "");
+        button.disabled = true;
+        try {
+            // Endpoint do portal EQP usa cookie de sessão GitHub — fetch com credentials: include.
+            const response = await fetch(
+                `${API_BASE_URL}/api/portal-eqp/admin/solicitacoes-acesso/${encodeURIComponent(id)}/${action}`,
+                {
+                    method: "POST",
+                    credentials: "include",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ motivo })
+                }
+            );
+            if (!response.ok) {
+                setMessage(mensagemSolicitacoes, await readApiMessage(response), "error");
+                return;
+            }
+            const successMsg = action === "aprovar"
+                ? "✅ Acesso aprovado e allowlist privada atualizada. Usuário pode recarregar /equipe-ativar.html."
+                : "Solicitação atualizada.";
+            setMessage(mensagemSolicitacoes, successMsg, "success");
+            await carregarSolicitacoesAcesso();
+        } catch (err) {
+            console.error("Erro ao decidir solicitação de acesso:", err);
+            setMessage(mensagemSolicitacoes, "Não foi possível atualizar a solicitação.", "error");
+        } finally {
+            button.disabled = false;
+        }
+    });
+
+    document.getElementById("btnAtualizarSolicitacoesAcesso")?.addEventListener("click", carregarSolicitacoesAcesso);
+
     carregarConvitesEquipe();
+    carregarSolicitacoesAcesso();
 }
 
 async function setupEquipeMembros() {
@@ -2263,6 +2923,7 @@ async function setupSeguranca() {
         return;
     }
 
+    inicializarSoftSessionCard(usuarioInicial);
     bindLogoutButton("btnSairSeguranca");
 
     const persistenciaHomologacao = document.getElementById("persistenciaHomologacao");
@@ -2323,6 +2984,22 @@ async function setupSeguranca() {
             : usuario.doisFatoresObrigatorio
                 ? "Obrigatório, ainda não configurado"
                 : "Opcional";
+
+        const btnIniciar = document.getElementById("btnIniciar2fa");
+        const btnRedefinir = document.getElementById("btnRedefinir2fa");
+        const btnDesativar = document.getElementById("btnDesativar2fa");
+
+        if (btnIniciar && btnRedefinir && btnDesativar) {
+            if (usuario.doisFatoresAtivado) {
+                btnIniciar.classList.add("hidden");
+                btnRedefinir.classList.remove("hidden");
+                btnDesativar.classList.remove("hidden");
+            } else {
+                btnIniciar.classList.remove("hidden");
+                btnRedefinir.classList.add("hidden");
+                btnDesativar.classList.add("hidden");
+            }
+        }
 
         if (emailRecuperacaoValor && emailRecuperacaoStatus && emailRecuperacaoInput && btnRemoverEmailRecuperacao) {
             emailRecuperacaoValor.textContent = usuario.emailRecuperacao || "-";
@@ -2401,11 +3078,41 @@ async function setupSeguranca() {
                 return;
             }
 
-            setMessage(mensagem, "Código de segurança ativado.", "success");
+            const resultado = await response.json();
+            setMessage(mensagem, resultado.avisoSnapshot || resultado.mensagem || "Código de segurança ativado.", resultado.avisoSnapshot ? "error" : "success");
             panel.classList.add("hidden");
             await atualizarStatus();
         } catch {
             setMessage(mensagem, "Não foi possível conectar à API.", "error");
+        }
+    });
+
+    document.getElementById("btnRedefinir2fa").addEventListener("click", async function () {
+        if (!confirm("Isso apagará o código atual e gerará um novo QR Code para cadastro no aplicativo autenticador. Deseja continuar?")) {
+            return;
+        }
+
+        setMessage(mensagem, "Redefinindo código de segurança...", "info");
+
+        try {
+            const response = await CasaMulherAuth.apiFetch("/api/auth/2fa/redefinir", {
+                method: "POST",
+                headers: getAuthHeaders(false),
+                mensagemElement: mensagem
+            });
+
+            if (!response.ok) {
+                setMessage(mensagem, await readApiMessage(response), "error");
+                return;
+            }
+
+            const resultado = await response.json();
+            setMessage(mensagem, resultado.avisoSnapshot || resultado.mensagem || "Código redefinido. Configure o novo imediatamente.", resultado.avisoSnapshot ? "warning" : "success");
+            
+            await atualizarStatus();
+            document.getElementById("btnIniciar2fa").click();
+        } catch {
+            setMessage(mensagem, "Não foi possível conectar à API ao redefinir.", "error");
         }
     });
 
@@ -2424,7 +3131,8 @@ async function setupSeguranca() {
                 return;
             }
 
-            setMessage(mensagem, "Código de segurança desativado.", "success");
+            const resultado = await response.json();
+            setMessage(mensagem, resultado.avisoSnapshot || resultado.mensagem || "Código de segurança desativado.", resultado.avisoSnapshot ? "error" : "success");
             await atualizarStatus();
         } catch {
             setMessage(mensagem, "Não foi possível conectar à API.", "error");
@@ -2459,7 +3167,7 @@ async function setupSeguranca() {
                     return;
                 }
 
-                setMessage(mensagemEmailRecuperacao, resultado.mensagem || "Confirmação enviada.", "success");
+                setMessage(mensagemEmailRecuperacao, resultado.avisoSnapshot || resultado.mensagem || "Confirmação enviada.", resultado.avisoSnapshot ? "error" : "success");
                 await atualizarStatus();
             } catch {
                 setMessage(mensagemEmailRecuperacao, "Não foi possível conectar à API.", "error");
@@ -2491,7 +3199,7 @@ async function setupSeguranca() {
                     return;
                 }
 
-                setMessage(mensagemEmailRecuperacao, resultado.mensagem || "E-mail de recuperação removido.", "success");
+                setMessage(mensagemEmailRecuperacao, resultado.avisoSnapshot || resultado.mensagem || "E-mail de recuperação removido.", resultado.avisoSnapshot ? "error" : "success");
                 await atualizarStatus();
             } catch {
                 setMessage(mensagemEmailRecuperacao, "Não foi possível conectar à API.", "error");
@@ -2564,12 +3272,13 @@ function setupPasskeyLogin() {
     const msg = document.getElementById("mensagem-passkey-login");
     
     if (!container || !btn) return;
-    
     if (!isPasskeySupported()) {
         container.hidden = true;
+        container.classList.add("hidden");
         return;
     } else {
         container.hidden = false;
+        container.classList.remove("hidden");
     }
     
     btn.addEventListener("click", async () => {
@@ -2679,7 +3388,8 @@ function setupPasskeyRegistro() {
                 body: JSON.stringify({ challengeId: initData.challengeId, credential: credData, nomeDispositivo: navigator.platform || "Dispositivo" })
             });
             if (!resComplete.ok) throw new Error(await readApiMessage(resComplete));
-            setMessage(msg, "Chave de acesso cadastrada com sucesso!", "success");
+            const completeResult = await resComplete.json();
+            setMessage(msg, completeResult.avisoSnapshot || completeResult.mensagem || "Chave de acesso cadastrada com sucesso!", completeResult.avisoSnapshot ? "error" : "success");
             if (typeof carregarPasskeys === "function") carregarPasskeys();
         } catch (err) {
             setMessage(msg, passkeyErrorMessage(err), "error");
@@ -2752,7 +3462,7 @@ async function carregarPasskeys() {
         const chaves = await res.json();
         ul.innerHTML = "";
         if (chaves.length === 0) {
-            ul.innerHTML = `<li style="list-style-type: none; color: var(--color-text-light);">Nenhuma chave cadastrada.</li>`;
+            ul.innerHTML = `<li class="security-empty-state" style="list-style-type: none;">Nenhuma chave cadastrada.</li>`;
             return;
         }
         for (const c of chaves) {
@@ -2774,7 +3484,10 @@ async function carregarPasskeys() {
             btn.style.width = "auto";
             btn.onclick = async () => {
                 if (confirm("Remover esta chave de acesso?")) {
-                    await fetch(`${API_BASE_URL}/api/passkeys/${c.id}`, { method: "DELETE", headers: getAuthHeaders(false) });
+                    const response = await fetch(`${API_BASE_URL}/api/passkeys/${c.id}`, { method: "DELETE", headers: getAuthHeaders(false) });
+                    const result = await response.json();
+                    const message = document.getElementById("mensagem-passkey-cadastro");
+                    setMessage(message, result.avisoSnapshot || result.mensagem || "Chave removida.", result.avisoSnapshot ? "error" : (response.ok ? "success" : "error"));
                     carregarPasskeys();
                 }
             };

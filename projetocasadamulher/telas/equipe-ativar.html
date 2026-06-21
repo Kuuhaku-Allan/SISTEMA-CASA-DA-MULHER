@@ -36,6 +36,18 @@
                 <button type="button" id="portalEqpLogout" class="btn-secondary">Sair do GitHub</button>
             </section>
 
+            <section id="portalEqpAccessRequestBox" class="portal-section hidden">
+                <h2 class="section-title">Acesso aguardando liberação</h2>
+                <p id="portalEqpAccessRequestSummary" class="section-intro"></p>
+                <dl id="portalEqpAccessRequestInfo" class="profile-list compact-list"></dl>
+                <div id="portalEqpAccessRequestMessage" class="message" aria-live="polite"></div>
+                <div class="header-actions">
+                    <a class="btn-secondary button-link" href="#" data-portal-login>Reautorizar GitHub</a>
+                    <button type="button" id="portalEqpRequestAccess" class="btn-primary">Enviar solicitação ao owner</button>
+                    <button type="button" id="portalEqpRequestLogout" class="btn-secondary">Sair</button>
+                </div>
+            </section>
+
             <section id="portalEqpMemberBox" class="portal-section hidden">
                 <h2 class="section-title">Seu acesso já está ativo</h2>
                 <dl id="portalEqpMemberInfo" class="profile-list compact-list"></dl>

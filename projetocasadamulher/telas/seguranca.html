@@ -4,116 +4,163 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Seguran&ccedil;a - Casa da Mulher</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=3">
     <script src="config.js?v=20260616-codespaces" defer></script>
     <script src="auth.js?v=20260604-email-recuperacao" defer></script>
     <script src="libs/qrcode.min.js" defer></script>
-    <script src="app.js?v=20260604-email-recuperacao" defer></script>
+    <script src="app.js?v=3" defer></script>
+    <style>
+        html { scroll-behavior: smooth; }
+    </style>
 </head>
-<body>
-    <main class="auth-container">
-        <section id="segurancaPage" class="auth-box auth-box-wide">
-            <img src="IMAGENS/logo_oficial.png" alt="Logo Casa da Mulher" class="logo-login">
-            <h1 class="auth-title">Seguran&ccedil;a da conta</h1>
-            <p class="auth-subtitle">Gerencie aplicativo autenticador, e-mail de recupera&ccedil;&atilde;o e chaves de acesso.</p>
-            <div id="persistenciaHomologacao" class="notice hidden" aria-live="polite"></div>
-            <button type="button" id="btnSnapshotHomologacao" class="btn-secondary hidden" style="margin-top: 0.75rem; margin-bottom: 2rem;">Gerar snapshot seguro agora</button>
-            <hr style="margin: 0 0 2rem 0; border: none; border-top: 1px solid var(--color-border);" id="hrSnapshotSeparator" class="hidden">
-            <h2 class="section-title">C&oacute;digo de seguran&ccedil;a</h2>
-            <p class="auth-subtitle">Use um aplicativo autenticador para gerar c&oacute;digos de acesso.</p>
-            <p class="hint">Exemplos: Google Authenticator, Microsoft Authenticator, 2FAS, Authy, Proton Authenticator ou outro aplicativo compat&iacute;vel.</p>
-
-            <dl class="profile-list compact-list">
-                <div>
-                        <dt>ID</dt>
-                    <dd id="segurancaIdentificador">-</dd>
+<body class="soft-page">
+    <main style="max-width: 1400px; margin: 0 auto; padding: 24px 20px;">
+        <header class="soft-header">
+            <div>
+                <h1 class="soft-header-title">Casa da Mulher de Itaquaquecetuba</h1>
+                <p class="soft-header-subtitle">Seguran&ccedil;a da conta</p>
+            </div>
+            
+            <div class="soft-session-card" id="sessionCard">
+                <div class="soft-clock session-trigger" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false" id="sessionTrigger">
+                    <div id="currentDate"></div>
+                    <div id="currentTime"></div>
                 </div>
-                <div>
-                    <dt>Status</dt>
-                    <dd id="segurancaStatus">-</dd>
-                </div>
-            </dl>
-
-            <div id="mensagemSeguranca" class="message" aria-live="polite"></div>
-
-            <button type="button" id="btnIniciar2fa" class="btn-primary">Configurar aplicativo</button>
-
-            <section id="configuracao2fa" class="result-panel hidden">
-                <ol class="steps-list">
-                    <li>Abra o aplicativo autenticador no celular.</li>
-                    <li>Toque em adicionar conta.</li>
-                    <li>Escaneie o QR Code abaixo.</li>
-                    <li>Digite o c&oacute;digo de 6 n&uacute;meros gerado pelo aplicativo.</li>
-                </ol>
-
-                <div class="qr-card">
-                    <div id="qrCodeAutenticador" class="qr-code" aria-label="QR Code para configurar aplicativo autenticador"></div>
-                </div>
-
-                <dl class="profile-list compact-list">
-                    <div>
-                        <dt>N&atilde;o conseguiu escanear?</dt>
-                        <dd id="chaveManual2fa">-</dd>
+                
+                <div class="session-dropdown" id="sessionDropdown">
+                    <div class="session-user-name" id="sessionUserName">-</div>
+                    <div class="session-user-role" id="sessionUserRole">-</div>
+                    <div class="session-user-meta" id="sessionUserEmail">-</div>
+                    <div class="session-user-meta" style="margin-top: 4px;">ID: <span id="sessionUserId">-</span></div>
+                    
+                    <div class="session-actions">
+                        <a class="soft-btn soft-btn-warning" href="painel.html" data-painel-link style="text-decoration:none; flex: 1; justify-content: center;">Voltar</a>
+                        <button type="button" id="btnSairSeguranca" class="soft-btn soft-btn-danger" style="flex: 1; justify-content: center;">Sair</button>
                     </div>
-                </dl>
-                <p class="hint">Digite o c&oacute;digo acima manualmente no aplicativo autenticador.</p>
-                <button type="button" id="btnCopiarChaveManual" class="btn-secondary">Copiar c&oacute;digo manual</button>
+                </div>
+            </div>
+        </header>
 
-                <form id="formConfirmar2fa" class="auth-form" novalidate>
-                    <div class="input-group">
-                        <label for="codigoConfirmar2fa">C&oacute;digo de 6 n&uacute;meros gerado pelo aplicativo</label>
-                        <input type="text" id="codigoConfirmar2fa" inputmode="numeric" placeholder="123456" autocomplete="one-time-code" required>
+        <!-- Status de Homologação / Snapshot -->
+        <div id="persistenciaHomologacao" class="notice hidden" aria-live="polite"></div>
+        <button type="button" id="btnSnapshotHomologacao" class="soft-btn soft-btn-warning hidden" style="margin-top: 0.75rem; margin-bottom: 2rem;">Gerar snapshot seguro agora</button>
+        <hr style="margin: 0 0 2rem 0; border: none; border-top: 1px solid var(--color-border);" id="hrSnapshotSeparator" class="hidden">
+
+        <!-- Pílulas de Navegação -->
+        <nav class="security-nav">
+            <a href="#secao2fa" class="security-nav-link">C&oacute;digo de seguran&ccedil;a</a>
+            <a href="#secaoEmailRecuperacao" class="security-nav-link">E-mail de recupera&ccedil;&atilde;o</a>
+            <a href="#secaoPasskeys" class="security-nav-link">Passkeys</a>
+        </nav>
+
+        <section class="soft-stack" id="segurancaPage">
+            <!-- Card 1: 2FA -->
+            <div class="security-card" id="secao2fa">
+                <h2 class="soft-card-title">C&oacute;digo de seguran&ccedil;a</h2>
+                <p style="color: #A8889A; font-size: 0.9rem; margin-bottom: 20px;">Use um aplicativo autenticador para gerar c&oacute;digos de acesso. (Ex: Google Authenticator, Authy)</p>
+
+                <div class="security-status-box">
+                    <dl class="profile-list compact-list" style="margin-bottom: 0;">
+                        <div>
+                            <dt style="color: #AD859B; font-weight: 700; font-size: 0.85rem; text-transform: uppercase;">ID</dt>
+                            <dd id="segurancaIdentificador" class="responsavel-meta">-</dd>
+                        </div>
+                        <div style="margin-top: 8px;">
+                            <dt style="color: #AD859B; font-weight: 700; font-size: 0.85rem; text-transform: uppercase;">Status</dt>
+                            <dd id="segurancaStatus" class="responsavel-title" style="color: #A26D85;">-</dd>
+                        </div>
+                    </dl>
+                </div>
+
+                <div id="mensagemSeguranca" class="message" aria-live="polite"></div>
+
+                <div class="security-actions">
+                    <button type="button" id="btnIniciar2fa" class="soft-btn soft-btn-primary">Configurar aplicativo</button>
+                    <button type="button" id="btnRedefinir2fa" class="soft-btn soft-btn-warning hidden">Redefinir c&oacute;digo</button>
+                    <button type="button" id="btnDesativar2fa" class="soft-btn soft-btn-danger">Desativar c&oacute;digo</button>
+                </div>
+
+                <section id="configuracao2fa" class="result-panel hidden" style="margin-top: 24px; border-top: 1px solid #FDE8F0; padding-top: 24px;">
+                    <ol class="steps-list" style="color: #95748A; font-size: 0.9rem;">
+                        <li>Abra o aplicativo autenticador no celular.</li>
+                        <li>Toque em adicionar conta.</li>
+                        <li>Escaneie o QR Code abaixo.</li>
+                        <li>Digite o c&oacute;digo de 6 n&uacute;meros gerado.</li>
+                    </ol>
+
+                    <div class="qr-card" style="margin: 20px 0; display: flex; justify-content: center;">
+                        <div id="qrCodeAutenticador" class="qr-code" aria-label="QR Code para configurar aplicativo autenticador"></div>
                     </div>
 
-                    <button type="submit" class="btn-primary">Ativar c&oacute;digo de seguran&ccedil;a</button>
+                    <dl class="profile-list compact-list">
+                        <div>
+                            <dt style="color: #AD859B; font-weight: 700; font-size: 0.85rem;">N&atilde;o conseguiu escanear?</dt>
+                            <dd id="chaveManual2fa" style="font-weight: bold; color: #A26D85; margin: 4px 0;">-</dd>
+                        </div>
+                    </dl>
+                    <button type="button" id="btnCopiarChaveManual" class="soft-btn soft-btn-warning" style="margin-top: 8px;">Copiar c&oacute;digo manual</button>
+
+                    <form id="formConfirmar2fa" class="auth-form" novalidate style="margin-top: 24px;">
+                        <div class="soft-form-group">
+                            <label for="codigoConfirmar2fa">C&oacute;digo de 6 n&uacute;meros gerado pelo aplicativo</label>
+                            <input type="text" id="codigoConfirmar2fa" class="soft-input" inputmode="numeric" placeholder="123456" autocomplete="one-time-code" required>
+                        </div>
+                        <div class="security-actions">
+                            <button type="submit" class="soft-btn soft-btn-primary">Ativar c&oacute;digo de seguran&ccedil;a</button>
+                        </div>
+                    </form>
+                </section>
+            </div>
+
+            <!-- Card 2: E-mail de Recuperação -->
+            <div class="security-card" id="secaoEmailRecuperacao">
+                <h2 class="soft-card-title">E-mail de recupera&ccedil;&atilde;o</h2>
+                <p style="color: #A8889A; font-size: 0.9rem; margin-bottom: 20px;">Use um e-mail reserva para fluxos futuros de recupera&ccedil;&atilde;o de conta.</p>
+
+                <div class="security-status-box">
+                    <dl class="profile-list compact-list" style="margin-bottom: 0;">
+                        <div>
+                            <dt style="color: #AD859B; font-weight: 700; font-size: 0.85rem; text-transform: uppercase;">E-mail atual</dt>
+                            <dd id="emailRecuperacaoValor" class="responsavel-name" style="font-size: 1rem;">-</dd>
+                        </div>
+                        <div style="margin-top: 8px;">
+                            <dt style="color: #AD859B; font-weight: 700; font-size: 0.85rem; text-transform: uppercase;">Status</dt>
+                            <dd id="emailRecuperacaoStatus" class="responsavel-title" style="color: #A26D85;">-</dd>
+                        </div>
+                    </dl>
+                </div>
+
+                <div id="mensagemEmailRecuperacao" class="message" aria-live="polite"></div>
+
+                <form id="formEmailRecuperacao" class="auth-form" novalidate style="margin-top: 20px;">
+                    <div class="soft-form-group">
+                        <label for="emailRecuperacaoInput">Novo E-mail de recupera&ccedil;&atilde;o</label>
+                        <input type="email" id="emailRecuperacaoInput" class="soft-input" name="emailRecuperacao" placeholder="email.reserva@exemplo.com" autocomplete="email" required>
+                        <p style="color: #95748A; font-size: 0.8rem; margin-top: 6px;">O e-mail s&oacute; fica ativo depois da confirma&ccedil;&atilde;o pelo link enviado.</p>
+                    </div>
+                    <div class="security-actions">
+                        <button type="submit" class="soft-btn soft-btn-primary">Enviar confirma&ccedil;&atilde;o</button>
+                        <button type="button" id="btnRemoverEmailRecuperacao" class="soft-btn soft-btn-warning">Remover e-mail</button>
+                    </div>
                 </form>
-            </section>
+            </div>
 
-            <button type="button" id="btnDesativar2fa" class="btn-secondary">Desativar c&oacute;digo de seguran&ccedil;a</button>
-            
-            <hr style="margin: 2rem 0; border: none; border-top: 1px solid var(--color-border);">
-
-            <h1 class="auth-title">E-mail de recupera&ccedil;&atilde;o</h1>
-            <p class="auth-subtitle">Use um e-mail reserva para fluxos futuros de recupera&ccedil;&atilde;o de conta.</p>
-
-            <dl class="profile-list compact-list">
-                <div>
-                    <dt>E-mail</dt>
-                    <dd id="emailRecuperacaoValor">-</dd>
+            <!-- Card 3: Chaves de Acesso (Passkeys) -->
+            <div class="security-card" id="secaoPasskeys">
+                <h2 class="soft-card-title">Chaves de acesso (Passkeys)</h2>
+                <p style="color: #A8889A; font-size: 0.9rem; margin-bottom: 20px;">Use digital, rosto ou PIN do seu dispositivo para entrar com mais rapidez e seguran&ccedil;a.</p>
+                
+                <div id="mensagem-passkey-cadastro" class="message" aria-live="polite"></div>
+                
+                <ul id="lista-passkeys" class="steps-list" style="margin-bottom: 20px; color: #95748A; padding-left: 0;">
+                    <!-- A lista será injetada por JS. Aqui está o Empty State Default HTML: -->
+                    <li class="security-empty-state" style="list-style-type: none;">Carregando chaves...</li>
+                </ul>
+                
+                <div class="security-actions">
+                    <button type="button" id="btn-cadastrar-passkey" class="soft-btn soft-btn-primary btn-passkey-register">Ativar chave de acesso</button>
                 </div>
-                <div>
-                    <dt>Status</dt>
-                    <dd id="emailRecuperacaoStatus">-</dd>
-                </div>
-            </dl>
-
-            <div id="mensagemEmailRecuperacao" class="message" aria-live="polite"></div>
-
-            <form id="formEmailRecuperacao" class="auth-form" novalidate>
-                <div class="input-group">
-                    <label for="emailRecuperacaoInput">E-mail de recupera&ccedil;&atilde;o</label>
-                    <input type="email" id="emailRecuperacaoInput" name="emailRecuperacao" placeholder="email.reserva@exemplo.com" autocomplete="email" required>
-                    <p class="field-help">O e-mail s&oacute; fica ativo depois da confirma&ccedil;&atilde;o pelo link enviado.</p>
-                </div>
-
-                <button type="submit" class="btn-primary">Enviar confirma&ccedil;&atilde;o</button>
-            </form>
-
-            <button type="button" id="btnRemoverEmailRecuperacao" class="btn-secondary" style="margin-top: 1rem;">Remover e-mail de recupera&ccedil;&atilde;o</button>
-
-            <hr style="margin: 2rem 0; border: none; border-top: 1px solid var(--color-border);">
-            
-            <h1 class="auth-title">Chaves de acesso (Passkeys)</h1>
-            <p class="auth-subtitle">Use este computador, celular, digital, rosto ou PIN para entrar com mais rapidez.</p>
-            <div id="mensagem-passkey-cadastro" class="message" aria-live="polite"></div>
-            
-            <ul id="lista-passkeys" class="steps-list" style="margin-bottom: 1.5rem;">
-                <li style="color: var(--color-text-light); list-style-type: none;">Carregando...</li>
-            </ul>
-            
-            <button type="button" id="btn-cadastrar-passkey" class="btn-primary btn-passkey-register">Ativar chave de acesso</button>
-            <button type="button" id="btnSairSeguranca" class="btn-secondary" style="margin-top: 1rem;">Sair</button>
-            <a class="text-link" href="painel.html" data-painel-link>Voltar ao painel</a>
+            </div>
         </section>
     </main>
 </body>
