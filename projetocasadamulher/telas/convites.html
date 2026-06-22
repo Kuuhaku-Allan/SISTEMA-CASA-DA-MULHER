@@ -141,5 +141,29 @@
             </div>
         </section>
     </main>
+
+    <!-- Modal para Vincular Curso ao Professor -->
+    <div id="modalCursoProfessor" class="soft-modal hidden">
+        <div class="soft-modal-content" style="max-width: 400px;">
+            <div class="soft-modal-header">
+                <h2>Vincular Disciplina</h2>
+                <button type="button" class="btn-close" id="btnFecharModalCurso" aria-label="Fechar modal">&times;</button>
+            </div>
+            <div class="soft-modal-body">
+                <p style="margin-bottom: 16px;">Selecione o curso ou interesse que este professor ir&aacute; ministrar.</p>
+                <div class="soft-form-group">
+                    <label for="cursoProfessorSelect">Curso/Interesse</label>
+                    <select id="cursoProfessorSelect" class="soft-input">
+                        <option value="">Selecione um curso...</option>
+                        <!-- Preenchido pelo app.js (CURSOS_RECEPCAO) -->
+                    </select>
+                </div>
+            </div>
+            <div class="soft-modal-footer">
+                <button type="button" class="soft-action-secondary" id="btnCancelarModalCurso">Cancelar</button>
+                <button type="button" class="soft-btn soft-btn-primary" id="btnConfirmarModalCurso" style="padding: 8px 24px; font-size: 0.95rem;">Confirmar e Gerar</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

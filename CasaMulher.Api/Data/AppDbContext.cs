@@ -30,6 +30,8 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
 
     public DbSet<UserLoginIdentifier> UserLoginIdentifiers => Set<UserLoginIdentifier>();
 
+    public DbSet<RecuperacaoSegurancaToken> RecuperacaoSegurancaTokens => Set<RecuperacaoSegurancaToken>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -335,6 +337,17 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             entity.Property(r => r.UserId)
                 .HasMaxLength(80)
                 .IsRequired();
+        });
+        builder.Entity<RecuperacaoSegurancaToken>(entity =>
+        {
+            entity.ToTable("RecuperacaoSegurancaTokens");
+            entity.HasIndex(t => t.TokenHash).IsUnique();
+            entity.HasIndex(t => t.FuncionarioId);
+            entity.HasIndex(t => t.ExpiraEm);
+
+            entity.Property(t => t.TokenHash).IsRequired().HasMaxLength(256);
+            entity.Property(t => t.Tipo).IsRequired().HasMaxLength(50);
+            entity.Property(t => t.EmailDestino).HasMaxLength(256);
         });
     }
 }

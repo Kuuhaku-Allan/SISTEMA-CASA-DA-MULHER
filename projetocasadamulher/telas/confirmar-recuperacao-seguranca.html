@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirmar Recuperação - Casa da Mulher</title>
+    <link rel="stylesheet" href="style.css?v=9">
+    <script src="config.js" defer></script>
+    <script src="auth.js" defer></script>
+    <script src="app.js?v=9" defer></script>
+    <script src="recuperacao-seguranca.js" defer></script>
+</head>
+<body class="soft-auth-page">
+    <div class="soft-auth-shell">
+        <div class="soft-auth-card" style="max-width: 500px;">
+            <img src="IMAGENS/logo_oficial.png" alt="Logo Casa da Mulher" class="soft-auth-logo">
+
+            <h1 class="soft-auth-title">Redefinir Métodos de Segurança</h1>
+            
+            <div id="loadingRecuperacao" style="text-align: center; margin: 24px 0;">
+                <p style="color: #A26D85;">Validando link de recuperação...</p>
+            </div>
+
+            <div id="contentRecuperacao" class="hidden">
+                <p class="soft-auth-subtitle" style="margin-bottom: 24px; color: #D44E78; font-weight: 600;">
+                    Esta ação não remove definitivamente a segurança da sua conta. Ela redefine os métodos atuais para que você possa configurar novos acessos.
+                </p>
+
+                <div style="background: #FFF; border: 1px solid #F1C8D8; border-radius: 12px; padding: 16px; margin-bottom: 24px; text-align: left;">
+                    <p style="margin: 0; font-size: 0.9rem; color: #8A3D66;">Recuperando acesso para a conta:</p>
+                    <p id="identificadorConfirmacao" style="margin: 4px 0 0 0; font-weight: bold; color: #333;">-</p>
+                </div>
+
+                <form id="formConfirmarRecuperacaoSeguranca" class="soft-auth-form" novalidate>
+                    <p style="text-align: left; margin-bottom: 12px; color: #8A3D66; font-weight: 600; font-size: 0.95rem;">Selecione o que deseja redefinir:</p>
+                    
+                    <div id="opcoesMetodosSeguranca" style="display: flex; flex-direction: column; gap: 12px; text-align: left; margin-bottom: 24px;">
+                        <!-- Checkboxes gerados pelo JS -->
+                    </div>
+
+                    <div class="soft-auth-actions">
+                        <button type="submit" class="soft-btn soft-btn-primary" id="btnConfirmarRecuperacao">Confirmar redefinição</button>
+                    </div>
+                </form>
+
+                <div id="mensagemConfirmarRecuperacao" class="message soft-auth-message" aria-live="polite"></div>
+            </div>
+            
+            <div id="errorRecuperacao" class="hidden" style="text-align: center; margin: 24px 0;">
+                <p style="color: #C1738B; font-weight: bold; margin-bottom: 16px;">Link inválido ou expirado.</p>
+                <a href="recuperar-acesso.html" class="soft-btn soft-btn-secondary" style="text-decoration: none;">Solicitar novo link</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -12,6 +12,8 @@ public class UsuarioAtualResponse
 
     public string Perfil { get; set; } = string.Empty;
 
+    public string? ProfessorCurso { get; set; }
+
     public string IdentificadorFuncionario { get; set; } = string.Empty;
 
     public bool DoisFatoresObrigatorio { get; set; }

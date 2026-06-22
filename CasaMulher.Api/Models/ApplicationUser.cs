@@ -10,11 +10,15 @@ public class ApplicationUser : IdentityUser
 
     public string IdentificadorFuncionario { get; set; } = string.Empty;
 
+    public string? ProfessorCurso { get; set; }
+
     public bool Ativo { get; set; } = true;
 
     public bool DeveTrocarSenha { get; set; }
 
     public bool DoisFatoresObrigatorio { get; set; }
+
+    public bool SecuritySetupRequired { get; set; }
 
     public string? EmailRecuperacao { get; set; }
 

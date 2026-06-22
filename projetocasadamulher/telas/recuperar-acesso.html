@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recuperar Acesso - Casa da Mulher</title>
+    <link rel="stylesheet" href="style.css?v=9">
+    <script src="config.js" defer></script>
+</head>
+<body class="soft-auth-page">
+    <div class="soft-auth-shell">
+        <div class="soft-auth-card" style="max-width: 500px;">
+            <img src="IMAGENS/logo_oficial.png" alt="Logo Casa da Mulher" class="soft-auth-logo">
+
+            <h1 class="soft-auth-title">Recuperação de Acesso</h1>
+            <p class="soft-auth-subtitle" style="margin-bottom: 24px;">Escolha abaixo o que você precisa recuperar no momento.</p>
+
+            <div style="display: flex; flex-direction: column; gap: 16px;">
+                <!-- Opção 1: Senha -->
+                <div style="border: 1px solid #F1C8D8; padding: 20px; border-radius: 16px; background: #FFF; text-align: left;">
+                    <h2 style="color: #8A3D66; font-size: 1.1rem; margin: 0 0 8px 0;">Esqueci minha senha</h2>
+                    <p style="color: #A26D85; font-size: 0.9rem; margin: 0 0 16px 0; line-height: 1.4;">Receba um link para criar uma nova senha usando seu e-mail cadastrado ou e-mail de recuperação.</p>
+                    <a href="solicitar-redefinicao.html" class="soft-btn soft-btn-primary" style="text-decoration: none; display: inline-flex;">Redefinir senha</a>
+                </div>
+
+                <!-- Opção 2: 2FA / Passkey -->
+                <div style="border: 1px solid #F1C8D8; padding: 20px; border-radius: 16px; background: #FFF; text-align: left;">
+                    <h2 style="color: #8A3D66; font-size: 1.1rem; margin: 0 0 8px 0;">Perdi acesso aos métodos de segurança</h2>
+                    <p style="color: #A26D85; font-size: 0.9rem; margin: 0 0 16px 0; line-height: 1.4;">Use esta opção se você não consegue acessar o código de segurança ou suas chaves de acesso.</p>
+                    <a href="recuperar-seguranca.html" class="soft-btn soft-btn-warning" style="text-decoration: none; display: inline-flex;">Recuperar métodos de segurança</a>
+                </div>
+            </div>
+
+            <div style="margin-top: 24px;">
+                <a href="index.html" class="soft-auth-link">Voltar para o login</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

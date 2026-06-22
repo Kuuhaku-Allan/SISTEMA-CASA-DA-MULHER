@@ -3,6 +3,7 @@ using System;
 using CasaMulher.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CasaMulher.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260621193204_AddProfessorCurso")]
+    partial class AddProfessorCurso
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.26");
@@ -107,9 +110,6 @@ namespace CasaMulher.Api.Migrations
 
                     b.Property<string>("ProfessorCurso")
                         .HasColumnType("TEXT");
-
-                    b.Property<bool>("SecuritySetupRequired")
-                        .HasColumnType("INTEGER");
 
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("TEXT");
@@ -675,63 +675,6 @@ namespace CasaMulher.Api.Migrations
                         .IsUnique();
 
                     b.ToTable("PasskeyReconfirmacoes", (string)null);
-                });
-
-            modelBuilder.Entity("CasaMulher.Api.Models.RecuperacaoSegurancaToken", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CriadoEm")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("EmailDestino")
-                        .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("ExpiraEm")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("FuncionarioId")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("IpSolicitante")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("Tentativas")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Tipo")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("TokenHash")
-                        .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("UsadoEm")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UserAgent")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ExpiraEm");
-
-                    b.HasIndex("FuncionarioId");
-
-                    b.HasIndex("TokenHash")
-                        .IsUnique();
-
-                    b.ToTable("RecuperacaoSegurancaTokens", (string)null);
                 });
 
             modelBuilder.Entity("CasaMulher.Api.Models.UserLoginIdentifier", b =>

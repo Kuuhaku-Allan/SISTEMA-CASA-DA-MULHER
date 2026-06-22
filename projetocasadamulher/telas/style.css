@@ -187,9 +187,9 @@ select {
 }
 
 .notice-success {
-    border-color: #cce9d8;
-    color: #176a3a;
-    background: #effaf3;
+    border-color: #F1C8D8;
+    color: #8A3D66;
+    background: #FFF2F7;
 }
 
 .notice-error {
@@ -244,7 +244,7 @@ select {
 }
 
 .message.success {
-    color: #176a3a;
+    color: #8A3D66;
 }
 
 .message.error {
@@ -749,11 +749,6 @@ small,
 .btn-passkey-login:disabled { opacity: 0.7; cursor: not-allowed; }
 .btn-passkey-register {
     margin-top: 0.25rem;
-    color: #ffffff;
-    background: var(--color-accent);
-}
-.btn-passkey-register:hover {
-    background: var(--color-accent-dark);
 }
 .text-center { text-align: center; }
 
@@ -972,6 +967,16 @@ body.soft-page {
 .soft-btn-primary:hover {
     transform: translateY(-2px);
     filter: brightness(1.02);
+}
+
+.soft-btn-secondary {
+    background: #F8EDF2;
+    color: #8A3D66;
+}
+
+.soft-btn-secondary:hover {
+    background: #E8D5DF;
+    transform: translateY(-2px);
 }
 
 .soft-btn-warning {
@@ -1248,12 +1253,23 @@ body.soft-page {
     border-color: #E3BED5;
 }
 
+/* Variação: Professor */
+.painel-action-card--professor {
+    background: linear-gradient(135deg, #FDE6EE 0%, #F4C4D8 100%);
+    border: 1px solid #EFA9C5;
+}
+.painel-action-card--professor:hover {
+    background: linear-gradient(135deg, #FFF0F6 0%, #F9D8E6 100%);
+    border-color: #EFA9C5;
+}
+
 /* Cores de texto padronizadas para as novas variações */
 .painel-action-card--funcionarios .painel-action-card-title,
 .painel-action-card--convites .painel-action-card-title,
 .painel-action-card--auditoria .painel-action-card-title,
 .painel-action-card--emails .painel-action-card-title,
-.painel-action-card--recepcao-outros .painel-action-card-title {
+.painel-action-card--recepcao-outros .painel-action-card-title,
+.painel-action-card--professor .painel-action-card-title {
     color: #8B586F;
 }
 
@@ -1261,7 +1277,8 @@ body.soft-page {
 .painel-action-card--convites .painel-action-card-subtitle,
 .painel-action-card--auditoria .painel-action-card-subtitle,
 .painel-action-card--emails .painel-action-card-subtitle,
-.painel-action-card--recepcao-outros .painel-action-card-subtitle {
+.painel-action-card--recepcao-outros .painel-action-card-subtitle,
+.painel-action-card--professor .painel-action-card-subtitle {
     color: #A26D85;
 }
 
@@ -1564,13 +1581,13 @@ body.soft-page {
     margin-bottom: 4px;
 }
 
-.responsavel-name {
-    font-weight: 800;
-    color: #8F6C7E;
+dd.responsavel-name {
+    font-weight: 700;
+    color: #8A3D66;
     font-size: 1.15rem;
 }
 
-.responsavel-meta {
+dd.responsavel-meta {
     font-size: 0.85rem;
     color: #A8889A;
 }
@@ -1754,7 +1771,7 @@ body.soft-page {
     font-weight: 800;
     text-transform: uppercase;
 }
-.soft-status-pill.success { background: #E8F5E9; color: #2E7D32; border: 1px solid #C8E6C9; }
+.soft-status-pill.success { background: #FFF2F7; color: #8A3D66; border: 1px solid #F1C8D8; }
 .soft-status-pill.info { background: #F0F4F8; color: #648299; border: 1px solid #DFE7ED; }
 .soft-status-pill.warning { background: #FFF5EC; color: #C26A4A; border: 1px solid #F5E0D5; }
 .soft-status-pill.danger { background: #FFEBEE; color: #C62828; border: 1px solid #FFCDD2; }
@@ -1763,10 +1780,11 @@ body.soft-page {
 .soft-checkbox {
     appearance: none;
     -webkit-appearance: none;
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
     border: 2px solid #F0C2D6;
-    border-radius: 6px;
+    border-radius: 4px;
     background-color: #FFF;
     cursor: pointer;
     position: relative;
@@ -1781,9 +1799,9 @@ body.soft-page {
     content: '';
     position: absolute;
     top: 1px;
-    left: 5px;
-    width: 5px;
-    height: 10px;
+    left: 4px;
+    width: 4px;
+    height: 9px;
     border: solid white;
     border-width: 0 2px 2px 0;
     transform: rotate(45deg);
@@ -2191,4 +2209,610 @@ body.soft-page {
         flex: 1;
         min-width: 140px;
     }
+}
+
+/* MODAL SOFT UI */
+.soft-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+}
+.soft-modal.hidden {
+    display: none !important;
+}
+.soft-modal-content {
+    background: white;
+    padding: 24px;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 500px;
+    box-shadow: 0 12px 32px rgba(139, 88, 111, 0.2);
+}
+.soft-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+.soft-modal-header h2 {
+    color: #8B586F;
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0;
+}
+.btn-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: #AD859B;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+    margin: 0;
+}
+.btn-close:hover {
+    color: #8B586F;
+}
+.soft-modal-body {
+    margin-bottom: 24px;
+    color: #5D4350;
+    font-size: 0.95rem;
+}
+.soft-modal-footer {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+}
+
+/* CADASTRO - RESUMO DO CONVITE */
+.cadastro-resumo-convite {
+    background: #FAF0F4;
+    border: 1px solid #F1C8D8;
+    padding: 16px;
+    border-radius: 12px;
+    margin-bottom: 8px;
+    transition: all 0.3s ease;
+}
+
+.cadastro-resumo-header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.cadastro-resumo-title {
+    font-size: 0.9rem;
+    color: #8B586F;
+    text-transform: uppercase;
+    font-weight: 700;
+    margin: 0;
+}
+
+.cadastro-resumo-toggle {
+    background: none;
+    border: none;
+    color: #A26D85;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-transform: uppercase;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background 0.2s, color 0.2s;
+}
+
+.cadastro-resumo-toggle:hover, .cadastro-resumo-toggle:focus {
+    background: rgba(241, 200, 216, 0.3);
+    color: #8B586F;
+}
+
+.cadastro-resumo-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.cadastro-resumo-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.cadastro-resumo-label {
+    color: #A26D85;
+    font-weight: 700;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+}
+
+.cadastro-resumo-value {
+    color: #6F4A5C;
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+.cadastro-resumo-value.email {
+    font-size: 0.95rem;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.cadastro-resumo-value.id-acesso {
+    font-family: monospace;
+    font-size: 1.1rem;
+    letter-spacing: 1px;
+}
+
+.cadastro-resumo-details {
+    display: none;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed #F1C8D8;
+    gap: 8px;
+    flex-direction: column;
+}
+
+/* Expansão via hover, focus-within ou classe .expanded */
+.cadastro-resumo-convite:hover .cadastro-resumo-details,
+.cadastro-resumo-convite:focus-within .cadastro-resumo-details,
+.cadastro-resumo-convite.expanded .cadastro-resumo-details {
+    display: flex;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ==========================================================================
+   ÁREA DO PROFESSOR
+   ========================================================================== */
+
+.professor-shell {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin-top: 24px;
+}
+
+.professor-context-card {
+    background: #FFF;
+    border: 1px solid #F1C8D8;
+    border-radius: 12px;
+    padding: 16px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 4px 12px rgba(139, 88, 111, 0.05);
+}
+
+.professor-context-info dt {
+    font-size: 0.8rem;
+    color: #A26D85;
+    text-transform: uppercase;
+    font-weight: 700;
+}
+
+.professor-context-info dd {
+    font-size: 1.1rem;
+    color: #8A3D66;
+    font-weight: 700;
+    margin: 0;
+}
+
+.professor-workspace {
+    display: flex;
+    flex-direction: column;
+}
+
+.professor-workspace-header {
+    display: flex;
+    flex-direction: column;
+}
+
+.professor-tabs-card {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    border: 1px solid #F1C8D8;
+    background: rgba(255, 251, 253, 0.85);
+    border-radius: 999px;
+    box-shadow: 0 10px 24px rgba(190, 120, 150, 0.08);
+    width: fit-content;
+    max-width: 100%;
+    flex-wrap: wrap;
+    margin-top: 1.5rem;
+}
+
+.professor-tab {
+    border: 0;
+    border-radius: 999px;
+    padding: 0.75rem 1.15rem;
+    background: transparent;
+    color: #9B6A80;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.professor-tab:hover {
+    color: #8A3D66;
+    background: rgba(241, 200, 216, 0.2);
+}
+
+.professor-tab.active {
+    background: linear-gradient(135deg, #D6A4BC, #C88EAA);
+    color: #fff;
+    box-shadow: 0 8px 18px rgba(190, 120, 150, 0.22);
+}
+
+.professor-panel {
+    display: none;
+    margin-top: 1.5rem;
+    padding: 1.6rem;
+    border-radius: 28px;
+    border: 1px solid #F1C8D8;
+    background: rgba(255, 251, 253, 0.96);
+    box-shadow: 0 16px 36px rgba(160, 100, 120, 0.08);
+}
+
+.professor-panel.active {
+    display: block;
+    animation: fadeIn 0.3s ease;
+}
+
+/* Alunas Grid */
+.professor-alunas-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+}
+
+.professor-aluna-card {
+    background: #FFF;
+    border: 1px solid #F1C8D8;
+    border-radius: 8px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.professor-aluna-name {
+    font-weight: 700;
+    color: #8A3D66;
+    font-size: 1.05rem;
+}
+
+.professor-aluna-detail {
+    font-size: 0.85rem;
+    color: #A26D85;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Chamada */
+.professor-chamada-toolbar {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+}
+
+.professor-chamada-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.professor-chamada-card {
+    background: #FFF;
+    border: 1px solid #F1C8D8;
+    border-radius: 8px;
+    padding: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.professor-status-group {
+    display: flex;
+    gap: 8px;
+}
+
+.professor-status-button {
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: 1px solid #D2AAB9;
+    background: #FFF;
+    color: #A26D85;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.professor-status-button:hover {
+    background: #FAF0F4;
+}
+
+.professor-status-button.active[data-status="presente"] {
+    background: #96C599;
+    border-color: #96C599;
+    color: #FFF;
+}
+
+.professor-status-button.active[data-status="faltou"] {
+    background: #E68A8A;
+    border-color: #E68A8A;
+    color: #FFF;
+}
+
+.professor-status-button.active[data-status="justificada"] {
+    background: #F0AF73;
+    border-color: #F0AF73;
+    color: #FFF;
+}
+
+.professor-action-primary {
+    background: #AF698A;
+    color: #FFF;
+    border: none;
+    border-radius: 8px;
+    padding: 0.6rem 1.2rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(175, 105, 138, 0.2);
+}
+.professor-action-primary:hover {
+    background: #A05C7D;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(175, 105, 138, 0.3);
+}
+
+.professor-action-secondary {
+    background: #FFF;
+    color: #8A3D66;
+    border: 1px solid #E4C4D2;
+    border-radius: 8px;
+    padding: 0.6rem 1.2rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.professor-action-secondary:hover {
+    background: #FEF6F9;
+    border-color: #D6AEC0;
+    transform: translateY(-1px);
+}
+
+.professor-action-danger {
+    background: #FFF;
+    color: #DE7373;
+    border: 1px solid #F1C8D8;
+    border-radius: 8px;
+    padding: 0.6rem 1.2rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.professor-action-danger:hover {
+    background: #FDF0F5;
+    color: #C85B5B;
+    border-color: #E6A2BB;
+    transform: translateY(-1px);
+}
+
+/* Plano de Ensino */
+.professor-plano-form {
+    background: linear-gradient(135deg, rgba(255, 251, 253, 0.98), rgba(253, 244, 248, 0.92));
+    border: 1px solid #F1C8D8;
+    border-radius: 26px;
+    padding: 1.4rem;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.8), 0 12px 26px rgba(160, 100, 120, 0.06);
+    margin-bottom: 24px;
+}
+
+.professor-plano-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.professor-aula-card {
+    background: #FFF;
+    border: 1px solid #EAEAEA;
+    border-left: 4px solid #8A3D66;
+    border-radius: 8px;
+    padding: 16px;
+}
+
+.professor-aula-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.professor-aula-data {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #A26D85;
+}
+
+.professor-aula-tema {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #8A3D66;
+    margin-top: 4px;
+}
+
+.professor-empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #A26D85;
+    background: #FAF0F4;
+    border-radius: 12px;
+    border: 1px dashed #D2AAB9;
+}
+
+/* =========================================================================
+   Sessão de Expediente (Dropdown)
+   ========================================================================= */
+.session-expediente {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #F1C8D8;
+    text-align: left;
+}
+
+.session-expediente-title {
+    color: #8B586F;
+    font-weight: 900;
+    font-size: 0.9rem;
+}
+
+.session-expediente-status {
+    color: #A26D85;
+    font-size: 0.85rem;
+    margin-top: 0.25rem;
+}
+
+.session-expediente-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.session-expediente-button {
+    border: 1px solid #F1C8D8;
+    background: #FFF7FB;
+    color: #8B586F;
+    border-radius: 999px;
+    padding: 0.45rem 0.75rem;
+    font-weight: 800;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: 0.2s;
+}
+
+.session-expediente-button:hover {
+    background: #F1E2E9;
+}
+
+.session-expediente-button.primary {
+    background: #FCE3EF;
+    color: #B47B94;
+    border-color: transparent;
+}
+
+.session-expediente-button.primary:hover {
+    background: #FAD1E3;
+    filter: none;
+}
+
+/* =========================================================================
+   Modal Reutilizável Soft UI
+   ========================================================================= */
+.soft-session-modal-backdrop {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.soft-session-modal-backdrop.open {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.soft-session-modal {
+    background: #FFF;
+    border-radius: 16px;
+    width: 90%;
+    max-width: 400px;
+    padding: 24px;
+    box-shadow: 0 10px 30px rgba(185, 120, 145, 0.2);
+    transform: translateY(20px);
+    transition: transform 0.3s ease;
+    text-align: center;
+}
+
+.soft-session-modal-backdrop.open .soft-session-modal {
+    transform: translateY(0);
+}
+
+.soft-session-modal-title {
+    color: #8A3D66;
+    font-weight: 800;
+    font-size: 1.25rem;
+    margin-top: 0;
+    margin-bottom: 12px;
+}
+
+.soft-session-modal-text {
+    color: #6A4D5C;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    margin-bottom: 24px;
+}
+
+.soft-session-modal-input {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid #F1C8D8;
+    border-radius: 8px;
+    background: #FFF7FB;
+    color: #8B586F;
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 1rem;
+    margin-bottom: 20px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.soft-session-modal-input:focus {
+    border-color: #D3A4BC;
+}
+
+.soft-session-modal-error {
+    color: #D44E78;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-top: -12px;
+    margin-bottom: 20px;
+    display: none;
+}
+
+.soft-session-modal-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
 }

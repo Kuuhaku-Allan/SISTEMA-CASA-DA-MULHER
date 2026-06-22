@@ -234,6 +234,9 @@ public class PasskeysController : ControllerBase
             CriadoEm = DateTime.UtcNow
         });
 
+        usuario.SecuritySetupRequired = false;
+        await _userManager.UpdateAsync(usuario);
+
         _dbContext.PasskeyChallenges.Remove(challenge);
         await _dbContext.SaveChangesAsync();
 

@@ -1,4 +1,5 @@
 using System.IdentityModel.Tokens.Jwt;
+using System.Net;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
@@ -22,7 +23,7 @@ namespace CasaMulher.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class AuthController : ControllerBase
+public partial class AuthController : ControllerBase
 {
     private sealed record JwtEmitido(string Token, DateTime ExpiraEm);
 
@@ -46,6 +47,7 @@ public class AuthController : ControllerBase
     private readonly IFido2 _fido2;
     private readonly WebAuthnEnvironmentInfo _webAuthn;
     private readonly SecuritySnapshotPersistenceService _securitySnapshot;
+    private readonly IEmailService _emailService;
 
     public AuthController(
         AppDbContext dbContext,
@@ -61,7 +63,8 @@ public class AuthController : ControllerBase
         IDataProtectionProvider dataProtectionProvider,
         IFido2 fido2,
         WebAuthnEnvironmentInfo webAuthn,
-        SecuritySnapshotPersistenceService securitySnapshot)
+        SecuritySnapshotPersistenceService securitySnapshot,
+        IEmailService emailService)
     {
         _dbContext = dbContext;
         _userManager = userManager;
@@ -77,6 +80,7 @@ public class AuthController : ControllerBase
         _fido2 = fido2;
         _webAuthn = webAuthn;
         _securitySnapshot = securitySnapshot;
+        _emailService = emailService;
     }
 
     [AllowAnonymous]
@@ -103,6 +107,8 @@ public class AuthController : ControllerBase
         {
             NomeCompleto = convite!.NomeCompleto,
             Email = convite.Email,
+            Perfil = convite.Perfil,
+            ProfessorCurso = convite.ProfessorCurso,
             IdentificadorFuncionario = convite.IdentificadorFuncionario,
             ExpiraEm = convite.ExpiraEm
         });
@@ -167,6 +173,7 @@ public class AuthController : ControllerBase
             UserName = identificadorFuncionario,
             IdentificadorFuncionario = identificadorFuncionario,
             Perfil = convite.Perfil,
+            ProfessorCurso = convite.ProfessorCurso,
             EmailConfirmed = true,
             Ativo = true,
             DoisFatoresObrigatorio = PerfilExigeDoisFatores(convite.Perfil)
@@ -201,11 +208,67 @@ public class AuthController : ControllerBase
         await _dbContext.SaveChangesAsync();
         await transaction.CommitAsync();
 
+        await EnviarEmailContaCriadaAsync(usuario);
+
         return Ok(new
         {
             mensagem = "Funcionário cadastrado com sucesso.",
             identificadorFuncionario = usuario.IdentificadorFuncionario
         });
+    }
+
+    private async Task EnviarEmailContaCriadaAsync(ApplicationUser usuario)
+    {
+        var frontendBaseUrl = _configuration["Frontend:BaseUrl"];
+        var baseUrl = !string.IsNullOrWhiteSpace(frontendBaseUrl) ? frontendBaseUrl.TrimEnd('/') : "http://localhost:5500";
+        var linkSeguranca = $"{baseUrl}/seguranca.html";
+
+        var nome = WebUtility.HtmlEncode(usuario.NomeCompleto);
+        var perfil = WebUtility.HtmlEncode(usuario.Perfil);
+        var email = WebUtility.HtmlEncode(usuario.Email);
+        var idAcesso = WebUtility.HtmlEncode(usuario.IdentificadorFuncionario);
+
+        var cursoHtml = "";
+        if (usuario.Perfil == "professor" && !string.IsNullOrWhiteSpace(usuario.ProfessorCurso))
+        {
+            cursoHtml = $"<li>Curso/Interesse vinculado: {WebUtility.HtmlEncode(usuario.ProfessorCurso)}</li>";
+        }
+
+        var corpoHtml = $"""
+            <p>Olá, {nome}.</p>
+            <p>Sua conta no Sistema Casa da Mulher de Itaquaquecetuba foi criada com sucesso.</p>
+            <p>Guarde os dados abaixo para acessar o sistema:</p>
+            <ul>
+                <li>Nome: {nome}</li>
+                <li>Perfil de acesso: {perfil}</li>
+                <li>E-mail cadastrado: {email}</li>
+                <li>ID de acesso: {idAcesso}</li>
+                {cursoHtml}
+            </ul>
+            <p>Importante: os métodos de segurança da sua conta ainda precisam ser configurados.</p>
+            <p>Acesse a tela de segurança para configurar:</p>
+            <ul>
+                <li>Código de segurança;</li>
+                <li>E-mail de recuperação;</li>
+                <li>Chaves de acesso (Passkeys).</li>
+            </ul>
+            <p>Essas configurações ajudam a proteger sua conta e facilitam a recuperação do acesso caso você perca a senha ou tenha algum problema para entrar.</p>
+            <p>
+                <a href="{linkSeguranca}" style="display:inline-block;padding:12px 18px;background:#18726b;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:700;">
+                    Configurar segurança da conta
+                </a>
+            </p>
+            <p>Se o botão não funcionar, acesse: <a href="{linkSeguranca}">{linkSeguranca}</a></p>
+            """;
+
+        try
+        {
+            await _emailService.EnviarAsync(usuario.Email!, "Sua conta foi criada - Sistema Casa da Mulher", corpoHtml, "ContaCriada");
+        }
+        catch
+        {
+            // Apenas ignorar se falhar para não quebrar o cadastro que já foi efetivado
+        }
     }
 
     [AllowAnonymous]
@@ -575,6 +638,9 @@ public class AuthController : ControllerBase
 
         await _userManager.SetTwoFactorEnabledAsync(usuario, true);
 
+        usuario.SecuritySetupRequired = false;
+        await _userManager.UpdateAsync(usuario);
+
         var snapshot = await _securitySnapshot.PersistAsync("security_2fa_enabled", HttpContext.RequestAborted);
 
         return Ok(new
@@ -668,6 +734,7 @@ public class AuthController : ControllerBase
             EmailRecuperacao = usuario.EmailRecuperacao,
             EmailRecuperacaoConfirmado = usuario.EmailRecuperacaoConfirmado,
             Perfil = User.FindFirstValue("perfil") ?? usuario.Perfil,
+            ProfessorCurso = usuario.ProfessorCurso,
             IdentificadorFuncionario = User.FindFirstValue("identificadorFuncionario") ?? usuario.IdentificadorFuncionario,
             DoisFatoresObrigatorio = usuario.DoisFatoresObrigatorio,
             DoisFatoresAtivado = usuario.TwoFactorEnabled,
@@ -1530,11 +1597,13 @@ public class AuthController : ControllerBase
             Email = usuario.Email ?? string.Empty,
             Perfil = perfilSessao,
             IdentificadorFuncionario = identificadorSessao,
+            ProfessorCurso = usuario.ProfessorCurso,
             RequerDoisFatores = true,
             LoginTemporario = GerarLoginTemporario(usuario, perfilSessao, identificadorSessao),
             DoisFatoresObrigatorio = usuario.DoisFatoresObrigatorio,
             DoisFatoresAtivado = usuario.TwoFactorEnabled,
-            DeveTrocarSenha = usuario.DeveTrocarSenha
+            DeveTrocarSenha = usuario.DeveTrocarSenha,
+            SecuritySetupRequired = usuario.SecuritySetupRequired
         };
     }
 
@@ -1553,11 +1622,13 @@ public class AuthController : ControllerBase
             NomeCompleto = usuario.NomeCompleto,
             Email = usuario.Email ?? string.Empty,
             Perfil = perfilSessao,
+            ProfessorCurso = usuario.ProfessorCurso,
             IdentificadorFuncionario = identificadorSessao,
             RequerDoisFatores = false,
             DoisFatoresObrigatorio = usuario.DoisFatoresObrigatorio,
             DoisFatoresAtivado = usuario.TwoFactorEnabled,
-            DeveTrocarSenha = usuario.DeveTrocarSenha
+            DeveTrocarSenha = usuario.DeveTrocarSenha,
+            SecuritySetupRequired = usuario.SecuritySetupRequired
         };
     }
 

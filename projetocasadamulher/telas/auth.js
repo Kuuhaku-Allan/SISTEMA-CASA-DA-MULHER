@@ -160,6 +160,9 @@
     }
 
     function logout(message) {
+        if (typeof limparExpedienteSessaoAtual === "function") {
+            limparExpedienteSessaoAtual();
+        }
         limparSessao();
 
         if (message) {
@@ -276,6 +279,9 @@
 
         if (!getToken()) {
             if (settings.redirect !== false) {
+                if (window.location.pathname.endsWith("seguranca.html")) {
+                    sessionStorage.setItem("redirectAfterLogin", "seguranca.html");
+                }
                 logout("Sua sessão expirou por segurança. Faça login novamente.");
             }
 
@@ -284,6 +290,9 @@
 
         if (sessaoExpirada()) {
             if (settings.redirect !== false) {
+                if (window.location.pathname.endsWith("seguranca.html")) {
+                    sessionStorage.setItem("redirectAfterLogin", "seguranca.html");
+                }
                 logout("Sua sessão expirou por segurança. Faça login novamente.");
             }
 
@@ -318,9 +327,15 @@
         }
 
         const paginaTrocaSenha = window.location.pathname.endsWith("trocar-senha.html");
+        const paginaSeguranca = window.location.pathname.endsWith("seguranca.html");
 
         if (usuario.deveTrocarSenha && !paginaTrocaSenha && settings.permitirTrocaSenhaPendente !== true) {
             window.location.href = "trocar-senha.html";
+            return null;
+        }
+
+        if (usuario.securitySetupRequired && !paginaSeguranca && settings.permitirSegurancaPendente !== true) {
+            window.location.href = "seguranca.html";
             return null;
         }
 

@@ -10,6 +10,8 @@ public class CriarFuncionarioConviteResponse
 
     public string Perfil { get; set; } = string.Empty;
 
+    public string? ProfessorCurso { get; set; }
+
     public string IdentificadorFuncionario { get; set; } = string.Empty;
 
     public string CodigoCadastro { get; set; } = string.Empty;

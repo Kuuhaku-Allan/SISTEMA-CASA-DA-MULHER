@@ -1,4 +1,14 @@
 const API_BASE_URL = window.API_BASE_URL || "http://localhost:5001";
+
+const CURSOS_RECEPCAO = [
+    { id: "Informatica", nome: "Informática e Inclusão Digital" },
+    { id: "Culinaria", nome: "Culinária e Autonomia" },
+    { id: "Estetica", nome: "Estética e Autoestima" },
+    { id: "Primeiros Socorros", nome: "Primeiros Socorros" },
+    { id: "Danca", nome: "Dança Circular" },
+    { id: "Pilates", nome: "Pilates e Bem-estar" },
+    { id: "Empoderamento", nome: "Empoderamento Feminino" }
+];
 const PERFIS_LABEL = {
     adm: "Coordenação / ADM",
     recepcao: "Recepção",
@@ -20,8 +30,12 @@ function setMessage(element, text, type) {
         return;
     }
 
+    const isSoftAuth = element.classList.contains("soft-auth-message");
     element.textContent = text;
     element.className = `message ${type || ""}`.trim();
+    if (isSoftAuth) {
+        element.classList.add("soft-auth-message");
+    }
 }
 
 async function readApiMessage(response) {
@@ -73,6 +87,13 @@ function storeAuthResult(resultado) {
 function redirectAfterLogin(resultado) {
     if (resultado.deveTrocarSenha) {
         window.location.href = "trocar-senha.html";
+        return;
+    }
+
+    const destinoPendente = sessionStorage.getItem("redirectAfterLogin");
+    if (destinoPendente) {
+        sessionStorage.removeItem("redirectAfterLogin");
+        window.location.href = destinoPendente;
         return;
     }
 
@@ -250,10 +271,14 @@ function inicializarSoftSessionCard(usuario) {
             const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
             currentDate.textContent = now.toLocaleDateString('pt-BR', dateOptions);
             currentTime.textContent = now.toLocaleTimeString('pt-BR');
+            if (typeof atualizarTimerExpedienteUI === "function") atualizarTimerExpedienteUI();
         }
         updateDateTime();
         window.clockInterval = setInterval(updateDateTime, 1000);
     }
+    
+    // Injetar e inicializar a área de Expediente
+    inicializarExpedienteSessao(usuario);
 }
 
 function formatAcaoAuditoria(acao) {
@@ -432,22 +457,34 @@ function setupCadastro() {
 
             if (!response.ok) {
                 avisoConvite.textContent = await readApiMessage(response);
-                avisoConvite.className = "notice notice-error";
+                avisoConvite.className = "soft-auth-message error";
                 return;
             }
 
             const convite = await response.json();
+            
+            // Popula os inputs ocultos para o form
             nomeInput.value = convite.nomeCompleto || "";
             emailInput.value = convite.email || emailParam;
             identificadorInput.value = convite.identificadorFuncionario || "";
             codigoInput.value = codigoParam;
 
-            avisoConvite.textContent = "Convite reconhecido. Confira seus dados e crie sua senha de acesso.";
-            avisoConvite.className = "notice notice-success";
+            // Popula a UI de resumo
+            document.getElementById("displayNome").textContent = convite.nomeCompleto || "-";
+            document.getElementById("displayEmail").textContent = convite.email || emailParam;
+            document.getElementById("displayIdentificador").textContent = convite.identificadorFuncionario || "-";
+            document.getElementById("displayPerfil").textContent = convite.perfil || "-";
+
+            if (convite.professorCurso) {
+                document.getElementById("displayCurso").textContent = convite.professorCurso;
+                document.getElementById("divDisplayCurso").classList.remove("hidden");
+            }
+
+            avisoConvite.classList.add("hidden");
             form.classList.remove("hidden");
         } catch {
             avisoConvite.textContent = "Não foi possível conectar à API para validar o convite.";
-            avisoConvite.className = "notice notice-error";
+            avisoConvite.className = "soft-auth-message error";
         }
     }
 
@@ -681,6 +718,22 @@ async function setupPainel() {
     document.getElementById("painelEmail").textContent = usuario.email || "-";
     document.getElementById("painelPerfil").textContent = formatPerfil(usuario.perfil);
 
+    if (usuario.perfil === "professor") {
+        const professorCurso = usuario.professorCurso || usuario.ProfessorCurso;
+        if (professorCurso) {
+            const dl = document.querySelector(".painel-profile-grid");
+            if (dl) {
+                const divCurso = document.createElement("div");
+                divCurso.style.gridColumn = "1 / -1";
+                divCurso.innerHTML = `
+                    <dt style="color: #AD859B; font-weight: 700; font-size: 0.85rem; text-transform: uppercase;">Curso/Interesse vinculado</dt>
+                    <dd style="color: #9C5D7E; font-weight: 700; font-size: 1rem;">${professorCurso}</dd>
+                `;
+                dl.appendChild(divCurso);
+            }
+        }
+    }
+
     inicializarSoftSessionCard(usuario);
 
     CasaMulherAuth.salvarUsuario(usuario);
@@ -705,6 +758,11 @@ async function setupPainel() {
                 }
             }
         }
+    }
+
+    if (usuario.perfil === "professor") {
+        document.getElementById("cardOutrasAreas")?.classList.add("hidden");
+        document.getElementById("linkProfessor")?.classList.remove("hidden");
     }
 
     if (CasaMulherAuth.podeAcessar("auditoria")) {
@@ -915,18 +973,57 @@ async function setupConvites() {
         }
     }
 
+    const modalCursoProfessor = document.getElementById("modalCursoProfessor");
+    const btnFecharModalCurso = document.getElementById("btnFecharModalCurso");
+    const btnCancelarModalCurso = document.getElementById("btnCancelarModalCurso");
+    const btnConfirmarModalCurso = document.getElementById("btnConfirmarModalCurso");
+    const cursoProfessorSelect = document.getElementById("cursoProfessorSelect");
+
+    if (cursoProfessorSelect) {
+        CURSOS_RECEPCAO.forEach(curso => {
+            const option = document.createElement("option");
+            option.value = curso.nome;
+            option.textContent = curso.nome;
+            cursoProfessorSelect.appendChild(option);
+        });
+
+        const fecharModal = () => modalCursoProfessor.classList.add("hidden");
+
+        btnFecharModalCurso.addEventListener("click", fecharModal);
+        btnCancelarModalCurso.addEventListener("click", fecharModal);
+
+        btnConfirmarModalCurso.addEventListener("click", () => {
+            if (!cursoProfessorSelect.value) {
+                alert("Selecione um curso/interesse.");
+                return;
+            }
+            fecharModal();
+            enviarConvite(true);
+        });
+    }
+
     form.addEventListener("submit", async function (event) {
         event.preventDefault();
+        enviarConvite(false);
+    });
 
+    async function enviarConvite(vindoDoModal) {
         if (!form.reportValidity()) {
             return;
         }
 
         const email = conviteEmailInput.value.trim();
         const confirmarEmail = conviteConfirmarEmailInput.value.trim();
+        const perfil = document.getElementById("convitePerfil").value;
 
         if (email.toLowerCase() !== confirmarEmail.toLowerCase()) {
             setMessage(mensagem, "Os e-mails não conferem.", "error");
+            return;
+        }
+
+        if (perfil === "professor" && !vindoDoModal) {
+            cursoProfessorSelect.value = "";
+            modalCursoProfessor.classList.remove("hidden");
             return;
         }
 
@@ -946,10 +1043,14 @@ async function setupConvites() {
             nomeCompleto: document.getElementById("conviteNome").value.trim(),
             email,
             confirmarEmail,
-            perfil: document.getElementById("convitePerfil").value,
+            perfil,
             diasParaExpirar: Number(document.getElementById("conviteDias").value),
             enviarEmail: document.getElementById("conviteEnviarEmail").checked
         };
+
+        if (perfil === "professor") {
+            dados.professorCurso = cursoProfessorSelect.value;
+        }
 
         try {
             const response = await CasaMulherAuth.apiFetch("/api/convites-funcionarios", {
@@ -971,19 +1072,27 @@ async function setupConvites() {
             const avisoAlias = resultado.avisoEmailAlias ? ` ${resultado.avisoEmailAlias}` : "";
 
             document.getElementById("identificadorGerado").textContent = resultado.identificadorFuncionario || "-";
-            document.getElementById("codigoGerado").textContent = ultimoCodigo;
-            document.getElementById("linkGerado").textContent = ultimoLink;
-            document.getElementById("emailConviteStatus").textContent = `${formatResultadoEmailConvite(resultado)}${avisoAlias}${avisoLinkLocal}`;
-            resultPanel.classList.remove("hidden");
+            document.getElementById("codigoGerado").textContent = ultimoCodigo || "Gerado por link direto";
+            document.getElementById("linkGerado").textContent = ultimoLink || "-";
 
-            const mensagemSucesso = resultado.statusEmail
-                ? `Convite criado com sucesso. ${formatResultadoEmailConvite(resultado)}${avisoAlias}${avisoLinkLocal}`
-                : "Convite criado com sucesso. Envie o link para o funcionário criar a conta.";
-            const tipoMensagem = resultado.statusEmail === "Falhou" || resultado.statusEmail === "NaoConfigurado"
-                ? "info"
-                : "success";
+            let statusColor = "#388E3C";
+            let statusText = "E-mail enviado com sucesso." + avisoAlias;
 
-            setMessage(mensagem, mensagemSucesso, tipoMensagem);
+            if (resultado.emailEnviado === false) {
+                statusColor = "#C62828";
+                statusText = resultado.avisoEmail || resultado.statusEmail || "Falha no envio de e-mail.";
+                statusText += avisoAlias;
+            }
+
+            const emailStatusElement = document.getElementById("emailConviteStatus");
+            emailStatusElement.textContent = statusText;
+            emailStatusElement.style.color = statusColor;
+
+            divConviteGerado.classList.remove("hidden");
+            form.reset();
+            setMessage(mensagem, avisoLinkLocal || "Convite gerado com sucesso.", avisoLinkLocal ? "info" : "success");
+
+            // Removido mensagemSucesso indefinida
             form.reset();
             if (convitePerfil) {
                 convitePerfil.dispatchEvent(new Event("change"));
@@ -998,7 +1107,7 @@ async function setupConvites() {
         } finally {
             disableSubmit(form, false);
         }
-    });
+    }
 
     document.getElementById("btnCopiarCodigo").addEventListener("click", function () {
         copyText(ultimoCodigo, mensagem);
@@ -2933,6 +3042,14 @@ async function setupSeguranca() {
         return;
     }
 
+    if (usuarioInicial.securitySetupRequired) {
+        const divAviso = document.createElement("div");
+        divAviso.className = "notice notice-error";
+        divAviso.style.marginBottom = "24px";
+        divAviso.innerHTML = `<strong>Ação Exigida:</strong> Você deve configurar a autenticação por aplicativo (2FA) ou Passkeys para poder acessar o sistema novamente.`;
+        page.querySelector(".dashboard-card").prepend(divAviso);
+    }
+
     inicializarSoftSessionCard(usuarioInicial);
     bindLogoutButton("btnSairSeguranca");
 
@@ -3508,4 +3625,401 @@ async function carregarPasskeys() {
         ul.innerHTML = `<li style="list-style-type: none; color: red;">Erro ao carregar chaves.</li>`;
     }
 }
-if (window.location.pathname.endsWith("seguranca.html")) { carregarPasskeys(); }
+if (window.location.pathname.endsWith("seguranca.html")) { carregarPasskeys(); }/* =========================================================================
+   Sessão por Expediente
+   ========================================================================= */
+
+function inicializarExpedienteSessao(usuario) {
+    if (!usuario || !usuario.identificadorFuncionario) return;
+
+    const sessionDropdown = document.getElementById("sessionDropdown");
+    if (!sessionDropdown) return;
+
+    // Inject the section if it doesn't exist
+    if (!document.getElementById("sessionExpediente")) {
+        const sessionActions = sessionDropdown.querySelector(".session-actions");
+        const expedienteContainer = document.createElement("div");
+        expedienteContainer.id = "sessionExpediente";
+        expedienteContainer.className = "session-expediente";
+        sessionDropdown.insertBefore(expedienteContainer, sessionActions);
+    }
+
+    // Attach user ID globally for interval checks
+    window.expedienteUsuarioAtivo = usuario;
+
+    atualizarUiExpediente();
+
+    // Reset warning flag on load
+    window.expedienteAviso5MinMostrado = false;
+
+    // Remove old interval to avoid duplicates
+    if (window.expedienteInterval) {
+        clearInterval(window.expedienteInterval);
+    }
+    
+    // Check immediately and then every 30s
+    verificarExpedienteSessao();
+    window.expedienteInterval = setInterval(verificarExpedienteSessao, 30000);
+
+    // Cross-tab synchronization
+    if (!window.expedienteStorageListener) {
+        window.expedienteStorageListener = function (e) {
+            if (e.key === getExpedienteKey(usuario.identificadorFuncionario)) {
+                window.expedienteAviso5MinMostrado = false;
+                atualizarUiExpediente();
+                verificarExpedienteSessao();
+            }
+        };
+        window.addEventListener("storage", window.expedienteStorageListener);
+    }
+}
+
+function getExpedienteKey(userId) {
+    return `casamulher_expediente_sessao_${userId}`;
+}
+
+function carregarExpedienteSessao() {
+    if (!window.expedienteUsuarioAtivo) return null;
+    const json = localStorage.getItem(getExpedienteKey(window.expedienteUsuarioAtivo.identificadorFuncionario));
+    return json ? JSON.parse(json) : null;
+}
+
+function salvarExpedienteSessao(encerrarEmStr) {
+    if (!window.expedienteUsuarioAtivo) return;
+    const config = {
+        encerrarEm: encerrarEmStr,
+        criadoEm: new Date().toISOString()
+    };
+    localStorage.setItem(getExpedienteKey(window.expedienteUsuarioAtivo.identificadorFuncionario), JSON.stringify(config));
+    // Evitar que o aviso de 5 minutos pisque imediatamente se o usuário definiu um tempo muito curto
+    const diffMs = new Date(encerrarEmStr) - new Date();
+    if (diffMs > 0 && diffMs <= 5 * 60 * 1000) {
+        window.expedienteAviso5MinMostrado = true;
+    } else {
+        window.expedienteAviso5MinMostrado = false;
+    }
+    atualizarUiExpediente();
+    verificarExpedienteSessao();
+}
+
+function limparExpedienteSessaoLocal() {
+    if (window.expedienteUsuarioAtivo) {
+        localStorage.removeItem(getExpedienteKey(window.expedienteUsuarioAtivo.identificadorFuncionario));
+    }
+    window.expedienteAviso5MinMostrado = false;
+    atualizarUiExpediente();
+}
+
+function limparExpedienteSessaoAtual() {
+    // Global function called on central logout
+    if (window.expedienteInterval) clearInterval(window.expedienteInterval);
+    
+    // Attempt to clear by current user ID if available
+    let userId = "";
+    if (window.expedienteUsuarioAtivo) {
+        userId = window.expedienteUsuarioAtivo.identificadorFuncionario;
+    } else {
+        // Fallback: decode JWT or scan localStorage keys
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith("casamulher_expediente_sessao_")) {
+                keysToRemove.push(key);
+            }
+        }
+        keysToRemove.forEach(k => localStorage.removeItem(k));
+        return;
+    }
+    
+    if (userId) {
+        localStorage.removeItem(getExpedienteKey(userId));
+    }
+}
+
+function obterLimiteExpiracaoToken() {
+    const expStr = localStorage.getItem("expiraEm");
+    if (expStr) {
+        return new Date(expStr);
+    }
+    // Fallback if needed (using Auth function to decode if available)
+    try {
+        const token = typeof CasaMulherAuth !== 'undefined' ? CasaMulherAuth.getToken() : null;
+        if (token) {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            if (payload && payload.exp) {
+                return new Date(payload.exp * 1000);
+            }
+        }
+    } catch (e) { console.error("Falha ao ler exp do token", e); }
+    
+    // Ultimate fallback: block far future
+    return new Date(Date.now() + 24 * 60 * 60 * 1000);
+}
+
+function formatTimeRemaining(ms) {
+    const totalSecs = Math.floor(ms / 1000);
+    const hours = Math.floor(totalSecs / 3600);
+    const mins = Math.floor((totalSecs % 3600) / 60);
+    const secs = totalSecs % 60;
+    
+    if (hours > 0) return `${hours}h ${mins}min ${secs}s`;
+    if (mins > 0) return `${mins}min ${secs}s`;
+    return `${secs}s`;
+}
+
+function atualizarTimerExpedienteUI() {
+    const timerElement = document.getElementById("expedienteTimer");
+    if (!timerElement) return;
+    
+    const config = carregarExpedienteSessao();
+    if (!config) return;
+    
+    const diffMs = new Date(config.encerrarEm) - new Date();
+    if (diffMs > 0) {
+        timerElement.textContent = formatTimeRemaining(diffMs);
+    } else {
+        timerElement.textContent = "0s";
+    }
+}
+
+function atualizarUiExpediente() {
+    const container = document.getElementById("sessionExpediente");
+    if (!container) return;
+
+    const config = carregarExpedienteSessao();
+    
+    if (!config) {
+        container.innerHTML = `
+            <div class="session-expediente-title">Expediente</div>
+            <div class="session-expediente-status">Sem horário definido</div>
+            <div class="session-expediente-actions">
+                <button type="button" class="session-expediente-button primary" onclick="abrirModalDefinirExpediente()">Definir saída</button>
+            </div>
+        `;
+    } else {
+        const encerrarEm = new Date(config.encerrarEm);
+        const agora = new Date();
+        const diffMs = encerrarEm - agora;
+        
+        let tempoTexto = "Encerrando...";
+        if (diffMs > 0) {
+            tempoTexto = `Restam <span id="expedienteTimer">${formatTimeRemaining(diffMs)}</span>`;
+        }
+        
+        const horaStr = encerrarEm.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        
+        container.innerHTML = `
+            <div class="session-expediente-title">Expediente</div>
+            <div class="session-expediente-status">Sessão programada para encerrar às <strong>${horaStr}</strong><br/>${tempoTexto}</div>
+            <div class="session-expediente-actions">
+                <button type="button" class="session-expediente-button" onclick="abrirModalDefinirExpediente()">Alterar</button>
+                <button type="button" class="session-expediente-button" onclick="limparExpedienteSessaoLocal()">Desligar</button>
+            </div>
+        `;
+    }
+}
+
+function verificarExpedienteSessao() {
+    const config = carregarExpedienteSessao();
+    if (!config) return;
+    
+    const agora = new Date();
+    const encerrarEm = new Date(config.encerrarEm);
+    const diffMs = encerrarEm - agora;
+
+    if (diffMs <= 0) {
+        // Encerramento
+        abrirModalFimExpediente();
+    } else if (diffMs <= 5 * 60 * 1000 && diffMs > 0) {
+        // Aviso 5 minutos
+        if (!window.expedienteAviso5MinMostrado) {
+            window.expedienteAviso5MinMostrado = true;
+            abrirAlerta5Minutos();
+        }
+    }
+
+    // Refresh UI tempo restante (só se dropdown estiver visível)
+    const sessionCard = document.getElementById("sessionCard");
+    if (sessionCard && sessionCard.classList.contains("open")) {
+        atualizarUiExpediente();
+    }
+}
+
+function abrirModalBase(titulo, htmlConteudo, htmlBotoes) {
+    let backdrop = document.getElementById("softSessionModalBackdrop");
+    if (!backdrop) {
+        backdrop = document.createElement("div");
+        backdrop.id = "softSessionModalBackdrop";
+        backdrop.className = "soft-session-modal-backdrop";
+        document.body.appendChild(backdrop);
+    }
+    
+    backdrop.innerHTML = `
+        <div class="soft-session-modal">
+            <h3 class="soft-session-modal-title">${titulo}</h3>
+            ${htmlConteudo}
+            <div class="soft-session-modal-actions">
+                ${htmlBotoes}
+            </div>
+        </div>
+    `;
+    
+    // Timeout pequeno para CSS transition
+    setTimeout(() => backdrop.classList.add("open"), 10);
+}
+
+function fecharModalBase() {
+    const backdrop = document.getElementById("softSessionModalBackdrop");
+    if (backdrop) {
+        backdrop.classList.remove("open");
+        setTimeout(() => backdrop.remove(), 300);
+    }
+}
+
+function abrirModalDefinirExpediente() {
+    const config = carregarExpedienteSessao();
+    let defaultTime = "";
+    if (config) {
+        const dt = new Date(config.encerrarEm);
+        defaultTime = dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    const htmlConteudo = `
+        <p class="soft-session-modal-text">Defina o horário em que sua sessão será encerrada automaticamente.</p>
+        <div style="text-align: left;">
+            <label style="display:block; font-size: 0.85rem; color: #8A3D66; font-weight: bold; margin-bottom: 6px;">Encerrar sessão às</label>
+            <input type="time" id="inputHoraExpediente" class="soft-session-modal-input" value="${defaultTime}" required />
+            <p id="erroModalExpediente" class="soft-session-modal-error"></p>
+        </div>
+    `;
+
+    const htmlBotoes = `
+        <button type="button" class="soft-btn soft-btn-primary" onclick="salvarInputExpediente()">Salvar</button>
+        <button type="button" class="soft-btn soft-btn-secondary" onclick="fecharModalBase()">Cancelar</button>
+    `;
+
+    abrirModalBase("Definir fim do expediente", htmlConteudo, htmlBotoes);
+}
+
+function salvarInputExpediente() {
+    const input = document.getElementById("inputHoraExpediente");
+    const erroLabel = document.getElementById("erroModalExpediente");
+    erroLabel.style.display = "none";
+    
+    if (!input.value) {
+        erroLabel.textContent = "Informe um horário.";
+        erroLabel.style.display = "block";
+        return;
+    }
+
+    const partes = input.value.split(":");
+    const horas = parseInt(partes[0], 10);
+    const minutos = parseInt(partes[1], 10);
+
+    const agora = new Date();
+    const encerrarEm = new Date();
+    encerrarEm.setHours(horas, minutos, 0, 0);
+
+    // Se o horário for no passado e tiver margem pra ser amanhã (apenas pra não quebrar se for 23:59 -> 00:01)
+    // Para simplificar: exige sempre que seja > agora no dia de hoje. 
+    if (encerrarEm <= agora) {
+        erroLabel.textContent = "Escolha um horário no futuro (entre agora e o limite da sessão).";
+        erroLabel.style.display = "block";
+        return;
+    }
+
+    const limiteJwt = obterLimiteExpiracaoToken();
+    if (encerrarEm > limiteJwt) {
+        const hLimite = limiteJwt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        erroLabel.textContent = `O horário excede o limite da sessão atual do sistema (${hLimite}).`;
+        erroLabel.style.display = "block";
+        return;
+    }
+
+    salvarExpedienteSessao(encerrarEm.toISOString());
+    fecharModalBase();
+}
+
+function abrirAlerta5Minutos() {
+    const htmlConteudo = `
+        <p class="soft-session-modal-text">Seu expediente termina em menos de 5 minutos. A sessão será encerrada automaticamente.</p>
+    `;
+
+    const htmlBotoes = `
+        <button type="button" class="soft-btn soft-btn-primary" onclick="fecharModalBase()">Entendi</button>
+        <button type="button" class="soft-btn soft-btn-secondary" onclick="adiarExpediente10Min()">Adiar 10 min</button>
+        <button type="button" class="soft-btn soft-btn-secondary" onclick="fecharModalBase(); abrirModalDefinirExpediente()">Alterar horário</button>
+    `;
+
+    abrirModalBase("Fim do expediente se aproximando", htmlConteudo, htmlBotoes);
+}
+
+function abrirModalFimExpediente() {
+    if (window.modalFimExpedienteAberto) return;
+    
+    const htmlConteudo = `
+        <p class="soft-session-modal-text">O horário definido para encerrar a sessão chegou. Para manter a segurança, escolha uma ação.</p>
+    `;
+
+    // Botões
+    const limiteJwt = obterLimiteExpiracaoToken();
+    const podeAdiar = new Date(Date.now() + 10 * 60 * 1000) <= limiteJwt;
+    
+    const btnAdiarHtml = podeAdiar 
+        ? `<button type="button" class="soft-btn soft-btn-secondary" onclick="adiarExpediente10Min()">Adiar 10 min</button>`
+        : `<button type="button" class="soft-btn soft-btn-secondary" disabled title="Não é possível adiar além do limite da sessão atual" style="opacity: 0.6; cursor: not-allowed;">Adiar 10 min</button>`;
+
+    const htmlBotoes = `
+        <button type="button" class="soft-btn soft-btn-primary" onclick="fecharModalBase(); CasaMulherAuth.logout();">Encerrar agora</button>
+        ${btnAdiarHtml}
+        <button type="button" class="soft-btn soft-btn-secondary" onclick="fecharModalBase(); abrirModalDefinirExpediente()">Escolher novo horário</button>
+        <button type="button" class="soft-btn soft-btn-secondary" onclick="desligarTimerExpediente()">Desligar timer do expediente</button>
+        <p style="font-size: 0.8rem; color: #A26D85; margin-top: 12px; margin-bottom: 0;">Mesmo com o timer desligado, a sessão continuará sujeita à expiração automática do token de 24h.</p>
+    `;
+
+    abrirModalBase("Fim do expediente", htmlConteudo, htmlBotoes);
+    window.modalFimExpedienteAberto = true;
+
+    // Logout automático em 60 segundos
+    if (window.timeoutFimExpediente) clearTimeout(window.timeoutFimExpediente);
+    window.timeoutFimExpediente = setTimeout(() => {
+        if (window.modalFimExpedienteAberto) {
+            fecharModalBase();
+            window.modalFimExpedienteAberto = false;
+            CasaMulherAuth.logout();
+        }
+    }, 60000);
+}
+
+function adiarExpediente10Min() {
+    fecharModalBase();
+    window.modalFimExpedienteAberto = false;
+    if (window.timeoutFimExpediente) clearTimeout(window.timeoutFimExpediente);
+
+    const config = carregarExpedienteSessao();
+    if (!config) return;
+    
+    const atual = new Date(config.encerrarEm);
+    atual.setMinutes(atual.getMinutes() + 10);
+
+    const limiteJwt = obterLimiteExpiracaoToken();
+    if (atual > limiteJwt) {
+        alert("O novo horário ultrapassa o limite máximo da sessão atual.");
+        return;
+    }
+
+    salvarExpedienteSessao(atual.toISOString());
+}
+
+function desligarTimerExpediente() {
+    fecharModalBase();
+    window.modalFimExpedienteAberto = false;
+    if (window.timeoutFimExpediente) clearTimeout(window.timeoutFimExpediente);
+    
+    limparExpedienteSessaoLocal();
+    alert("Timer do expediente desligado. A sessão continuará sujeita à expiração automática do token.");
+}
+
+// Controle de expediente no frontend. Não revoga o JWT no servidor.
+// TODO: criar revogação server-side por sessionId para invalidação real antes das 24h.
+
