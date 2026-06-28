@@ -1,0 +1,66 @@
+/* Variaveis baseadas no Soft UI real */
+:root {
+  --cor-primaria: #8B5A96;
+  --cor-primaria-clara: #F8F4F9;
+  --cor-secundaria: #6B4C73;
+  --cor-fundo: #FAFAFA;
+  --cor-texto: #333333;
+  --cor-texto-secundario: #666666;
+  --cor-borda: #EAEAEA;
+  --raio-borda-card: 16px;
+  --raio-borda-input: 12px;
+  --sombra-card: 0 4px 12px rgba(139, 90, 150, 0.05);
+}
+
+body.soft-body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--cor-fundo);
+  color: var(--cor-texto);
+  margin: 0;
+  padding: 0;
+}
+
+/* Restante das classes para manter a aparencia sem carregar o style.css externo para evitar conflitos de rotas */
+.soft-header {
+  display: flex;
+  background: #fff;
+  padding: 16px 24px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+  border-bottom: 1px solid var(--cor-borda);
+}
+.soft-header > div {
+  display: flex;
+  align-items: center;
+}
+.soft-header h1 { margin:0; font-size: 1.25rem; color: var(--cor-primaria); }
+.soft-header p { margin:0; font-size: 0.9rem; color: var(--cor-texto-secundario); }
+
+.admin-panel {
+  background: #fff;
+  border-radius: var(--raio-borda-card);
+  box-shadow: var(--sombra-card);
+  padding: 24px;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.admin-panel h2 { color: var(--cor-primaria); margin-top:0; }
+
+.btn-primary {
+  background: var(--cor-primaria);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-weight: 500;
+}
+.btn-secondary {
+  background: transparent;
+  color: var(--cor-secundaria);
+  border: 1px solid var(--cor-secundaria);
+  padding: 10px 20px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-weight: 500;
+}
