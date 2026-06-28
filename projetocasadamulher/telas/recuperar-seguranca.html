@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recuperar Segurança - Casa da Mulher</title>
+    <link rel="stylesheet" href="style.css?v=9">
+    <script src="config.js" defer></script>
+    <script src="auth.js" defer></script>
+    <script src="app.js?v=9" defer></script>
+    <script src="recuperacao-seguranca.js" defer></script>
+</head>
+<body class="soft-auth-page">
+    <div class="soft-auth-shell">
+        <div class="soft-auth-card">
+            <img src="IMAGENS/logo_oficial.png" alt="Logo Casa da Mulher" class="soft-auth-logo">
+
+            <h1 class="soft-auth-title">Recuperar Segurança</h1>
+            <p class="soft-auth-subtitle">Por segurança, esta etapa exige sua senha atual e uma confirmação por e-mail antes de redefinir seus métodos de segurança (2FA/Passkeys).</p>
+
+            <form id="formVerificarOpcoesSeguranca" class="soft-auth-form" novalidate>
+                <div class="soft-form-group">
+                    <label for="identificadorSeguranca">ID Institucional</label>
+                    <input type="text" id="identificadorSeguranca" class="soft-input" name="identificador" placeholder="Ex: ADM-000001" required>
+                </div>
+                <div class="soft-form-group">
+                    <label for="senhaSeguranca">Senha Atual</label>
+                    <input type="password" id="senhaSeguranca" class="soft-input" name="senha" placeholder="Sua senha atual" required>
+                </div>
+                <div class="soft-auth-actions">
+                    <button type="submit" class="soft-btn soft-btn-primary" id="btnVerificarOpcoes">Continuar</button>
+                </div>
+            </form>
+
+            <form id="formSolicitarRecuperacaoSeguranca" class="soft-auth-form hidden" novalidate>
+                <p style="font-size: 0.9rem; color: #8A3D66; font-weight: 600; margin-bottom: 12px;">Escolha para onde enviar o link de confirmação:</p>
+                <div id="opcoesEmailSeguranca" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px;">
+                    <!-- Opções geradas pelo JS -->
+                </div>
+                <div class="soft-auth-actions">
+                    <button type="submit" class="soft-btn soft-btn-primary" id="btnEnviarLinkRecuperacao">Enviar link</button>
+                </div>
+            </form>
+
+            <div id="mensagemRecuperarSeguranca" class="message soft-auth-message" aria-live="polite"></div>
+
+            <div style="margin-top: 8px;">
+                <a href="recuperar-acesso.html" class="soft-auth-link">Voltar</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

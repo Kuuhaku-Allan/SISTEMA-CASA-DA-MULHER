@@ -25,9 +25,18 @@
         return "";
     }
 
+    function getSameOriginApiUrl(location) {
+        if (location.protocol === "http:" || location.protocol === "https:") {
+            return location.origin;
+        }
+
+        return "";
+    }
+
     const apiBaseUrl = explicitBaseUrl
         || getCodespacesApiUrl(window.location)
         || getLocalApiUrl(window.location)
+        || getSameOriginApiUrl(window.location)
         || "http://localhost:5001";
 
     window.CasaMulherConfig = Object.assign({}, window.CasaMulherConfig, {

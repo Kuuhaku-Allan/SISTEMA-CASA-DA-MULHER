@@ -10,11 +10,15 @@ public class ApplicationUser : IdentityUser
 
     public string IdentificadorFuncionario { get; set; } = string.Empty;
 
+    public string? ProfessorCurso { get; set; }
+
     public bool Ativo { get; set; } = true;
 
     public bool DeveTrocarSenha { get; set; }
 
     public bool DoisFatoresObrigatorio { get; set; }
+
+    public bool SecuritySetupRequired { get; set; }
 
     public string? EmailRecuperacao { get; set; }
 
@@ -30,5 +34,18 @@ public class ApplicationUser : IdentityUser
     /// </summary>
     public DateTime? PasskeyReconfirmadoEm { get; set; }
 
+    /// <summary>
+    /// Data da última atualização da senha via sincronização do portal EQP.
+    /// Usada para evitar sobrescrever senha local mais nova com hash antigo do JSON.
+    /// </summary>
+    public DateTime? EquipeDbPasswordUpdatedAt { get; set; }
+
+    /// <summary>
+    /// Versão da senha no portal EQP. Usada para detectar atualizações no JSON.
+    /// </summary>
+    public int EquipeDbPasswordVersion { get; set; }
+
     public ICollection<PasskeyCredential> PasskeyCredentials { get; set; } = new List<PasskeyCredential>();
+
+    public ICollection<UserLoginIdentifier> LoginIdentifiers { get; set; } = new List<UserLoginIdentifier>();
 }

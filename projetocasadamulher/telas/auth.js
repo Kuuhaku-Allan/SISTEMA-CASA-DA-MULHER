@@ -65,6 +65,19 @@
         };
     }
 
+    function getPainelUrl(usuario) {
+        const perfil = usuario?.perfil || getPerfil();
+        return perfil === "equipe" ? "equipe-painel.html" : "painel.html";
+    }
+
+    function atualizarLinksPainel(usuario) {
+        const painelUrl = getPainelUrl(usuario);
+
+        document.querySelectorAll("[data-painel-link]").forEach(function (link) {
+            link.setAttribute("href", painelUrl);
+        });
+    }
+
     function estaLogado() {
         return Boolean(getToken()) && !sessaoExpirada();
     }
@@ -147,6 +160,9 @@
     }
 
     function logout(message) {
+        if (typeof limparExpedienteSessaoAtual === "function") {
+            limparExpedienteSessaoAtual();
+        }
         limparSessao();
 
         if (message) {
@@ -188,6 +204,7 @@
         localStorage.setItem("doisFatoresObrigatorio", String(Boolean(usuario.doisFatoresObrigatorio)));
         localStorage.setItem("doisFatoresAtivado", String(Boolean(usuario.doisFatoresAtivado)));
         localStorage.setItem("deveTrocarSenha", String(Boolean(usuario.deveTrocarSenha)));
+        atualizarLinksPainel(usuario);
     }
 
     function getAuthHeaders(includeJson) {
@@ -262,6 +279,9 @@
 
         if (!getToken()) {
             if (settings.redirect !== false) {
+                if (window.location.pathname.endsWith("seguranca.html")) {
+                    sessionStorage.setItem("redirectAfterLogin", "seguranca.html");
+                }
                 logout("Sua sessão expirou por segurança. Faça login novamente.");
             }
 
@@ -270,6 +290,9 @@
 
         if (sessaoExpirada()) {
             if (settings.redirect !== false) {
+                if (window.location.pathname.endsWith("seguranca.html")) {
+                    sessionStorage.setItem("redirectAfterLogin", "seguranca.html");
+                }
                 logout("Sua sessão expirou por segurança. Faça login novamente.");
             }
 
@@ -304,9 +327,15 @@
         }
 
         const paginaTrocaSenha = window.location.pathname.endsWith("trocar-senha.html");
+        const paginaSeguranca = window.location.pathname.endsWith("seguranca.html");
 
         if (usuario.deveTrocarSenha && !paginaTrocaSenha && settings.permitirTrocaSenhaPendente !== true) {
             window.location.href = "trocar-senha.html";
+            return null;
+        }
+
+        if (usuario.securitySetupRequired && !paginaSeguranca && settings.permitirSegurancaPendente !== true) {
+            window.location.href = "seguranca.html";
             return null;
         }
 
@@ -343,6 +372,7 @@
         estaLogado,
         getAuthHeaders,
         getPerfil,
+        getPainelUrl,
         getToken,
         getUsuario,
         limparSessao,
@@ -357,4 +387,6 @@
         salvarUsuario,
         sessaoExpirada
     };
+
+    atualizarLinksPainel(getUsuario());
 })();

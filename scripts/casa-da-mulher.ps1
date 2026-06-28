@@ -1,4 +1,4 @@
-﻿param(
+param(
     [Parameter(ValueFromRemainingArguments = $true)]
     [string[]]$CommandArgs
 )
@@ -45,6 +45,17 @@ function Show-Help {
     Write-Host "  .\casa_da_mulher.cmd serve off"
     Write-Host "  .\casa_da_mulher.cmd equipe"
     Write-Host "  .\casa_da_mulher.cmd equipe bootstrap"
+    Write-Host "  .\casa_da_mulher.cmd equipe sync"
+    Write-Host "  .\casa_da_mulher.cmd equipe pull"
+    Write-Host "  .\casa_da_mulher.cmd equipe push"
+    Write-Host "  .\casa_da_mulher.cmd equipe reparar-seguranca [apply]"
+    Write-Host "  .\casa_da_mulher.cmd equipe reparar-seguranca-owner"
+    Write-Host "  .\casa_da_mulher.cmd homologacao exportar-seed"
+    Write-Host "  .\casa_da_mulher.cmd hml status"
+    Write-Host "  .\casa_da_mulher.cmd hml pull"
+    Write-Host "  .\casa_da_mulher.cmd hml push"
+    Write-Host "  .\casa_da_mulher.cmd hml backup-local"
+    Write-Host "  .\casa_da_mulher.cmd hml init-key"
     Write-Host "  .\casa_da_mulher.cmd status"
     Write-Host "  .\casa_da_mulher.cmd update"
     Write-Host ""
@@ -264,8 +275,8 @@ function Start-Api {
 
     Write-Info "Subindo API em $ApiUrl..."
     $process = Start-Process -FilePath $dotnet `
-        -ArgumentList @("run", "--project", "CasaMulher.Api\CasaMulher.Api.csproj", "--environment", "Development", "--urls", $ApiUrl) `
-        -WorkingDirectory $ProjectRoot `
+        -ArgumentList @("run", "--project", "CasaMulher.Api.csproj", "--environment", "Development", "--urls", $ApiUrl) `
+        -WorkingDirectory $ApiDir `
         -WindowStyle Hidden `
         -RedirectStandardOutput $apiOut `
         -RedirectStandardError $apiErr `
@@ -371,6 +382,184 @@ function Invoke-EquipeBootstrap {
     Write-Host "Use o EQP-000001 para o mantenedor. Entregue os demais códigos individualmente."
 }
 
+function Invoke-EquipeSync {
+    param([switch]$BestEffort)
+
+    Write-Info "Sincronizando equipe a partir do ACESSO-EQUIPE..."
+
+    if (-not (Test-HttpUrl $StatusApiUrl)) {
+        if ($BestEffort) {
+            Write-Warn "A API ainda não está disponível. A sincronização automática tentará novamente em breve."
+            return $false
+        }
+
+        Write-Warn "API desligada. Subindo sistema antes de sincronizar."
+        Start-System -OpenUrl $EquipeUrl
+        return $true
+    }
+
+    $json = $null
+    $gh = Get-Command gh -ErrorAction SilentlyContinue
+
+    if ($gh) {
+        try {
+            Write-Info "Lendo data/equipe-db.json pelo gh CLI..."
+            $contentBase64 = (& $gh.Source api "repos/Sistema-Casa-da-Mulher/ACESSO-EQUIPE/contents/data/equipe-db.json" --jq ".content") -join ""
+            $contentBase64 = $contentBase64 -replace "\s", ""
+
+            if (-not [string]::IsNullOrWhiteSpace($contentBase64)) {
+                $json = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($contentBase64))
+            }
+        } catch {
+            Write-Warn "Não foi possível ler com gh CLI. Vou tentar pela própria API."
+        }
+    } else {
+        Write-Warn "gh CLI não encontrado. Vou tentar via GITHUB_EQP_READ_TOKEN/GITHUB_EQP_WRITE_TOKEN configurado na API."
+    }
+
+    try {
+        if ($json) {
+            $resultado = Invoke-RestMethod `
+                -Uri "$ApiUrl/api/equipe/sincronizar-github-db" `
+                -Method Post `
+                -ContentType "application/json" `
+                -Body $json `
+                -TimeoutSec 60
+        } else {
+            $resultado = Invoke-RestMethod `
+                -Uri "$ApiUrl/api/equipe/sincronizar-github-db" `
+                -Method Post `
+                -ContentType "application/json" `
+                -Body "{}" `
+                -TimeoutSec 60
+        }
+    } catch {
+        $mensagem = "Não foi possível sincronizar a equipe. Confirme o login no gh CLI ou configure GITHUB_EQP_READ_TOKEN."
+
+        if ($BestEffort) {
+            Write-Warn "$mensagem A sincronização automática tentará novamente em breve."
+            return $false
+        }
+
+        throw $mensagem
+    }
+
+    Write-Ok $resultado.mensagem
+    Write-Host "Membros importados:      $($resultado.membrosImportados)"
+    Write-Host "Usuários criados:        $($resultado.usuariosCriados)"
+    Write-Host "Usuários atualizados:    $($resultado.usuariosAtualizados)"
+    Write-Host "Identificadores criados: $($resultado.identificadoresCriados)"
+    return $true
+}
+
+function Invoke-EquipeDbGitOps {
+    param([ValidateSet("pull", "push")][string]$Action)
+
+    $gh = Get-RequiredCommand -Name "gh" -InstallMessage "GitHub CLI não encontrado. Instale o gh e execute gh auth login."
+    $repoPath = "repos/Sistema-Casa-da-Mulher/ACESSO-EQUIPE/contents/data/equipe-db.json"
+    $localPath = Join-Path $ProjectRoot "data\equipe-db.json"
+
+    if ($Action -eq "pull") {
+        Write-Info "Baixando ACESSO-EQUIPE/data/equipe-db.json..."
+        $contentBase64 = (& $gh api $repoPath --jq ".content") -join ""
+        if ($LASTEXITCODE -ne 0) { throw "Não foi possível ler o equipe-db.json privado." }
+        $json = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String(($contentBase64 -replace "\s", "")))
+        $document = $json | ConvertFrom-Json
+        if ($null -eq $document.allowlistGitHub) { throw "Arquivo remoto inválido: allowlistGitHub ausente." }
+        [IO.File]::WriteAllText($localPath, $json, [Text.UTF8Encoding]::new($false))
+        Write-Ok "Arquivo privado copiado para data/equipe-db.json."
+        return
+    }
+
+    if (-not (Test-Path $localPath)) { throw "Arquivo local data/equipe-db.json não encontrado." }
+    $json = [IO.File]::ReadAllText($localPath, [Text.Encoding]::UTF8)
+    $document = $json | ConvertFrom-Json
+    if ($null -eq $document.allowlistGitHub) { throw "Arquivo local inválido: allowlistGitHub ausente." }
+
+    $remotePayloadJson = (& $gh api $repoPath) -join ""
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($remotePayloadJson)) { throw "Não foi possível ler o equipe-db.json privado atual." }
+    $remotePayload = $remotePayloadJson | ConvertFrom-Json
+    $sha = $remotePayload.sha
+    $remoteJsonAtual = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String(($remotePayload.content -replace "\s", "")))
+    $remoteDocumentAtual = $remoteJsonAtual | ConvertFrom-Json
+    if ($null -eq $remoteDocumentAtual.allowlistGitHub) { $remoteDocumentAtual | Add-Member -NotePropertyName allowlistGitHub -NotePropertyValue @() }
+
+    $mergedAllowlist = @($remoteDocumentAtual.allowlistGitHub)
+    foreach ($name in @($document.allowlistGitHub)) {
+        if (-not ($mergedAllowlist | Where-Object { $_ -ieq $name })) { $mergedAllowlist += $name }
+    }
+    $remoteDocumentAtual.allowlistGitHub = $mergedAllowlist
+    if ($null -ne $remoteDocumentAtual.updatedAt) { $remoteDocumentAtual.updatedAt = [DateTime]::UtcNow.ToString("o") }
+    $jsonToPublish = $remoteDocumentAtual | ConvertTo-Json -Depth 100
+
+    Write-Info "Mesclando a allowlist local em ACESSO-EQUIPE sem apagar membros ou convites remotos..."
+    $contentBase64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($jsonToPublish))
+    & $gh api --method PUT $repoPath -f "message=Atualiza allowlist e base do Portal EQP" -f "content=$contentBase64" -f "sha=$sha" | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Falha ao publicar o equipe-db.json privado." }
+
+    $remoteBase64 = (& $gh api $repoPath --jq ".content") -join ""
+    $remoteJson = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String(($remoteBase64 -replace "\s", "")))
+    $remoteDocument = $remoteJson | ConvertFrom-Json
+    $missing = @($document.allowlistGitHub | Where-Object { $name = $_; -not ($remoteDocument.allowlistGitHub | Where-Object { $_ -ieq $name }) })
+    if ($missing.Count -gt 0) { throw "Publicação não confirmada; faltam no remoto: $($missing -join ', ')." }
+    Write-Ok "Allowlist confirmada no ACESSO-EQUIPE real."
+}
+
+function Invoke-EquipeSecurityRepair {
+    param([switch]$Apply)
+
+    $node = Get-RequiredCommand -Name "node" -InstallMessage "Node.js não encontrado. Instale Node.js 22 ou superior."
+    $script = Join-Path $ProjectRoot "scripts\validar-e-reparar-seguranca-eqp.mjs"
+    $arguments = @("--no-warnings", $script, "--database", (Join-Path $ApiDir "casamulher.db"))
+
+    if ($Apply) {
+        $arguments += "--apply"
+    }
+
+    Invoke-Checked `
+        -FilePath $node `
+        -Arguments $arguments `
+        -WorkingDirectory $ProjectRoot `
+        -ErrorMessage "A auditoria/reparação de segurança EQP falhou."
+}
+
+function Invoke-OwnerSecurityRepair {
+    $dotnet = Get-RequiredCommand -Name "dotnet" -InstallMessage "dotnet não encontrado."
+    Invoke-Checked `
+        -FilePath $dotnet `
+        -Arguments @("run", "--project", $ApiProject, "--", "--repair-owner-security") `
+        -WorkingDirectory $ProjectRoot `
+        -ErrorMessage "A reparação de segurança do Owner falhou."
+}
+
+function Export-HomologacaoSeed {
+    $node = Get-RequiredCommand -Name "node" -InstallMessage "Node.js não encontrado. Instale Node.js 22 ou superior."
+    $script = Join-Path $ProjectRoot "scripts\exportar-homologacao-seed.mjs"
+    $output = Join-Path $RuntimeDir "homologacao-seed.json"
+    Ensure-RuntimeDir
+    Invoke-Checked -FilePath $node `
+        -Arguments @("--no-warnings", $script, "--database", (Join-Path $ApiDir "casamulher.db"), "--output", $output) `
+        -WorkingDirectory $ProjectRoot `
+        -ErrorMessage "Não foi possível exportar o seed sanitizado de homologação."
+}
+
+function Invoke-HmlGitOps {
+    param([string]$Action)
+
+    $node = Get-RequiredCommand -Name "node" -InstallMessage "Node.js não encontrado. Instale Node.js 22 ou superior."
+    $script = Join-Path $ProjectRoot "scripts\banco-hml.mjs"
+
+    if ([string]::IsNullOrWhiteSpace($Action)) {
+        Show-Help
+        exit 1
+    }
+
+    Invoke-Checked -FilePath $node `
+        -Arguments @("--no-warnings", $script, $Action) `
+        -WorkingDirectory $ProjectRoot `
+        -ErrorMessage "Falha ao executar o comando hml $Action."
+}
+
 function Show-Status {
     Assert-ProjectRoot
     $apiOnline = Test-HttpUrl $StatusApiUrl
@@ -448,6 +637,22 @@ try {
                     Start-System -OpenUrl $EquipeUrl
                     Invoke-EquipeBootstrap -QuantidadeIntegrantes $quantidadeIntegrantes
                 }
+                "sync" {
+                    Invoke-EquipeSync
+                }
+                "pull" {
+                    Invoke-EquipeDbGitOps -Action "pull"
+                }
+                "push" {
+                    Invoke-EquipeDbGitOps -Action "push"
+                }
+                "reparar-seguranca" {
+                    $aplicar = $CommandArgs.Count -gt 2 -and $CommandArgs[2].ToLowerInvariant() -eq "apply"
+                    Invoke-EquipeSecurityRepair -Apply:$aplicar
+                }
+                "reparar-seguranca-owner" {
+                    Invoke-OwnerSecurityRepair
+                }
                 default {
                     Show-Help
                     exit 1
@@ -455,6 +660,17 @@ try {
             }
         }
         "status" { Show-Status }
+        "homologacao" {
+            if ($secondary -eq "exportar-seed") {
+                Export-HomologacaoSeed
+            } else {
+                Show-Help
+                exit 1
+            }
+        }
+        "hml" {
+            Invoke-HmlGitOps -Action $secondary
+        }
         "update" { Update-System }
         default {
             Show-Help

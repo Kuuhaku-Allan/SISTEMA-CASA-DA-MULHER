@@ -1,27 +1,39 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>E-mails - Casa da Mulher</title>
-    <link rel="stylesheet" href="style.css">
-    <script src="config.js?v=20260616-codespaces" defer></script>
-    <script src="auth.js?v=20260604-email-recuperacao" defer></script>
-    <script src="app.js?v=20260604-email-recuperacao" defer></script>
+    <link rel="stylesheet" href="style.css?v=11">
+    <script src="config.js" defer></script>
+    <script src="auth.js" defer></script>
+    <script src="app.js?v=11" defer></script>
 </head>
-<body>
-    <main id="emailsPage" class="admin-shell">
-        <header class="admin-header">
+<body class="soft-page">
+    <main id="emailsPage" class="soft-admin-main">
+        <header class="soft-header">
             <div>
-                <img src="IMAGENS/logo_oficial.png" alt="Logo Casa da Mulher" class="logo-admin">
-                <div>
-                    <h1>Logs de e-mail</h1>
-                    <p>Consulta administrativa de tentativas de envio</p>
-                </div>
+                <h1 class="soft-header-title">Casa da Mulher de Itaquaquecetuba</h1>
+                <p class="soft-header-subtitle">Logs de e-mail</p>
             </div>
-            <div class="header-actions">
-                <a class="btn-secondary btn-compact button-link" href="painel.html">Voltar</a>
-                <button type="button" id="btnSairEmails" class="btn-secondary btn-compact">Sair</button>
+            
+            <div class="soft-session-card" id="sessionCard">
+                <div class="soft-clock session-trigger" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false" id="sessionTrigger">
+                    <div id="currentDate"></div>
+                    <div id="currentTime"></div>
+                </div>
+                
+                <div class="session-dropdown" id="sessionDropdown">
+                    <div class="session-user-name" id="sessionUserName">-</div>
+                    <div class="session-user-role" id="sessionUserRole">-</div>
+                    <div class="session-user-meta" id="sessionUserEmail">-</div>
+                    <div class="session-user-meta" style="margin-top: 4px;">ID: <span id="sessionUserId">-</span></div>
+                    
+                    <div class="session-actions">
+                        <a class="soft-btn soft-btn-warning" href="painel.html" data-painel-link style="text-decoration:none; flex: 1; justify-content: center;">Voltar</a>
+                        <button type="button" id="btnSairEmails" class="soft-btn soft-btn-danger" style="flex: 1; justify-content: center;">Sair</button>
+                    </div>
+                </div>
             </div>
         </header>
 
@@ -29,29 +41,23 @@
             <h2>Acesso restrito &agrave; coordena&ccedil;&atilde;o</h2>
         </section>
 
-        <section id="emailsConteudo" class="admin-panel table-panel">
-            <div class="table-heading">
-                <h2>Eventos registrados</h2>
-                <button type="button" id="btnAtualizarEmails" class="btn-secondary btn-compact">Atualizar</button>
-            </div>
-            <p class="section-intro">O sistema registra somente metadados do envio. O corpo do e-mail, c&oacute;digos e tokens n&atilde;o ficam salvos aqui.</p>
-
-            <div id="mensagemEmails" class="message" aria-live="polite"></div>
-
-            <div class="table-wrap">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Data</th>
-                            <th>Destinat&aacute;rio</th>
-                            <th>Tipo</th>
-                            <th>Assunto</th>
-                            <th>Status</th>
-                            <th>Erro</th>
-                        </tr>
-                    </thead>
-                    <tbody id="listaEmails"></tbody>
-                </table>
+        <section id="emailsConteudo" class="soft-admin-stack">
+            <div class="soft-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+                    <div>
+                        <h2 class="soft-card-title">Eventos registrados</h2>
+                        <p style="color: #8F6C7E; font-size: 0.95rem; margin-top: -4px;">O sistema registra somente metadados do envio. O corpo do e-mail, c&oacute;digos e tokens n&atilde;o ficam salvos aqui.</p>
+                    </div>
+                    <button type="button" id="btnAtualizarEmails" class="soft-action-secondary">Atualizar lista</button>
+                </div>
+                
+                <div id="mensagemEmails" class="message" aria-live="polite"></div>
+                
+                <div id="listaEmails" class="soft-record-list emails-list">
+                    <div class="soft-empty-state">Carregando logs de e-mail...</div>
+                </div>
+                
+                <div id="emailsPagination" class="soft-pagination"></div>
             </div>
         </section>
     </main>

@@ -1,0 +1,222 @@
+using System.ComponentModel.DataAnnotations;
+using CasaMulher.Api.Services;
+
+namespace CasaMulher.Api.DTOs;
+
+public class PortalEqpStatusResponse
+{
+    public string Environment { get; set; } = string.Empty;
+
+    public bool GitHubGateAtivo { get; set; }
+
+    public bool OAuthConfigurado { get; set; }
+
+    public bool EscritaConfigurada { get; set; }
+
+    public string Organization { get; set; } = string.Empty;
+
+    public string OwnerGitHub { get; set; } = string.Empty;
+
+    public string DbRepository { get; set; } = string.Empty;
+
+    public string DbPath { get; set; } = string.Empty;
+
+    public string Mensagem { get; set; } = string.Empty;
+}
+
+public class PortalEqpMeResponse
+{
+    public bool Autenticado { get; set; }
+
+    // Mantido para compatibilidade temporária com scripts antigos
+    public bool Logado { get; set; }
+
+    public string? GitHubId { get; set; }
+
+    public string? GitHubUsername { get; set; }
+
+    public bool Autorizado { get; set; }
+
+    public bool EhOwner { get; set; }
+
+    public bool EhMembro { get; set; }
+
+    public DateTimeOffset? SessionExpiresAt { get; set; }
+
+    public PortalEqpMembroResponse? Membro { get; set; }
+
+    public PortalEqpAccessRequestResponse? SolicitacaoAcesso { get; set; }
+}
+
+public class PortalEqpConviteResponse
+{
+    public string EqpId { get; set; } = string.Empty;
+
+    public string AdmId { get; set; } = string.Empty;
+
+    public string Status { get; set; } = string.Empty;
+
+    public string? ReservadoParaGitHub { get; set; }
+
+    public string PapelEquipe { get; set; } = string.Empty;
+
+    public string FluxoTrabalho { get; set; } = string.Empty;
+}
+
+public class AcessoEquipeSyncRequest
+{
+    public string EqpId { get; set; } = string.Empty;
+}
+
+public class GitHubDiagnostico
+{
+    public string GitHubUsername { get; set; } = string.Empty;
+    public bool Autenticado { get; set; }
+    public bool Autorizado { get; set; }
+    public bool EhOwner { get; set; }
+    public bool EstaNaAllowlist { get; set; }
+    public bool EstaEmMembrosEqp { get; set; }
+    public string OrgConfigurada { get; set; } = string.Empty;
+    public string TeamSlugConfigurado { get; set; } = string.Empty;
+    public bool OrgMembershipVerificado { get; set; }
+    public bool? OrgMembership { get; set; }
+    public bool TeamMembershipVerificado { get; set; }
+    public bool? TeamMembership { get; set; }
+    public List<string> ScopesDetectados { get; set; } = new();
+    public bool ReadOrgPresente { get; set; }
+    public bool UserEmailScopePresente { get; set; }
+    public string? PrimaryVerifiedEmail { get; set; }
+    public string? PublicEmail { get; set; }
+    public string MotivoNegacao { get; set; } = string.Empty;
+}
+
+public class PortalEqpAccessRequestResponse
+{
+    public string Id { get; set; } = string.Empty;
+    public string GitHubUsername { get; set; } = string.Empty;
+    public string GitHubId { get; set; } = string.Empty;
+    public string? PrimaryVerifiedEmail { get; set; }
+    public string? PublicEmail { get; set; }
+    public string? Org { get; set; }
+    public string? TeamSlug { get; set; }
+    public bool? OrgMembership { get; set; }
+    public bool? TeamMembership { get; set; }
+    public bool ReadOrgPresente { get; set; }
+    public bool UserEmailScopePresente { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public DateTime RequestedAt { get; set; }
+    public DateTime LastSeenAt { get; set; }
+    public string Motivo { get; set; } = string.Empty;
+    public DateTime? DecidedAt { get; set; }
+    public string? DecidedByGitHub { get; set; }
+    public string? DecisionReason { get; set; }
+}
+
+public class PortalEqpAccessRequestDecisionRequest
+{
+    [MaxLength(500)]
+    public string? Motivo { get; set; }
+}
+
+public class PortalEqpMembroResponse
+{
+    public string EqpId { get; set; } = string.Empty;
+
+    public string AdmId { get; set; } = string.Empty;
+
+    public string Nome { get; set; } = string.Empty;
+
+    public string GitHubUsername { get; set; } = string.Empty;
+
+    public string PapelEquipe { get; set; } = string.Empty;
+
+    public string FluxoTrabalho { get; set; } = string.Empty;
+
+    public DateTime AtivadoEm { get; set; }
+}
+
+public class PortalEqpAtivarRequest
+{
+    [Required]
+    [MaxLength(20)]
+    public string EqpId { get; set; } = string.Empty;
+
+    [Required]
+    [MaxLength(160)]
+    public string Nome { get; set; } = string.Empty;
+
+    [Required]
+    [EmailAddress]
+    [MaxLength(256)]
+    public string EmailRecuperacao { get; set; } = string.Empty;
+
+    [Required]
+    [MinLength(8)]
+    public string Senha { get; set; } = string.Empty;
+
+    [Required]
+    [MinLength(8)]
+    public string ConfirmarSenha { get; set; } = string.Empty;
+}
+
+public class PortalEqpRedefinirSenhaRequest
+{
+    [Required]
+    [MinLength(8)]
+    public string NovaSenha { get; set; } = string.Empty;
+
+    [Required]
+    [MinLength(8)]
+    public string ConfirmarSenha { get; set; } = string.Empty;
+}
+
+public class PortalEqpCriarConviteRequest
+{
+    [MaxLength(80)]
+    public string? ReservadoParaGitHub { get; set; }
+
+    [MaxLength(40)]
+    public string PapelEquipe { get; set; } = "contributor";
+
+    [MaxLength(40)]
+    public string FluxoTrabalho { get; set; } = "fork_codespaces";
+}
+
+public class PortalEqpCriarLoteRequest : PortalEqpCriarConviteRequest
+{
+    [Range(1, 20)]
+    public int Quantidade { get; set; } = 4;
+}
+
+public class PortalEqpAdminDbResponse
+{
+    public int Convites { get; set; }
+
+    public int Membros { get; set; }
+
+    public EquipeDbSettings Settings { get; set; } = new();
+
+    public IReadOnlyCollection<PortalEqpConviteResponse> ConvitesResumo { get; set; } = [];
+
+    public IReadOnlyCollection<PortalEqpMembroResponse> MembrosResumo { get; set; } = [];
+}
+
+public class SincronizarEquipeDbRequest
+{
+    public EquipeDbDocument? EquipeDb { get; set; }
+}
+
+public class SincronizarEquipeDbResponse
+{
+    public int MembrosImportados { get; set; }
+
+    public int UsuariosCriados { get; set; }
+
+    public int UsuariosAtualizados { get; set; }
+
+    public int IdentificadoresCriados { get; set; }
+
+    public int IdentificadoresAtualizados { get; set; }
+
+    public string Mensagem { get; set; } = string.Empty;
+}

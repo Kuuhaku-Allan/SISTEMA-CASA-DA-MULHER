@@ -99,6 +99,9 @@ public class RedefinicaoSenhaEmailService : IRedefinicaoSenhaEmailService
         var link = WebUtility.HtmlEncode(linkRedefinicao);
 
         return $"""
+            <div style="text-align: center; margin-bottom: 24px;">
+                <img src="https://files.catbox.moe/ovf0uf.png" alt="Casa da Mulher de Itaquaquecetuba" style="height: 80px; width: auto;" />
+            </div>
             <p>Olá, {nome}.</p>
             <p>Foi solicitada uma redefinição de senha para seu acesso ao Sistema Casa da Mulher.</p>
             <p>Para criar uma nova senha, clique no botão abaixo:</p>

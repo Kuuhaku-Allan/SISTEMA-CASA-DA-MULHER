@@ -41,12 +41,14 @@ BASE_URL="$(build_base_url)"
 EQUIPE_URL="${BASE_URL}/equipe.html"
 
 printf '\n'
-printf 'Área da Equipe: %s\n' "${EQUIPE_URL}"
+printf 'Area da Equipe: %s\n' "${EQUIPE_URL}"
 printf 'Ativar EQP:     %s/projetocasadamulher/telas/equipe-ativar.html\n' "${BASE_URL}"
 printf 'Login:          %s/projetocasadamulher/telas/index.html\n' "${BASE_URL}"
-printf 'Protótipos:     %s/prototipos/index.html\n' "${BASE_URL}"
+printf 'Prototipos:     %s/prototipos/index.html\n' "${BASE_URL}"
 printf '\n'
-printf 'Se o navegador não abrir sozinho:\n'
+printf 'A sincronização EQP acontece automaticamente a cada minuto enquanto a API estiver ligada.\n'
+printf '\n'
+printf 'Se o navegador nao abrir sozinho:\n'
 printf '1. Abra a aba Ports/Portas.\n'
 printf '2. Clique no link da porta 5500.\n'
 printf '3. Acesse /equipe.html.\n'

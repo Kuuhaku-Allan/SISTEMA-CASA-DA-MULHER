@@ -23,6 +23,15 @@ public class PasskeyCredential
     /// <summary>JSON com lista de transportes do autenticador (usb, nfc, ble, internal, hybrid).</summary>
     public string? Transports { get; set; }
 
+    /// <summary>RP ID no qual a credencial foi criada. Passkeys não atravessam domínios/RP IDs.</summary>
+    public string RpId { get; set; } = "localhost";
+
+    /// <summary>A origem exata (URL) no qual a passkey foi registrada (ex: https://casa-mulher-eqp.onrender.com).</summary>
+    public string? Origin { get; set; }
+
+    /// <summary>Ambiente onde a chave foi criada (ex: Staging, Development, Production).</summary>
+    public string? CreatedEnvironment { get; set; }
+
     public DateTime CriadoEm { get; set; } = DateTime.UtcNow;
 
     public DateTime? UltimoUsoEm { get; set; }

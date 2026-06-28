@@ -6,56 +6,126 @@
     <title>Ativar EQP - Casa da Mulher</title>
     <link rel="stylesheet" href="style.css">
     <script src="config.js" defer></script>
-    <script src="auth.js" defer></script>
-    <script src="app.js" defer></script>
+    <script src="portal-eqp.js" defer></script>
 </head>
 <body>
-    <main id="equipeAtivarPage" class="auth-container">
-        <section class="auth-box auth-box-wide">
+    <main id="portalEqpPage" class="auth-container">
+        <section class="auth-box auth-box-wide portal-eqp-box">
             <img src="IMAGENS/logo_oficial.png" alt="Logo Casa da Mulher" class="logo-login">
-            <h1 class="auth-title">Ativar conta da equipe</h1>
-            <p class="auth-subtitle">Use o ID EQP e o c&oacute;digo recebidos para criar seu acesso de teste.</p>
+            <h1 class="auth-title">Portal EQP</h1>
+            <p class="auth-subtitle">Ative seu acesso da equipe com GitHub. Este portal é apenas para desenvolvimento e homologação.</p>
 
-            <form id="formEquipeAtivar" class="auth-form" novalidate>
-                <div class="input-grid">
-                    <div class="input-group">
-                        <label for="codigoEquipe">ID EQP</label>
-                        <input type="text" id="codigoEquipe" autocomplete="username" placeholder="EQP-000001" maxlength="20" required>
-                    </div>
+            <div id="portalEqpStatus" class="notice">Verificando configuração...</div>
 
-                    <div class="input-group">
-                        <label for="codigoAtivacao">C&oacute;digo de ativa&ccedil;&atilde;o</label>
-                        <input type="text" id="codigoAtivacao" maxlength="40" required>
+            <section id="portalEqpLoginBox" class="portal-section">
+                <a class="btn-primary button-link" href="#" data-portal-login>Entrar com GitHub</a>
+                <p class="hint">O GitHub confirma sua identidade para impedir que alguém use mais de um convite.</p>
+            </section>
+
+            <section id="portalEqpUserBox" class="portal-section hidden">
+                <dl class="profile-list compact-list">
+                    <div>
+                        <dt>GitHub</dt>
+                        <dd id="portalEqpUserName">-</dd>
                     </div>
+                    <div>
+                        <dt>Status</dt>
+                        <dd id="portalEqpUserStatus">-</dd>
+                    </div>
+                </dl>
+                <button type="button" id="portalEqpLogout" class="btn-secondary">Sair do GitHub</button>
+            </section>
+
+            <section id="portalEqpAccessRequestBox" class="portal-section hidden">
+                <h2 class="section-title">Acesso aguardando liberação</h2>
+                <p id="portalEqpAccessRequestSummary" class="section-intro"></p>
+                <dl id="portalEqpAccessRequestInfo" class="profile-list compact-list"></dl>
+                <div id="portalEqpAccessRequestMessage" class="message" aria-live="polite"></div>
+                <div class="header-actions">
+                    <a class="btn-secondary button-link" href="#" data-portal-login>Reautorizar GitHub</a>
+                    <button type="button" id="portalEqpRequestAccess" class="btn-primary">Enviar solicitação ao owner</button>
+                    <button type="button" id="portalEqpRequestLogout" class="btn-secondary">Sair</button>
                 </div>
+            </section>
 
-                <div class="input-group">
-                    <label for="nomeEquipe">Nome completo</label>
-                    <input type="text" id="nomeEquipe" autocomplete="name" maxlength="160" required>
+            <section id="portalEqpMemberBox" class="portal-section hidden">
+                <h2 class="section-title">Seu acesso já está ativo</h2>
+                <dl id="portalEqpMemberInfo" class="profile-list compact-list"></dl>
+                <p class="hint">A sincronização local acontece automaticamente a cada minuto. O comando abaixo serve apenas para forçar uma atualização imediata.</p>
+                <div class="copy-panel">
+                    <code id="portalEqpSyncCommand">.\casa_da_mulher.cmd equipe sync</code>
+                    <button type="button" id="portalEqpCopySync" class="btn-secondary btn-compact">Copiar comando</button>
                 </div>
+            </section>
 
-                <div class="input-grid">
-                    <div class="input-group">
-                        <label for="senhaEquipe">Senha</label>
-                        <input type="password" id="senhaEquipe" autocomplete="new-password" minlength="8" required>
+            <section id="portalEqpConvitesBox" class="portal-section hidden">
+                <h2 class="section-title">Convites disponíveis</h2>
+                <div id="portalEqpInviteList" class="invite-list"></div>
+            </section>
+
+            <section id="portalEqpActivationBox" class="portal-section hidden">
+                <h2 class="section-title">Ativar convite selecionado</h2>
+                <form id="formPortalEqpAtivar" class="auth-form" novalidate>
+                    <div class="input-grid">
+                        <div class="input-group">
+                            <label for="portalEqpId">ID EQP</label>
+                            <input type="text" id="portalEqpId" readonly required>
+                        </div>
+                        <div class="input-group">
+                            <label for="portalAdmId">ID ADM pareado</label>
+                            <input type="text" id="portalAdmId" readonly required>
+                        </div>
                     </div>
 
                     <div class="input-group">
-                        <label for="confirmarSenhaEquipe">Confirmar senha</label>
-                        <input type="password" id="confirmarSenhaEquipe" autocomplete="new-password" minlength="8" required>
+                        <label for="portalNome">Nome completo</label>
+                        <input type="text" id="portalNome" autocomplete="name" maxlength="160" required>
                     </div>
-                </div>
 
-                <p class="hint">A senha precisa seguir a pol&iacute;tica do sistema: ao menos 8 caracteres, letra mai&uacute;scula, min&uacute;scula, n&uacute;mero e s&iacute;mbolo.</p>
+                    <div class="input-group">
+                        <label for="portalEmailRecuperacao">E-mail de recuperação da conta</label>
+                        <input type="email" id="portalEmailRecuperacao" autocomplete="email" maxlength="256" required>
+                        <p class="hint">Este e-mail será usado para recuperação da conta compartilhada EQP/ADM. O EQP também pode redefinir senha pelo portal, mas o ADM usa a segurança normal do sistema.</p>
+                    </div>
 
-                <div id="mensagemEquipeAtivar" class="message" aria-live="polite"></div>
+                    <div class="input-grid">
+                        <div class="input-group">
+                            <label for="portalSenha">Senha do projeto</label>
+                            <input type="password" id="portalSenha" autocomplete="new-password" minlength="8" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="portalConfirmarSenha">Confirmar senha</label>
+                            <input type="password" id="portalConfirmarSenha" autocomplete="new-password" minlength="8" required>
+                        </div>
+                    </div>
 
-                <button type="submit" class="btn-primary">Ativar conta</button>
-            </form>
+                    <p class="hint">Use uma senha criada só para este projeto: 8 ou mais caracteres, letra maiúscula, letra minúscula, número e símbolo.</p>
+                    <div id="portalEqpActivationMessage" class="message" aria-live="polite"></div>
+                    <button type="submit" class="btn-primary">Ativar EQP</button>
+                </form>
+            </section>
 
-            <a class="text-link" href="equipe.html">Voltar para a &Aacute;rea da Equipe</a>
+            <section id="redefinir" class="portal-section">
+                <h2 class="section-title">Já ativei, quero redefinir minha senha</h2>
+                <form id="formPortalEqpReset" class="auth-form" novalidate>
+                    <div class="input-grid">
+                        <div class="input-group">
+                            <label for="portalNovaSenha">Nova senha do projeto</label>
+                            <input type="password" id="portalNovaSenha" autocomplete="new-password" minlength="8" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="portalConfirmarNovaSenha">Confirmar nova senha</label>
+                            <input type="password" id="portalConfirmarNovaSenha" autocomplete="new-password" minlength="8" required>
+                        </div>
+                    </div>
+                    <div id="portalEqpResetMessage" class="message" aria-live="polite"></div>
+                    <button type="submit" class="btn-secondary">Redefinir minha senha</button>
+                </form>
+            </section>
+
+            <a class="text-link" href="equipe.html">Voltar para a Área da Equipe</a>
             <br>
-            <a class="text-link" href="index.html">Ir para o login</a>
+            <a class="text-link" href="index.html">Ir para o login local</a>
         </section>
     </main>
 </body>

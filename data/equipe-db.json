@@ -1,0 +1,92 @@
+{
+    "schemaVersion":  1,
+    "updatedAt":  "2026-06-19T23:33:45.9675194Z",
+    "settings":  {
+                     "org":  "Sistema-Casa-da-Mulher",
+                     "mainRepo":  "SISTEMA-CASA-DA-MULHER",
+                     "ownerGitHub":  "Kuuhaku-Allan",
+                     "ownerEqp":  "EQP-000001",
+                     "ownerAdm":  "ADM-000003",
+                     "nextEqpNumber":  6,
+                     "nextAdmNumber":  8
+                 },
+    "allowlistGitHub":  [
+                            "Kuuhaku-Allan",
+                            "AKiTagawa230",
+                            "Beavent",
+                            "LunaBorges",
+                            "celinunes367-max"
+                        ],
+    "convites":  [
+                     {
+                         "eqpId":  "EQP-000001",
+                         "admId":  "ADM-000003",
+                         "status":  "usado",
+                         "reservadoParaGitHub":  "Kuuhaku-Allan",
+                         "papelEquipe":  "owner",
+                         "fluxoTrabalho":  "local_owner",
+                         "criadoEm":  "2026-06-17T19:04:46Z",
+                         "usadoEm":  "2026-06-17T23:20:58.6417159Z"
+                     },
+                     {
+                         "eqpId":  "EQP-000002",
+                         "admId":  "ADM-000004",
+                         "status":  "disponivel",
+                         "reservadoParaGitHub":  null,
+                         "papelEquipe":  "contributor",
+                         "fluxoTrabalho":  "fork_codespaces",
+                         "criadoEm":  "2026-06-17T19:04:46Z",
+                         "usadoEm":  null
+                     },
+                     {
+                         "eqpId":  "EQP-000003",
+                         "admId":  "ADM-000005",
+                         "status":  "disponivel",
+                         "reservadoParaGitHub":  null,
+                         "papelEquipe":  "contributor",
+                         "fluxoTrabalho":  "fork_codespaces",
+                         "criadoEm":  "2026-06-17T19:04:46Z",
+                         "usadoEm":  null
+                     },
+                     {
+                         "eqpId":  "EQP-000004",
+                         "admId":  "ADM-000006",
+                         "status":  "disponivel",
+                         "reservadoParaGitHub":  null,
+                         "papelEquipe":  "contributor",
+                         "fluxoTrabalho":  "fork_codespaces",
+                         "criadoEm":  "2026-06-17T19:04:46Z",
+                         "usadoEm":  null
+                     },
+                     {
+                         "eqpId":  "EQP-000005",
+                         "admId":  "ADM-000007",
+                         "status":  "disponivel",
+                         "reservadoParaGitHub":  null,
+                         "papelEquipe":  "contributor",
+                         "fluxoTrabalho":  "fork_codespaces",
+                         "criadoEm":  "2026-06-17T19:04:46Z",
+                         "usadoEm":  null
+                     }
+                 ],
+    "membros":  [
+                    {
+                        "eqpId":  "EQP-000001",
+                        "admId":  "ADM-000003",
+                        "nome":  "Allan Caitano Ferreira",
+                        "gitHubId":  "275055519",
+                        "gitHubUsername":  "Kuuhaku-Allan",
+                        "papelEquipe":  "owner",
+                        "fluxoTrabalho":  "local_owner",
+                        "status":  "ativo",
+                        "passwordHash":  "AQAAAAIAAYagAAAAEBe0+gTF3AjgDNxkK8h4v1avIyIZyVYUfy8s4lwrZtJBimw+MiGMfxGTlm0GvyNEfw==",
+                        "securityStamp":  "e75267eb7c454cc1ab8e0c773c0526da",
+                        "concurrencyStamp":  "1481814ba3824f3086acd5d95d6f1288",
+                        "ativadoEm":  "2026-06-17T23:20:58.6417159Z",
+                        "atualizadoEm":  "2026-06-17T23:20:58.6417159Z",
+                        "email":  "odachisamadesu@gmail.com",
+                        "emailRecuperacaoConfirmado":  true,
+                        "emailRecuperacao":  "odachisamadesu@gmail.com"
+                    }
+                ]
+}

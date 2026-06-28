@@ -1,4 +1,5 @@
 using System.IdentityModel.Tokens.Jwt;
+using System.Net;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
@@ -22,7 +23,7 @@ namespace CasaMulher.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class AuthController : ControllerBase
+public partial class AuthController : ControllerBase
 {
     private sealed record JwtEmitido(string Token, DateTime ExpiraEm);
 
@@ -40,9 +41,13 @@ public class AuthController : ControllerBase
     private readonly IRedefinicaoSenhaEmailService _redefinicaoSenhaEmailService;
     private readonly IEmailRecuperacaoEmailService _emailRecuperacaoEmailService;
     private readonly IRedefinicaoSenhaThrottleService _redefinicaoSenhaThrottleService;
+    private readonly ContaEquipeSincronizadaService _contaEquipeSincronizadaService;
     private readonly IConfiguration _configuration;
     private readonly IDataProtector _loginDoisFatoresProtector;
     private readonly IFido2 _fido2;
+    private readonly WebAuthnEnvironmentInfo _webAuthn;
+    private readonly SecuritySnapshotPersistenceService _securitySnapshot;
+    private readonly IEmailService _emailService;
 
     public AuthController(
         AppDbContext dbContext,
@@ -53,9 +58,13 @@ public class AuthController : ControllerBase
         IRedefinicaoSenhaEmailService redefinicaoSenhaEmailService,
         IEmailRecuperacaoEmailService emailRecuperacaoEmailService,
         IRedefinicaoSenhaThrottleService redefinicaoSenhaThrottleService,
+        ContaEquipeSincronizadaService contaEquipeSincronizadaService,
         IConfiguration configuration,
         IDataProtectionProvider dataProtectionProvider,
-        IFido2 fido2)
+        IFido2 fido2,
+        WebAuthnEnvironmentInfo webAuthn,
+        SecuritySnapshotPersistenceService securitySnapshot,
+        IEmailService emailService)
     {
         _dbContext = dbContext;
         _userManager = userManager;
@@ -65,9 +74,13 @@ public class AuthController : ControllerBase
         _redefinicaoSenhaEmailService = redefinicaoSenhaEmailService;
         _emailRecuperacaoEmailService = emailRecuperacaoEmailService;
         _redefinicaoSenhaThrottleService = redefinicaoSenhaThrottleService;
+        _contaEquipeSincronizadaService = contaEquipeSincronizadaService;
         _configuration = configuration;
         _loginDoisFatoresProtector = dataProtectionProvider.CreateProtector("CasaMulher.LoginDoisFatores");
         _fido2 = fido2;
+        _webAuthn = webAuthn;
+        _securitySnapshot = securitySnapshot;
+        _emailService = emailService;
     }
 
     [AllowAnonymous]
@@ -94,6 +107,8 @@ public class AuthController : ControllerBase
         {
             NomeCompleto = convite!.NomeCompleto,
             Email = convite.Email,
+            Perfil = convite.Perfil,
+            ProfessorCurso = convite.ProfessorCurso,
             IdentificadorFuncionario = convite.IdentificadorFuncionario,
             ExpiraEm = convite.ExpiraEm
         });
@@ -158,6 +173,7 @@ public class AuthController : ControllerBase
             UserName = identificadorFuncionario,
             IdentificadorFuncionario = identificadorFuncionario,
             Perfil = convite.Perfil,
+            ProfessorCurso = convite.ProfessorCurso,
             EmailConfirmed = true,
             Ativo = true,
             DoisFatoresObrigatorio = PerfilExigeDoisFatores(convite.Perfil)
@@ -192,6 +208,8 @@ public class AuthController : ControllerBase
         await _dbContext.SaveChangesAsync();
         await transaction.CommitAsync();
 
+        await EnviarEmailContaCriadaAsync(usuario);
+
         return Ok(new
         {
             mensagem = "Funcionário cadastrado com sucesso.",
@@ -199,12 +217,67 @@ public class AuthController : ControllerBase
         });
     }
 
+    private async Task EnviarEmailContaCriadaAsync(ApplicationUser usuario)
+    {
+        var frontendBaseUrl = _configuration["Frontend:BaseUrl"];
+        var baseUrl = !string.IsNullOrWhiteSpace(frontendBaseUrl) ? frontendBaseUrl.TrimEnd('/') : "http://localhost:5500";
+        var linkSeguranca = $"{baseUrl}/seguranca.html";
+
+        var nome = WebUtility.HtmlEncode(usuario.NomeCompleto);
+        var perfil = WebUtility.HtmlEncode(usuario.Perfil);
+        var email = WebUtility.HtmlEncode(usuario.Email);
+        var idAcesso = WebUtility.HtmlEncode(usuario.IdentificadorFuncionario);
+
+        var cursoHtml = "";
+        if (usuario.Perfil == "professor" && !string.IsNullOrWhiteSpace(usuario.ProfessorCurso))
+        {
+            cursoHtml = $"<li>Curso/Interesse vinculado: {WebUtility.HtmlEncode(usuario.ProfessorCurso)}</li>";
+        }
+
+        var corpoHtml = $"""
+            <p>Olá, {nome}.</p>
+            <p>Sua conta no Sistema Casa da Mulher de Itaquaquecetuba foi criada com sucesso.</p>
+            <p>Guarde os dados abaixo para acessar o sistema:</p>
+            <ul>
+                <li>Nome: {nome}</li>
+                <li>Perfil de acesso: {perfil}</li>
+                <li>E-mail cadastrado: {email}</li>
+                <li>ID de acesso: {idAcesso}</li>
+                {cursoHtml}
+            </ul>
+            <p>Importante: os métodos de segurança da sua conta ainda precisam ser configurados.</p>
+            <p>Acesse a tela de segurança para configurar:</p>
+            <ul>
+                <li>Código de segurança;</li>
+                <li>E-mail de recuperação;</li>
+                <li>Chaves de acesso (Passkeys).</li>
+            </ul>
+            <p>Essas configurações ajudam a proteger sua conta e facilitam a recuperação do acesso caso você perca a senha ou tenha algum problema para entrar.</p>
+            <p>
+                <a href="{linkSeguranca}" style="display:inline-block;padding:12px 18px;background:#18726b;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:700;">
+                    Configurar segurança da conta
+                </a>
+            </p>
+            <p>Se o botão não funcionar, acesse: <a href="{linkSeguranca}">{linkSeguranca}</a></p>
+            """;
+
+        try
+        {
+            await _emailService.EnviarAsync(usuario.Email!, "Sua conta foi criada - Sistema Casa da Mulher", corpoHtml, "ContaCriada");
+        }
+        catch
+        {
+            // Apenas ignorar se falhar para não quebrar o cadastro que já foi efetivado
+        }
+    }
+
     [AllowAnonymous]
     [EnableRateLimiting(RateLimitPolicies.Login)]
     [HttpPost("login")]
     public async Task<ActionResult<AuthResponse>> Login(LoginRequest request)
     {
-        var usuario = await EncontrarUsuarioParaLogin(request);
+        var contextoLogin = await EncontrarContextoParaLogin(request);
+        var usuario = contextoLogin?.Usuario;
 
         if (usuario is null || !usuario.Ativo)
         {
@@ -214,7 +287,8 @@ public class AuthController : ControllerBase
                     "LOGIN_BLOQUEADO",
                     "ApplicationUser",
                     usuario.Id,
-                    $"Tentativa de login bloqueada para usuário inativo {usuario.IdentificadorFuncionario}.");
+                    $"Tentativa de login bloqueada para usuário inativo {usuario.IdentificadorFuncionario}.",
+                    request.Identificador);
 
                 return Unauthorized(new { mensagem = "Usuário desativado. Procure a coordenação." });
             }
@@ -223,7 +297,8 @@ public class AuthController : ControllerBase
                 "LOGIN_FALHA",
                 "ApplicationUser",
                 null,
-                "Tentativa de login falhou para identificador não encontrado ou inválido.");
+                "Tentativa de login falhou para identificador não encontrado ou inválido.",
+                request.Identificador);
 
             return Unauthorized(new { mensagem = "Identificador ou senha inválidos." });
         }
@@ -234,7 +309,8 @@ public class AuthController : ControllerBase
                 "LOGIN_BLOQUEADO",
                 "ApplicationUser",
                 usuario.Id,
-                $"Tentativa de login bloqueada temporariamente para {usuario.IdentificadorFuncionario}.");
+                $"Tentativa de login bloqueada temporariamente para {usuario.IdentificadorFuncionario}.",
+                request.Identificador);
 
             return Unauthorized(new { mensagem = "Acesso temporariamente bloqueado. Aguarde alguns minutos e tente novamente." });
         }
@@ -251,7 +327,8 @@ public class AuthController : ControllerBase
                     "LOGIN_BLOQUEADO",
                     "ApplicationUser",
                     usuario.Id,
-                    $"Login bloqueado temporariamente após tentativas inválidas para {usuario.IdentificadorFuncionario}.");
+                    $"Login bloqueado temporariamente após tentativas inválidas para {usuario.IdentificadorFuncionario}.",
+                    request.Identificador);
 
                 return Unauthorized(new { mensagem = "Acesso temporariamente bloqueado. Aguarde alguns minutos e tente novamente." });
             }
@@ -260,7 +337,8 @@ public class AuthController : ControllerBase
                 "LOGIN_FALHA",
                 "ApplicationUser",
                 usuario.Id,
-                $"Tentativa de login falhou para {usuario.IdentificadorFuncionario}.");
+                $"Tentativa de login falhou para {usuario.IdentificadorFuncionario}.",
+                request.Identificador);
 
             return Unauthorized(new { mensagem = "Identificador ou senha inválidos." });
         }
@@ -270,14 +348,41 @@ public class AuthController : ControllerBase
             await _userManager.ResetAccessFailedCountAsync(usuario);
         }
 
-        var roles = await _userManager.GetRolesAsync(usuario);
+        var roles = SelecionarRolesDaSessao(
+            await _userManager.GetRolesAsync(usuario),
+            contextoLogin!.Perfil);
 
         if (usuario.TwoFactorEnabled)
         {
-            return Ok(GerarRespostaDoisFatores(usuario, roles));
+            var chave = await _userManager.GetAuthenticatorKeyAsync(usuario);
+            if (string.IsNullOrWhiteSpace(chave))
+            {
+                await _auditoriaService.RegistrarAsync(
+                    "LOGIN_2FA_INCONSISTENTE",
+                    "ApplicationUser",
+                    usuario.Id,
+                    $"Autenticador habilitado sem chave configurada para {usuario.IdentificadorFuncionario}. Requer reparo.");
+
+                var masterUser = HttpContext.RequestServices.GetRequiredService<IMasterUserService>();
+                var isOwner = masterUser.EhEquipeOwnerPrincipal(usuario.IdentificadorFuncionario) || string.Equals(usuario.IdentificadorFuncionario, masterUser.SuperAdminIdentificador, StringComparison.OrdinalIgnoreCase);
+                var isStaging = HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>().IsStaging() || HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>().IsDevelopment();
+                
+                if (isOwner && isStaging)
+                {
+                    return Conflict(new 
+                    { 
+                        mensagem = "A segurança da conta está inconsistente (2FA quebrado). Use a recuperação oficial do sistema.",
+                        ownerRecoveryUrl = "/owner-recovery.html"
+                    });
+                }
+                
+                return Conflict(new { mensagem = "A segurança da conta está inconsistente. Procure o Owner ou a coordenação para solicitar reparo de segurança pelo Portal EQP." });
+            }
+
+            return Ok(GerarRespostaDoisFatores(usuario, contextoLogin.Perfil, contextoLogin.Identificador));
         }
 
-        return Ok(GerarAuthResponse(usuario, roles));
+        return Ok(GerarAuthResponse(usuario, roles, contextoLogin.Perfil, contextoLogin.Identificador));
     }
 
     [AllowAnonymous]
@@ -308,6 +413,12 @@ public class AuthController : ControllerBase
                 "Tentativa de redefinição de senha inválida para e-mail informado.");
 
             return BadRequest(new { mensagem = "Solicitação de redefinição inválida." });
+        }
+
+        if (await _contaEquipeSincronizadaService.EhSincronizadaAsync(usuario.Id))
+        {
+            await RegistrarAlteracaoSenhaEquipeBloqueadaAsync(usuario, "redefinição por e-mail");
+            return Conflict(new { mensagem = ContaEquipeSincronizadaService.MensagemAlteracaoSenha });
         }
 
         var result = await _userManager.ResetPasswordAsync(usuario, request.Token, request.NovaSenha);
@@ -361,6 +472,12 @@ public class AuthController : ControllerBase
             return Ok(new { mensagem = mensagemGenerica });
         }
 
+        if (await _contaEquipeSincronizadaService.EhSincronizadaAsync(usuario.Id))
+        {
+            await RegistrarAlteracaoSenhaEquipeBloqueadaAsync(usuario, "solicitação de redefinição por e-mail");
+            return Ok(new { mensagem = ContaEquipeSincronizadaService.MensagemAlteracaoSenha });
+        }
+
         if (!_redefinicaoSenhaThrottleService.PermitirSolicitacao(
             usuario.Id,
             ObterIpOrigem(),
@@ -391,7 +508,8 @@ public class AuthController : ControllerBase
     [HttpPost("login-2fa")]
     public async Task<ActionResult<AuthResponse>> LoginDoisFatores(LoginDoisFatoresRequest request)
     {
-        var usuario = await ObterUsuarioDoLoginTemporario(request.LoginTemporario);
+        var contextoLogin = await ObterContextoDoLoginTemporario(request.LoginTemporario);
+        var usuario = contextoLogin?.Usuario;
 
         if (usuario is null || !usuario.Ativo || !usuario.TwoFactorEnabled)
         {
@@ -433,7 +551,7 @@ public class AuthController : ControllerBase
                     usuario.Id,
                     $"Login bloqueado temporariamente após falhas de 2FA para {usuario.IdentificadorFuncionario}.");
 
-                return Unauthorized(new { mensagem = "Acesso temporariamente bloqueado. Aguarde alguns minutos e tente novamente." });
+                return Unauthorized(new { mensagem = "Acesso temporariamente bloqueado por muitas tentativas. Aguarde alguns minutos ou solicite desbloqueio em homologação." });
             }
 
             await _auditoriaService.RegistrarAsync(
@@ -450,13 +568,15 @@ public class AuthController : ControllerBase
             await _userManager.ResetAccessFailedCountAsync(usuario);
         }
 
-        var roles = await _userManager.GetRolesAsync(usuario);
-        return Ok(GerarAuthResponse(usuario, roles));
+        var roles = SelecionarRolesDaSessao(
+            await _userManager.GetRolesAsync(usuario),
+            contextoLogin!.Perfil);
+        return Ok(GerarAuthResponse(usuario, roles, contextoLogin.Perfil, contextoLogin.Identificador));
     }
 
     [Authorize]
     [HttpPost("2fa/iniciar-configuracao")]
-    public async Task<ActionResult<DoisFatoresConfiguracaoResponse>> IniciarConfiguracaoDoisFatores()
+    public async Task<ActionResult<DoisFatoresConfiguracaoResponse>> IniciarConfiguracaoDoisFatores([FromQuery] bool resetar = false)
     {
         var usuario = await ObterUsuarioAtual();
 
@@ -470,8 +590,13 @@ public class AuthController : ControllerBase
             return BadRequest(new { mensagem = "O código de segurança já está ativo para este usuário." });
         }
 
-        await _userManager.ResetAuthenticatorKeyAsync(usuario);
         var chave = await _userManager.GetAuthenticatorKeyAsync(usuario);
+
+        if (resetar || string.IsNullOrWhiteSpace(chave))
+        {
+            await _userManager.ResetAuthenticatorKeyAsync(usuario);
+            chave = await _userManager.GetAuthenticatorKeyAsync(usuario);
+        }
 
         if (string.IsNullOrWhiteSpace(chave))
         {
@@ -513,7 +638,53 @@ public class AuthController : ControllerBase
 
         await _userManager.SetTwoFactorEnabledAsync(usuario, true);
 
-        return Ok(new { mensagem = "Código de segurança ativado com sucesso." });
+        usuario.SecuritySetupRequired = false;
+        await _userManager.UpdateAsync(usuario);
+
+        var snapshot = await _securitySnapshot.PersistAsync("security_2fa_enabled", HttpContext.RequestAborted);
+
+        return Ok(new
+        {
+            mensagem = "Código de segurança ativado com sucesso.",
+            snapshotPersistido = snapshot.SnapshotPersistido,
+            avisoSnapshot = snapshot.AvisoSnapshot
+        });
+    }
+
+    [Authorize]
+    [HttpPost("2fa/redefinir")]
+    public async Task<IActionResult> RedefinirDoisFatores()
+    {
+        var usuario = await ObterUsuarioAtual();
+
+        if (usuario is null)
+        {
+            return Unauthorized(new { mensagem = "Sessão expirada. Entre novamente." });
+        }
+
+        try 
+        {
+            await _auditoriaService.RegistrarAsync("2FA_RESET_SOLICITADO", "ApplicationUser", usuario.Id, $"2FA reset solicitado para {usuario.IdentificadorFuncionario}");
+
+            await _userManager.SetTwoFactorEnabledAsync(usuario, false);
+            await _userManager.ResetAuthenticatorKeyAsync(usuario);
+
+            var snapshot = await _securitySnapshot.PersistAsync("security_2fa_reset", HttpContext.RequestAborted);
+
+            await _auditoriaService.RegistrarAsync("2FA_RESET_CONCLUIDO", "ApplicationUser", usuario.Id, $"2FA reset concluído para {usuario.IdentificadorFuncionario}");
+
+            return Ok(new
+            {
+                mensagem = "Código de segurança redefinido. Configure o aplicativo novamente.",
+                requerConfiguracao = true,
+                snapshotPersistido = snapshot.SnapshotPersistido,
+                avisoSnapshot = snapshot.AvisoSnapshot
+            });
+        } 
+        catch 
+        {
+            return StatusCode(500, new { mensagem = "Erro interno ao redefinir o código de segurança." });
+        }
     }
 
     [Authorize]
@@ -529,13 +700,20 @@ public class AuthController : ControllerBase
 
         if (usuario.DoisFatoresObrigatorio)
         {
-            return BadRequest(new { mensagem = "O código de segurança é obrigatório para este perfil." });
+            return BadRequest(new { mensagem = "O código de segurança é obrigatório para este perfil. Se precisar trocar o aparelho, use a opção de Redefinir." });
         }
 
         await _userManager.SetTwoFactorEnabledAsync(usuario, false);
         await _userManager.ResetAuthenticatorKeyAsync(usuario);
 
-        return Ok(new { mensagem = "Código de segurança desativado." });
+        var snapshot = await _securitySnapshot.PersistAsync("security_2fa_disabled", HttpContext.RequestAborted);
+
+        return Ok(new
+        {
+            mensagem = "Código de segurança desativado.",
+            snapshotPersistido = snapshot.SnapshotPersistido,
+            avisoSnapshot = snapshot.AvisoSnapshot
+        });
     }
 
     [Authorize]
@@ -555,8 +733,9 @@ public class AuthController : ControllerBase
             Email = usuario.Email ?? string.Empty,
             EmailRecuperacao = usuario.EmailRecuperacao,
             EmailRecuperacaoConfirmado = usuario.EmailRecuperacaoConfirmado,
-            Perfil = usuario.Perfil,
-            IdentificadorFuncionario = usuario.IdentificadorFuncionario,
+            Perfil = User.FindFirstValue("perfil") ?? usuario.Perfil,
+            ProfessorCurso = usuario.ProfessorCurso,
+            IdentificadorFuncionario = User.FindFirstValue("identificadorFuncionario") ?? usuario.IdentificadorFuncionario,
             DoisFatoresObrigatorio = usuario.DoisFatoresObrigatorio,
             DoisFatoresAtivado = usuario.TwoFactorEnabled,
             DeveTrocarSenha = usuario.DeveTrocarSenha
@@ -623,12 +802,15 @@ public class AuthController : ControllerBase
             usuario.Id,
             $"Solicitou confirmação de e-mail de recuperação para {MascararEmail(emailRecuperacao)}. Status do e-mail: {resultadoEmail.StatusEmail ?? "Não informado"}.");
 
-        return Ok(MapearEmailRecuperacaoResponse(
+        var snapshot = await _securitySnapshot.PersistAsync("security_recovery_email_changed", HttpContext.RequestAborted);
+
+        var payload = MapearEmailRecuperacaoResponse(
             usuario,
             resultadoEmail.EmailEnviado
                 ? "Enviamos um link de confirmação para o e-mail informado."
                 : resultadoEmail.AvisoEmail ?? "Não foi possível enviar o link de confirmação.",
-            resultadoEmail));
+            resultadoEmail);
+        return Ok(new { payload.Mensagem, payload.EmailRecuperacao, payload.EmailRecuperacaoConfirmado, payload.EmailRecuperacaoConfirmadoEm, payload.StatusEmail, payload.AvisoEmail, payload.LinkConfirmacaoDesenvolvimento, snapshotPersistido = snapshot.SnapshotPersistido, avisoSnapshot = snapshot.AvisoSnapshot });
     }
 
     [AllowAnonymous]
@@ -680,10 +862,13 @@ public class AuthController : ControllerBase
             usuario.Id,
             $"E-mail de recuperação confirmado para {usuario.IdentificadorFuncionario}.");
 
-        return Ok(MapearEmailRecuperacaoResponse(
+        var snapshot = await _securitySnapshot.PersistAsync("security_recovery_email_confirmed", HttpContext.RequestAborted);
+
+        var payload = MapearEmailRecuperacaoResponse(
             usuario,
             "E-mail de recuperação confirmado com sucesso.",
-            null));
+            null);
+        return Ok(new { payload.Mensagem, payload.EmailRecuperacao, payload.EmailRecuperacaoConfirmado, payload.EmailRecuperacaoConfirmadoEm, payload.StatusEmail, payload.AvisoEmail, payload.LinkConfirmacaoDesenvolvimento, snapshotPersistido = snapshot.SnapshotPersistido, avisoSnapshot = snapshot.AvisoSnapshot });
     }
 
     [Authorize]
@@ -713,7 +898,9 @@ public class AuthController : ControllerBase
             usuario.Id,
             $"Removeu o e-mail de recuperação de {usuario.IdentificadorFuncionario}.");
 
-        return Ok(new { mensagem = "E-mail de recuperação removido." });
+        var snapshot = await _securitySnapshot.PersistAsync("security_recovery_email_removed", HttpContext.RequestAborted);
+
+        return Ok(new { mensagem = "E-mail de recuperação removido.", snapshotPersistido = snapshot.SnapshotPersistido, avisoSnapshot = snapshot.AvisoSnapshot });
     }
 
     [Authorize]
@@ -725,6 +912,12 @@ public class AuthController : ControllerBase
         if (usuario is null)
         {
             return Unauthorized();
+        }
+
+        if (await _contaEquipeSincronizadaService.EhSincronizadaAsync(usuario.Id))
+        {
+            await RegistrarAlteracaoSenhaEquipeBloqueadaAsync(usuario, "troca de senha autenticada");
+            return Conflict(new { mensagem = ContaEquipeSincronizadaService.MensagemAlteracaoSenha });
         }
 
         if (request.NovaSenha != request.ConfirmarNovaSenha)
@@ -759,10 +952,28 @@ public class AuthController : ControllerBase
     [AllowAnonymous]
     [EnableRateLimiting(RateLimitPolicies.PasskeyLoginIniciar)]
     [HttpPost("passkey/login/iniciar")]
-    public async Task<ActionResult<PasskeyLoginIniciarResponse>> PasskeyLoginIniciar()
+    public async Task<ActionResult<PasskeyLoginIniciarResponse>> PasskeyLoginIniciar(PasskeyLoginIniciarRequest request)
     {
-        // Busca todas as credenciais cadastradas (sem filtrar por usuário — login discoverable)
+        if (string.IsNullOrWhiteSpace(request.Identificador))
+        {
+            return BadRequest(new { mensagem = "Informe seu ID antes de usar a chave de acesso." });
+        }
+
+        var contextoLogin = await EncontrarContextoParaLogin(new LoginRequest
+        {
+            Identificador = request.Identificador,
+            Email = string.Empty,
+            Senha = string.Empty
+        });
+
+        if (contextoLogin is null || !contextoLogin.Usuario.Ativo)
+        {
+            return BadRequest(new { mensagem = "ID inválido ou sem chave de acesso cadastrada." });
+        }
+
+        // Limita a autenticação às chaves da identidade informada.
         var todasCredenciais = await _dbContext.PasskeyCredentials
+            .Where(c => c.UserId == contextoLogin.Usuario.Id && c.RpId == _webAuthn.RpId)
             .Select(c => c.CredentialId)
             .ToListAsync();
 
@@ -770,7 +981,7 @@ public class AuthController : ControllerBase
         {
             return BadRequest(new
             {
-                mensagem = "Nenhuma chave de acesso cadastrada. Entre com ID e senha e ative uma chave em Segurança."
+                mensagem = $"Esta conta ainda não possui passkey cadastrada para {_webAuthn.RpId}. Entre com ID e senha e registre uma nova passkey na tela Segurança."
             });
         }
 
@@ -791,7 +1002,9 @@ public class AuthController : ControllerBase
             ChallengeBytes = options.Challenge,
             Tipo = "Login",
             OptionsJson = optionsJson,
-            UserId = null,
+            UserId = contextoLogin.Usuario.Id,
+            ContextoPerfil = contextoLogin.Perfil,
+            ContextoIdentificador = contextoLogin.Identificador,
             CriadoEm = DateTime.UtcNow,
             ExpiracaoEm = DateTime.UtcNow.Add(PasskeyChallengeValidade)
         });
@@ -823,6 +1036,13 @@ public class AuthController : ControllerBase
         if (challenge is null || challenge.ExpiracaoEm < DateTime.UtcNow)
         {
             return BadRequest(new { mensagem = "Sessão de login expirada ou inválida. Tente novamente." });
+        }
+
+        if (string.IsNullOrWhiteSpace(challenge.UserId)
+            || string.IsNullOrWhiteSpace(challenge.ContextoPerfil)
+            || string.IsNullOrWhiteSpace(challenge.ContextoIdentificador))
+        {
+            return BadRequest(new { mensagem = "O contexto deste login expirou. Inicie novamente com seu ID." });
         }
 
         AssertionOptions assertionOptions;
@@ -858,15 +1078,18 @@ public class AuthController : ControllerBase
         var rawId = assertionResponse.RawId;
         var credencial = await _dbContext.PasskeyCredentials
             .Include(c => c.User)
-            .SingleOrDefaultAsync(c => c.CredentialId == rawId);
+            .SingleOrDefaultAsync(c => c.CredentialId == rawId && c.RpId == _webAuthn.RpId);
 
-        if (credencial is null || credencial.User is null)
+        if (credencial is null
+            || credencial.User is null
+            || !string.Equals(credencial.UserId, challenge.UserId, StringComparison.Ordinal))
         {
             await _auditoriaService.RegistrarAsync(
                 "PASSKEY_LOGIN_FALHA",
                 "PasskeyCredential",
                 null,
-                "Tentativa de login por passkey com credencial desconhecida.");
+                "Tentativa de login por passkey com credencial desconhecida.",
+                challenge.ContextoIdentificador);
 
             return Unauthorized(new { mensagem = "Chave de acesso não reconhecida." });
         }
@@ -948,8 +1171,6 @@ public class AuthController : ControllerBase
                 usuario.Id,
                 $"Reconfirmação de credenciais solicitada para {usuario.IdentificadorFuncionario} ({descricaoMotivoReconfirmacao}).");
 
-            var roles = await _userManager.GetRolesAsync(usuario);
-
             return Ok(new PasskeyLoginConcluirResponse
             {
                 RequerReconfirmacao = true,
@@ -957,8 +1178,8 @@ public class AuthController : ControllerBase
                 ReconfirmacaoId = reconfirmacaoId,
                 NomeCompleto = usuario.NomeCompleto,
                 Email = usuario.Email ?? string.Empty,
-                Perfil = roles.FirstOrDefault() ?? usuario.Perfil,
-                IdentificadorFuncionario = usuario.IdentificadorFuncionario,
+                Perfil = challenge.ContextoPerfil,
+                IdentificadorFuncionario = challenge.ContextoIdentificador,
                 DoisFatoresObrigatorio = usuario.DoisFatoresObrigatorio,
                 DoisFatoresAtivado = usuario.TwoFactorEnabled,
                 TemDoisFatores = usuario.TwoFactorEnabled,
@@ -966,7 +1187,9 @@ public class AuthController : ControllerBase
             });
         }
 
-        var rolesLogin = await _userManager.GetRolesAsync(usuario);
+        var rolesLogin = SelecionarRolesDaSessao(
+            await _userManager.GetRolesAsync(usuario),
+            challenge.ContextoPerfil);
 
         await _auditoriaService.RegistrarAsync(
             "PASSKEY_LOGIN_SUCESSO",
@@ -974,7 +1197,11 @@ public class AuthController : ControllerBase
             usuario.Id,
             $"Login por passkey concluído para {usuario.IdentificadorFuncionario}.");
 
-        var jwtLoginPasskey = GerarJwt(usuario, rolesLogin);
+        var jwtLoginPasskey = GerarJwt(
+            usuario,
+            rolesLogin,
+            challenge.ContextoPerfil,
+            challenge.ContextoIdentificador);
 
         return Ok(new PasskeyLoginConcluirResponse
         {
@@ -982,8 +1209,8 @@ public class AuthController : ControllerBase
             ExpiraEm = jwtLoginPasskey.ExpiraEm,
             NomeCompleto = usuario.NomeCompleto,
             Email = usuario.Email ?? string.Empty,
-            Perfil = rolesLogin.FirstOrDefault() ?? usuario.Perfil,
-            IdentificadorFuncionario = usuario.IdentificadorFuncionario,
+            Perfil = challenge.ContextoPerfil,
+            IdentificadorFuncionario = challenge.ContextoIdentificador,
             DoisFatoresObrigatorio = usuario.DoisFatoresObrigatorio,
             DoisFatoresAtivado = usuario.TwoFactorEnabled,
             TemDoisFatores = usuario.TwoFactorEnabled,
@@ -1019,7 +1246,8 @@ public class AuthController : ControllerBase
             Senha = request.Senha
         };
 
-        var usuario = await EncontrarUsuarioParaLogin(requestComIdentificador);
+        var contextoLogin = await EncontrarContextoParaLogin(requestComIdentificador);
+        var usuario = contextoLogin?.Usuario;
 
         if (usuario is null || !usuario.Ativo || usuario.Id != reconfirmacao.UserId)
         {
@@ -1092,7 +1320,9 @@ public class AuthController : ControllerBase
         _dbContext.PasskeyReconfirmacoes.Remove(reconfirmacao);
         await _dbContext.SaveChangesAsync();
 
-        var roles = await _userManager.GetRolesAsync(usuario);
+        var roles = SelecionarRolesDaSessao(
+            await _userManager.GetRolesAsync(usuario),
+            contextoLogin!.Perfil);
 
         await _auditoriaService.RegistrarAsync(
             "PASSKEY_RECONFIRMADA",
@@ -1100,7 +1330,11 @@ public class AuthController : ControllerBase
             usuario.Id,
             $"Credenciais reconfirmadas com sucesso para login por passkey de {usuario.IdentificadorFuncionario}.");
 
-        var jwtReconfirmacao = GerarJwt(usuario, roles);
+        var jwtReconfirmacao = GerarJwt(
+            usuario,
+            roles,
+            contextoLogin.Perfil,
+            contextoLogin.Identificador);
 
         return Ok(new PasskeyLoginConcluirResponse
         {
@@ -1108,8 +1342,8 @@ public class AuthController : ControllerBase
             ExpiraEm = jwtReconfirmacao.ExpiraEm,
             NomeCompleto = usuario.NomeCompleto,
             Email = usuario.Email ?? string.Empty,
-            Perfil = roles.FirstOrDefault() ?? usuario.Perfil,
-            IdentificadorFuncionario = usuario.IdentificadorFuncionario,
+            Perfil = contextoLogin.Perfil,
+            IdentificadorFuncionario = contextoLogin.Identificador,
             DoisFatoresObrigatorio = usuario.DoisFatoresObrigatorio,
             DoisFatoresAtivado = usuario.TwoFactorEnabled,
             TemDoisFatores = usuario.TwoFactorEnabled,
@@ -1124,6 +1358,15 @@ public class AuthController : ControllerBase
             "FuncionarioConvite",
             null,
             descricao);
+    }
+
+    private Task RegistrarAlteracaoSenhaEquipeBloqueadaAsync(ApplicationUser usuario, string fluxo)
+    {
+        return _auditoriaService.RegistrarAsync(
+            "EQUIPE_SENHA_ALTERACAO_BLOQUEADA",
+            "ApplicationUser",
+            usuario.Id,
+            $"Bloqueou {fluxo} para a conta sincronizada {usuario.IdentificadorFuncionario}; use o portal EQP.");
     }
 
     private async Task<bool> EmailRecuperacaoEstaEmUsoPorOutroUsuarioAsync(string usuarioId, string emailRecuperacao)
@@ -1175,7 +1418,7 @@ public class AuthController : ControllerBase
         return HttpContext.Connection.RemoteIpAddress?.ToString() ?? "ip-desconhecido";
     }
 
-    private async Task<ApplicationUser?> EncontrarUsuarioParaLogin(LoginRequest request)
+    private async Task<LoginContexto?> EncontrarContextoParaLogin(LoginRequest request)
     {
         var identificador = request.Identificador.Trim();
 
@@ -1191,14 +1434,89 @@ public class AuthController : ControllerBase
 
         if (identificador.Contains('@'))
         {
-            return await _userManager.FindByEmailAsync(identificador);
+            var usuarioPorEmail = await _userManager.FindByEmailAsync(identificador);
+            return usuarioPorEmail is null
+                ? null
+                : new LoginContexto(usuarioPorEmail, usuarioPorEmail.Perfil, usuarioPorEmail.IdentificadorFuncionario);
         }
 
         var identificadorNormalizado = identificador.ToUpperInvariant();
 
-        return await _dbContext.Users.SingleOrDefaultAsync(usuario =>
+        var alias = await _dbContext.UserLoginIdentifiers
+            .Where(item => item.Ativo && item.Identificador.ToUpper() == identificadorNormalizado)
+            .OrderBy(item => item.Id)
+            .FirstOrDefaultAsync();
+
+        if (alias is not null)
+        {
+            var usuarioPorAlias = await _userManager.FindByIdAsync(alias.UserId);
+
+            if (usuarioPorAlias is null)
+            {
+                return null;
+            }
+
+            return new LoginContexto(
+                usuarioPorAlias,
+                ObterPerfilDoContexto(alias.Tipo, alias.Identificador, usuarioPorAlias.Perfil),
+                alias.Identificador);
+        }
+
+        var usuario = await _dbContext.Users.SingleOrDefaultAsync(usuario =>
             usuario.NormalizedUserName == identificadorNormalizado
             || usuario.IdentificadorFuncionario.ToUpper() == identificadorNormalizado);
+
+        return usuario is null
+            ? null
+            : new LoginContexto(
+                usuario,
+                ObterPerfilDoContexto(string.Empty, identificadorNormalizado, usuario.Perfil),
+                identificadorNormalizado);
+    }
+
+    private async Task<ApplicationUser?> EncontrarUsuarioParaLogin(LoginRequest request)
+    {
+        return (await EncontrarContextoParaLogin(request))?.Usuario;
+    }
+
+    private static string ObterPerfilDoContexto(string tipo, string identificador, string perfilPadrao)
+    {
+        if (string.Equals(tipo, "EQP", StringComparison.OrdinalIgnoreCase)
+            || identificador.StartsWith("EQP-", StringComparison.OrdinalIgnoreCase))
+        {
+            return PerfisAcesso.Equipe;
+        }
+
+        if (string.Equals(tipo, "ADM", StringComparison.OrdinalIgnoreCase)
+            || identificador.StartsWith("ADM-", StringComparison.OrdinalIgnoreCase))
+        {
+            return PerfisAcesso.Adm;
+        }
+
+        return perfilPadrao;
+    }
+
+    private static IReadOnlyCollection<string> SelecionarRolesDaSessao(
+        IEnumerable<string> roles,
+        string perfil)
+    {
+        var rolesDisponiveis = roles.ToArray();
+
+        if (string.Equals(perfil, PerfisAcesso.Equipe, StringComparison.OrdinalIgnoreCase))
+        {
+            return rolesDisponiveis
+                .Where(role => string.Equals(role, PerfisAcesso.Equipe, StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+        }
+
+        if (string.Equals(perfil, PerfisAcesso.Adm, StringComparison.OrdinalIgnoreCase))
+        {
+            return rolesDisponiveis
+                .Where(role => string.Equals(role, PerfisAcesso.Adm, StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+        }
+
+        return rolesDisponiveis;
     }
 
     private async Task<FuncionarioConvite?> ObterConvitePorCodigoAsync(string codigoCadastro)
@@ -1268,25 +1586,34 @@ public class AuthController : ControllerBase
             || string.Equals(perfil, PerfisAcesso.AssistenteSocial, StringComparison.OrdinalIgnoreCase);
     }
 
-    private AuthResponse GerarRespostaDoisFatores(ApplicationUser usuario, IEnumerable<string> roles)
+    private AuthResponse GerarRespostaDoisFatores(
+        ApplicationUser usuario,
+        string perfilSessao,
+        string identificadorSessao)
     {
         return new AuthResponse
         {
             NomeCompleto = usuario.NomeCompleto,
             Email = usuario.Email ?? string.Empty,
-            Perfil = roles.FirstOrDefault() ?? usuario.Perfil,
-            IdentificadorFuncionario = usuario.IdentificadorFuncionario,
+            Perfil = perfilSessao,
+            IdentificadorFuncionario = identificadorSessao,
+            ProfessorCurso = usuario.ProfessorCurso,
             RequerDoisFatores = true,
-            LoginTemporario = GerarLoginTemporario(usuario),
+            LoginTemporario = GerarLoginTemporario(usuario, perfilSessao, identificadorSessao),
             DoisFatoresObrigatorio = usuario.DoisFatoresObrigatorio,
             DoisFatoresAtivado = usuario.TwoFactorEnabled,
-            DeveTrocarSenha = usuario.DeveTrocarSenha
+            DeveTrocarSenha = usuario.DeveTrocarSenha,
+            SecuritySetupRequired = usuario.SecuritySetupRequired
         };
     }
 
-    private AuthResponse GerarAuthResponse(ApplicationUser usuario, IEnumerable<string> roles)
+    private AuthResponse GerarAuthResponse(
+        ApplicationUser usuario,
+        IEnumerable<string> roles,
+        string perfilSessao,
+        string identificadorSessao)
     {
-        var jwt = GerarJwt(usuario, roles);
+        var jwt = GerarJwt(usuario, roles, perfilSessao, identificadorSessao);
 
         return new AuthResponse
         {
@@ -1294,16 +1621,22 @@ public class AuthController : ControllerBase
             ExpiraEm = jwt.ExpiraEm,
             NomeCompleto = usuario.NomeCompleto,
             Email = usuario.Email ?? string.Empty,
-            Perfil = roles.FirstOrDefault() ?? usuario.Perfil,
-            IdentificadorFuncionario = usuario.IdentificadorFuncionario,
+            Perfil = perfilSessao,
+            ProfessorCurso = usuario.ProfessorCurso,
+            IdentificadorFuncionario = identificadorSessao,
             RequerDoisFatores = false,
             DoisFatoresObrigatorio = usuario.DoisFatoresObrigatorio,
             DoisFatoresAtivado = usuario.TwoFactorEnabled,
-            DeveTrocarSenha = usuario.DeveTrocarSenha
+            DeveTrocarSenha = usuario.DeveTrocarSenha,
+            SecuritySetupRequired = usuario.SecuritySetupRequired
         };
     }
 
-    private JwtEmitido GerarJwt(ApplicationUser usuario, IEnumerable<string> roles)
+    private JwtEmitido GerarJwt(
+        ApplicationUser usuario,
+        IEnumerable<string> roles,
+        string? perfilSessao = null,
+        string? identificadorSessao = null)
     {
         var key = _configuration["Jwt:Key"];
 
@@ -1319,8 +1652,8 @@ public class AuthController : ControllerBase
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new(ClaimTypes.NameIdentifier, usuario.Id),
             new(ClaimTypes.Name, usuario.NomeCompleto),
-            new("perfil", usuario.Perfil),
-            new("identificadorFuncionario", usuario.IdentificadorFuncionario)
+            new("perfil", perfilSessao ?? usuario.Perfil),
+            new("identificadorFuncionario", identificadorSessao ?? usuario.IdentificadorFuncionario)
         };
 
         claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
@@ -1340,24 +1673,32 @@ public class AuthController : ControllerBase
         return new JwtEmitido(new JwtSecurityTokenHandler().WriteToken(token), expiraEm);
     }
 
-    private string GerarLoginTemporario(ApplicationUser usuario)
+    private string GerarLoginTemporario(
+        ApplicationUser usuario,
+        string perfilSessao,
+        string identificadorSessao)
     {
         var ticket = new LoginTemporarioTicket(
             usuario.Id,
             usuario.SecurityStamp ?? string.Empty,
-            DateTimeOffset.UtcNow);
+            DateTimeOffset.UtcNow,
+            perfilSessao,
+            identificadorSessao);
 
         return _loginDoisFatoresProtector.Protect(JsonSerializer.Serialize(ticket));
     }
 
-    private async Task<ApplicationUser?> ObterUsuarioDoLoginTemporario(string loginTemporario)
+    private async Task<LoginContexto?> ObterContextoDoLoginTemporario(string loginTemporario)
     {
         try
         {
             var json = _loginDoisFatoresProtector.Unprotect(loginTemporario);
             var ticket = JsonSerializer.Deserialize<LoginTemporarioTicket>(json);
 
-            if (ticket is null || DateTimeOffset.UtcNow - ticket.EmitidoEm > LoginTemporarioValidade)
+            if (ticket is null
+                || string.IsNullOrWhiteSpace(ticket.Perfil)
+                || string.IsNullOrWhiteSpace(ticket.Identificador)
+                || DateTimeOffset.UtcNow - ticket.EmitidoEm > LoginTemporarioValidade)
             {
                 return null;
             }
@@ -1369,7 +1710,7 @@ public class AuthController : ControllerBase
                 return null;
             }
 
-            return usuario;
+            return new LoginContexto(usuario, ticket.Perfil, ticket.Identificador);
         }
         catch
         {
@@ -1389,8 +1730,10 @@ public class AuthController : ControllerBase
         return await _userManager.FindByIdAsync(usuarioId);
     }
 
-    private static string NormalizarCodigoDoisFatores(string codigo)
+    private static string NormalizarCodigoDoisFatores(string? codigo)
     {
+        if (string.IsNullOrWhiteSpace(codigo)) return string.Empty;
+
         return codigo.Replace(" ", string.Empty, StringComparison.Ordinal)
             .Replace("-", string.Empty, StringComparison.Ordinal)
             .Trim();
@@ -1415,5 +1758,12 @@ public class AuthController : ControllerBase
         return string.Join(" ", chave.Chunk(4).Select(grupo => new string(grupo)));
     }
 
-    private sealed record LoginTemporarioTicket(string UsuarioId, string SecurityStamp, DateTimeOffset EmitidoEm);
+    private sealed record LoginContexto(ApplicationUser Usuario, string Perfil, string Identificador);
+
+    private sealed record LoginTemporarioTicket(
+        string UsuarioId,
+        string SecurityStamp,
+        DateTimeOffset EmitidoEm,
+        string Perfil,
+        string Identificador);
 }

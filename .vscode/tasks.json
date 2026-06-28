@@ -30,6 +30,15 @@
       "problemMatcher": []
     },
     {
+      "label": "Casa da Mulher: sincronizar equipe",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "scripts/codespaces/sincronizar-equipe.sh"
+      ],
+      "problemMatcher": []
+    },
+    {
       "label": "Casa da Mulher: detectar fluxo",
       "type": "shell",
       "command": "bash",

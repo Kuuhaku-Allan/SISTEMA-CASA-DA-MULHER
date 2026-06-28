@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IDE da Equipe - Casa da Mulher</title>
+    
+    <!-- CodeMirror -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/dracula.min.css">
+    
+    <!-- Estilos -->
+    <link rel="stylesheet" href="style.css?v=ide3">
+    <link rel="stylesheet" href="equipe-ide.css?v=3">
+    <!-- FontAwesome para ícones -->
+
+    <!-- Dependências globais -->
+    <script src="config.js" defer></script>
+    <script src="auth.js" defer></script>
+    <script src="app.js?v=ide2" defer></script>
+    
+    <!-- CodeMirror Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/xml/xml.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/css/css.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/javascript/javascript.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/htmlmixed/htmlmixed.min.js" defer></script>
+    
+    <!-- Lógica IDE -->
+    <script src="equipe-ide.js?v=2" defer></script>
+</head>
+<body class="ide-page-body">
+    <main id="equipeIdePage" class="ide-app-shell" style="display: none;">
+        
+        <header class="ide-topbar">
+            <div class="ide-topbar-left">
+                <div class="ide-brand-container">
+                    <img src="IMAGENS/logo-casa-mulher-simbolo.png" alt="Casa da Mulher" class="ide-brand-mark">
+                </div>
+                <div class="ide-title-group">
+                    <h1 class="ide-title">IDE da Equipe</h1>
+                    <span class="ide-subtitle">Edite prot&oacute;tipos, visualize telas e prepare altera&ccedil;&otilde;es.</span>
+                    <span class="ide-pill" title="Rascunhos salvos neste navegador.">Modo Local</span>
+                </div>
+            </div>
+            
+            <div class="ide-topbar-right">
+                <a class="ide-button ghost" href="equipe-painel.html">Voltar ao painel</a>
+                
+                <!-- Session Compacto -->
+                <div class="ide-session-wrapper">
+                    <button type="button" id="btnToggleSession" class="ide-session-btn" aria-expanded="false">
+                        <span class="ide-session-avatar" id="headerAvatar">?</span>
+                        <div class="ide-session-info">
+                            <span class="ide-session-name" id="headerNome">Carregando sessão...</span>
+                            <span class="ide-session-role" id="headerPerfil"></span>
+                        </div>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    </button>
+                    
+                    <div id="sessionDropdown" class="ide-session-dropdown hidden" role="menu">
+                        <div class="ide-session-dropdown-header">
+                            <div id="dropdownEmail">-</div>
+                            <div id="dropdownId" style="font-family: monospace; margin-top: 4px;">-</div>
+                        </div>
+                        <div class="ide-session-dropdown-actions">
+                            <button type="button" id="btnSair" class="ide-session-logout" role="menuitem">Sair do sistema</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- AVISO FALLBACK (Aparece se CodeMirror falhar) -->
+        <div id="ideEditorFallbackWarning" class="ide-topbar ide-pill warning hidden" style="justify-content: center; border-radius: 0; width: 100%;">
+            <span>Editor avançado indisponível. Usando modo simples (fallback).</span>
+        </div>
+
+        <!-- WORKSPACE -->
+        <section class="ide-workspace">
+            
+            <!-- ACTIVITY BAR -->
+            <aside class="ide-activitybar">
+                <button class="ide-activity-icon active" title="Arquivos" aria-label="Arquivos">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>
+                </button>
+                <button class="ide-activity-icon" title="Buscar" aria-label="Buscar">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                </button>
+                <button class="ide-activity-icon" title="Controle de Versão (Em breve)" aria-label="Controle de Versão">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="18" r="3"></circle><circle cx="6" cy="6" r="3"></circle><path d="M13 6h3a2 2 0 0 1 2 2v7"></path><line x1="6" y1="9" x2="6" y2="21"></line></svg>
+                </button>
+            </aside>
+
+            <!-- SIDEBAR EXPLORER -->
+            <aside class="ide-sidebar">
+                <div class="ide-sidebar-header">Explorador</div>
+                
+                <div class="ide-sidebar-content">
+                    <div class="ide-accordion-section">
+                        <div class="ide-accordion-title">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            ARQUIVOS DO RASCUNHO
+                        </div>
+                        <div id="ideFileList">
+                            <button class="ide-file-item active" data-file="index.html">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e34c26" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path></svg>
+                                index.html
+                            </button>
+                            <button class="ide-file-item" data-file="style.css">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#264de4" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path></svg>
+                                style.css
+                            </button>
+                            <button class="ide-file-item" data-file="script.js">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f0db4f" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path></svg>
+                                script.js
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="ide-accordion-section">
+                        <div class="ide-accordion-title">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            TAREFAS GUIADAS
+                        </div>
+                        <div id="ideTasksList" class="ide-template-list" style="display: flex; flex-direction: column; gap: 4px; padding: 0 8px;">
+                            <!-- Preenchido via JS -->
+                        </div>
+                    </div>
+
+                    <div class="ide-accordion-section">
+                        <div class="ide-accordion-title">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            MODELOS INICIAIS
+                        </div>
+                        <div class="ide-template-list" style="display: flex; flex-direction: column; gap: 4px; padding: 0 8px;">
+                            <button class="ide-template-item" data-template="html-simples">
+                                <strong>Prot&oacute;tipo HTML simples</strong>
+                                <span>Estrutura b&aacute;sica com HTML, CSS e JS</span>
+                            </button>
+                            <button class="ide-template-item" data-template="soft-ui">
+                                <strong>Tela Soft UI</strong>
+                                <span>Base visual no padr&atilde;o Casa da Mulher</span>
+                            </button>
+                            <button class="ide-template-item" data-template="card-lista">
+                                <strong>Lista em cards</strong>
+                                <span>Modelo para listagem sem tabela</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="ide-sidebar-actions-panel">
+                    <div class="ide-sidebar-header" style="border:none; padding: 0 0 12px 0; font-size: 0.75rem;">RASCUNHO</div>
+                    <button type="button" id="btnIdeNovoModelo" class="ide-button secondary" style="justify-content: center;">Come&ccedil;ar novo modelo</button>
+                    <button type="button" id="btnIdeLimpar" class="ide-button danger" style="justify-content: center;">Limpar rascunho</button>
+                </div>
+            </aside>
+
+            <!-- MAIN EDITOR -->
+            <section class="ide-main-editor">
+                <div class="ide-editor-tabs" id="ideEditorTabs">
+                    <button class="ide-tab active" data-file="index.html">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e34c26" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path></svg>
+                        index.html
+                    </button>
+                    <button class="ide-tab" data-file="style.css">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#264de4" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path></svg>
+                        style.css
+                    </button>
+                    <button class="ide-tab" data-file="script.js">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f0db4f" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path></svg>
+                        script.js
+                    </button>
+                </div>
+                
+                <div class="ide-editor-toolbar">
+                    <span class="ide-editor-path" id="ideCurrentFileName">index.html</span>
+                    <div class="ide-editor-actions">
+                        <button type="button" id="btnIdeSave" class="ide-button ghost" title="Salvar (Ctrl+S)">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="ide-editor-container">
+                    <textarea id="ideCodeEditor"></textarea>
+                </div>
+            </section>
+
+            <!-- PREVIEW PANEL -->
+            <section class="ide-preview-panel">
+                <div class="ide-preview-toolbar">
+                    <span class="ide-preview-title">Visualização</span>
+                    <div class="ide-editor-actions">
+                        <button type="button" id="btnIdeUpdatePreview" class="ide-button ghost" title="Forçar Atualização">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.59-11.45l5.05 4.88"></path></svg>
+                        </button>
+                        <button type="button" id="btnIdeOpenReview" class="ide-button primary">Preparar revisão</button>
+                    </div>
+                </div>
+                
+                <div class="ide-preview-container">
+                    <div id="idePreviewEmpty" class="ide-preview-empty hidden">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line></svg>
+                        <div style="margin-top: 12px; font-weight: 600; color: var(--ide-accent-strong);">Nenhum prot&oacute;tipo carregado</div>
+                        <p style="margin-top: 4px;">Escolha um modelo no Explorador ou comece editando o index.html.</p>
+                        <button type="button" id="btnLoadSoftUiEmpty" class="ide-button primary" style="margin-top: 16px;">Carregar Tela Soft UI</button>
+                    </div>
+                    <iframe id="idePreviewFrame" class="ide-preview-frame" sandbox="allow-scripts"></iframe>
+                </div>
+            </section>
+
+        </section> <!-- end workspace -->
+
+        <!-- STATUS BAR -->
+        <footer class="ide-statusbar">
+            <div class="ide-statusbar-section">
+                <span>Rascunho local &bull;</span>
+                <span id="statusBarFile" style="font-weight:600;">index.html</span>
+                <span>&bull;</span>
+                <span id="statusBarLang">HTML</span>
+            </div>
+            
+            <div class="ide-statusbar-section">
+                <div class="ide-statusbar-item" id="statusBarSave">
+                    Não salvo
+                </div>
+                <span>&bull;</span>
+                <span id="statusBarTask" style="font-weight:600; color: var(--ide-accent-light);">Tarefa: Livre</span>
+            </div>
+
+            <div class="ide-statusbar-section">
+                <span id="ideStatusBarGithub">Preview isolado &bull; GitHub desconectado</span>
+            </div>
+        </footer>
+    </main>
+
+    <!-- REVIEW DRAWER/MODAL -->
+    <div id="ideReviewModal" class="ide-modal-overlay hidden" aria-hidden="true">
+        <div class="ide-modal-content" role="dialog" aria-modal="true" aria-labelledby="reviewModalTitle">
+            <h2 id="reviewModalTitle" style="margin-top: 0; color: var(--ide-accent-strong);">Preparar revis&atilde;o</h2>
+            <p style="color: var(--ide-muted); font-size: 0.9rem; margin-bottom: 24px;">Gere o resumo para solicitar um Pull Request da sua altera&ccedil;&atilde;o.</p>
+            
+            <div id="ideReviewGitHubStatus" style="background: #fff3cd; color: #856404; padding: 12px; border-radius: 6px; font-size: 0.85rem; margin-bottom: 20px;">
+                Verificando conex&atilde;o com GitHub...
+            </div>
+
+            <!-- ÁREA GITHUB PESSOAL -->
+            <div id="ideGitHubConnectionArea" style="background: var(--ide-bg-elevated); border: 1px solid var(--ide-border); border-radius: 6px; padding: 16px; margin-bottom: 20px; display: none;">
+                <div id="ideGitHubNotConnected" style="display: none; align-items: center; justify-content: space-between;">
+                    <div>
+                        <div style="font-weight: 600; font-size: 0.9rem; color: var(--ide-text-light);">GitHub pessoal: n&atilde;o conectado</div>
+                        <div style="font-size: 0.8rem; color: var(--ide-muted);">Conecte sua conta para criar fork e PR com sua pr&oacute;pria identidade.</div>
+                    </div>
+                    <button type="button" id="btnIdeConnectGitHub" class="ide-button secondary">Conectar GitHub</button>
+                </div>
+                
+                <div id="ideGitHubConnected" style="display: none; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <img id="ideGitHubAvatar" src="" alt="Avatar" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--ide-border);">
+                        <div>
+                            <div style="font-weight: 600; font-size: 0.9rem; color: var(--ide-text-light);">Conectado como <span id="ideGitHubLogin"></span></div>
+                        </div>
+                    </div>
+                    <button type="button" id="btnIdeDisconnectGitHub" class="ide-button ghost" style="color: var(--ide-error);">Desconectar</button>
+                </div>
+            </div>
+
+            <!-- OPÇÕES DE ENVIO -->
+            <div id="ideModoEnvioArea" style="margin-bottom: 20px; display: none;">
+                <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 8px;">Modo de Envio</label>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <label style="display: flex; gap: 8px; align-items: flex-start; cursor: pointer; background: var(--ide-bg); padding: 12px; border-radius: 6px; border: 1px solid var(--ide-border);">
+                        <input type="radio" name="ideModoEnvio" value="modoSeguroEquipe" checked style="margin-top: 4px;">
+                        <div>
+                            <div style="font-weight: 600; font-size: 0.9rem;">Modo seguro da equipe</div>
+                            <div style="font-size: 0.8rem; color: var(--ide-muted);">Envia o rascunho para uma pasta protegida do reposit&oacute;rio usando a integra&ccedil;&atilde;o central.</div>
+                        </div>
+                    </label>
+                    
+                    <label id="lblModoForkPessoal" style="display: flex; gap: 8px; align-items: flex-start; cursor: pointer; background: var(--ide-bg); padding: 12px; border-radius: 6px; border: 1px solid var(--ide-border); opacity: 0.5;">
+                        <input type="radio" name="ideModoEnvio" value="forkPessoal" disabled style="margin-top: 4px;">
+                        <div>
+                            <div style="font-weight: 600; font-size: 0.9rem;">Fork pessoal</div>
+                            <div style="font-size: 0.8rem; color: var(--ide-muted);">Usa sua conta GitHub para criar fork, branch e Pull Request com sua identidade.</div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 16px;">
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                    <div>
+                        <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 8px;">T&iacute;tulo (Opcional)</label>
+                        <input type="text" id="ideReviewTitle" placeholder="Ex: Teste Limpo 5" style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid var(--ide-border); border-radius: 6px; font-family: inherit;">
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 8px;">Descri&ccedil;&atilde;o (Opcional)</label>
+                        <textarea id="ideReviewDescription" rows="3" placeholder="Descreva brevemente as altera&ccedil;&otilde;es..." style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid var(--ide-border); border-radius: 6px; font-family: inherit; resize: vertical;"></textarea>
+                    </div>
+                </div>
+                
+                <div style="background: var(--ide-bg); padding: 16px; border-radius: 6px; border: 1px solid var(--ide-border); display: flex; flex-direction: column; gap: 8px; font-size: 0.9rem;">
+                    <label style="display: flex; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="chkPreview" checked> Testei o preview
+                    </label>
+                    <label style="display: flex; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="chkEscopo" checked> Dentro do escopo da tarefa
+                    </label>
+                    <label style="display: flex; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="chkDados" checked> Sem dados reais/sens&iacute;veis
+                    </label>
+                </div>
+                
+                <div id="ideReviewTaskChecklistContainer" style="background: var(--ide-bg-elevated); padding: 16px; border-radius: 6px; border: 1px dashed var(--ide-accent); display: none; flex-direction: column; gap: 8px; font-size: 0.9rem;">
+                    <div style="font-weight: 600; font-size: 0.85rem; color: var(--ide-accent); margin-bottom: 4px;">Checklist Espec&iacute;fico da Tarefa</div>
+                    <div id="ideReviewTaskChecklist" style="display: flex; flex-direction: column; gap: 8px;">
+                        <!-- Preenchido via JS -->
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 12px; margin-top: 24px;">
+                <button type="button" id="btnIdeCopyPR" class="ide-button secondary">Copiar resumo</button>
+                <button type="button" id="btnIdeExportFiles" class="ide-button secondary">Exportar arquivos</button>
+                <button type="button" id="btnIdeGitHubPR" class="ide-button primary" disabled style="opacity: 0.5; cursor: not-allowed;">Criar Pull Request</button>
+            </div>
+            
+            <div id="ideReviewLoading" style="display: none; align-items: center; gap: 8px; margin-top: 16px; font-size: 0.9rem; color: var(--ide-accent-strong);">
+                <svg class="ide-spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation: spin 1s linear infinite;"><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg>
+                Preparando altera&ccedil;&atilde;o segura no GitHub...
+            </div>
+            <div id="ideReviewSuccess" style="display: none; margin-top: 16px; padding: 16px; background: rgba(30, 215, 96, 0.1); border: 1px solid rgba(30, 215, 96, 0.2); border-radius: 8px;">
+                <h4 style="color: #1ed760; margin: 0 0 8px 0; display: flex; align-items: center; gap: 8px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                    Pull Request Enviado!
+                </h4>
+                <p style="margin: 0 0 16px 0; font-size: 0.9rem; color: var(--ide-text-light);">Suas altera&ccedil;&otilde;es foram enviadas com sucesso para o GitHub de forma segura.</p>
+                
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <a href="#" id="ideReviewPrLink" target="_blank" class="ide-button primary" style="text-align: center; text-decoration: none;">Abrir PR no GitHub</a>
+                    <button type="button" id="btnIdeCopyPrLink" class="ide-button secondary">Copiar Link do PR</button>
+                    <button type="button" id="btnIdeNewDraft" class="ide-button ghost">Criar Novo Rascunho Limpo</button>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; margin-top: 24px; border-top: 1px solid var(--ide-border); padding-top: 16px;">
+                <button type="button" id="btnIdeCloseReview" class="ide-button ghost">Cancelar</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

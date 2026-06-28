@@ -10,6 +10,8 @@ public class FuncionarioConviteResponse
 
     public string Perfil { get; set; } = string.Empty;
 
+    public string? ProfessorCurso { get; set; }
+
     public string IdentificadorFuncionario { get; set; } = string.Empty;
 
     public string Status { get; set; } = string.Empty;

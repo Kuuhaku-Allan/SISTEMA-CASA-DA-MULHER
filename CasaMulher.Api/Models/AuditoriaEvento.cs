@@ -1,3 +1,5 @@
+using CasaMulher.Api.Services;
+
 namespace CasaMulher.Api.Models;
 
 public class AuditoriaEvento
@@ -11,6 +13,8 @@ public class AuditoriaEvento
     public string NomeFuncionario { get; set; } = string.Empty;
 
     public string PerfilFuncionario { get; set; } = string.Empty;
+
+    public string Escopo { get; set; } = AuditoriaEscopos.Institucional;
 
     public string Acao { get; set; } = string.Empty;
 

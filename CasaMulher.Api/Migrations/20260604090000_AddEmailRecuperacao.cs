@@ -1,4 +1,6 @@
 using System;
+using CasaMulher.Api.Data;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -6,6 +8,8 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace CasaMulher.Api.Migrations
 {
     /// <inheritdoc />
+    [DbContext(typeof(AppDbContext))]
+    [Migration("20260604090000_AddEmailRecuperacao")]
     public partial class AddEmailRecuperacao : Migration
     {
         /// <inheritdoc />

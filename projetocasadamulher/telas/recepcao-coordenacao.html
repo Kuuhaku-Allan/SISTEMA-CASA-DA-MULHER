@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acompanhamento da Recep&ccedil;&atilde;o - Casa da Mulher</title>
+    <link rel="stylesheet" href="style.css?v=13">
+    <script src="config.js" defer></script>
+    <script src="auth.js" defer></script>
+    <script src="app.js?v=13" defer></script>
+    <script defer>
+        (function () {
+            "use strict";
+
+            const STORAGE_KEY = "casamulher_itaqua";
+            let patients = [];
+            let usuarioLogado = null;
+            
+            const PERFIS_POR_PAGINA = 12;
+            let perfisPaginaAtual = 1;
+            let perfisFiltradosCache = [];
+
+            async function init() {
+                const usuario = await protegerTelaCoordenacao();
+
+                if (!usuario) {
+                    return;
+                }
+
+                inicializarSoftSessionCard(usuario);
+                usuarioLogado = usuario;
+
+                bindEvents();
+                updateDateTime();
+                setInterval(updateDateTime, 1000);
+                
+                await loadData();
+                atualizarIndicadores();
+                
+                perfisFiltradosCache = [...patients];
+                renderizarPagina();
+            }
+
+            async function protegerTelaCoordenacao() {
+                const usuario = await CasaMulherAuth.protegerPagina();
+
+                if (!usuario) {
+                    return null;
+                }
+
+                if (usuario.perfil !== "adm") {
+                    window.location.href = CasaMulherAuth.getPainelUrl(usuario);
+                    return null;
+                }
+
+                return usuario;
+            }
+
+            function bindEvents() {
+                document.getElementById("btnBuscarPaciente")?.addEventListener("click", searchPatients);
+                document.getElementById("btnMostrarTodas")?.addEventListener("click", function() {
+                    document.getElementById("searchPatient").value = "";
+                    searchPatients();
+                });
+                document.getElementById("searchPatient")?.addEventListener("keyup", function (event) {
+                    if (event.key === "Enter") {
+                        searchPatients();
+                    }
+                });
+                
+                document.getElementById("btnPrevPage")?.addEventListener("click", function() {
+                    if (perfisPaginaAtual > 1) {
+                        perfisPaginaAtual--;
+                        renderizarPagina();
+                    }
+                });
+
+                document.getElementById("btnNextPage")?.addEventListener("click", function() {
+                    const maxPages = Math.ceil(perfisFiltradosCache.length / PERFIS_POR_PAGINA);
+                    if (perfisPaginaAtual < maxPages) {
+                        perfisPaginaAtual++;
+                        renderizarPagina();
+                    }
+                });
+            }
+
+            function updateDateTime() {
+                const now = new Date();
+                document.getElementById("currentDate").textContent = now.toLocaleDateString("pt-BR", {
+                    weekday: "long",
+                    day: "2-digit",
+                    month: "long",
+                    year: "numeric"
+                });
+                document.getElementById("currentTime").textContent = now.toLocaleTimeString("pt-BR");
+            }
+
+            async function loadData() {
+                try {
+                    const stored = localStorage.getItem(STORAGE_KEY);
+                    patients = stored ? JSON.parse(stored) : [];
+
+                    if (!Array.isArray(patients)) {
+                        patients = [];
+                    }
+
+                    if (patients.length === 0) {
+                        const response = await CasaMulherAuth.apiFetch("/api/homologacao/recepcao-seed");
+                        if (response.ok) {
+                            const seed = await response.json();
+                            patients = Array.isArray(seed) ? seed.map(function (item) {
+                                return Object.assign({}, item, {
+                                    cpfClean: String(item.cpf || "").replace(/\D/g, ""),
+                                    criadoEm: item.criadoEm || new Date().toISOString(),
+                                    atualizadoEm: item.atualizadoEm || new Date().toISOString()
+                                });
+                            }) : [];
+                        }
+                    }
+                } catch {
+                    patients = [];
+                }
+            }
+
+            function atualizarIndicadores() {
+                document.getElementById("indTotal").textContent = patients.length;
+                
+                const hojeStr = new Date().toISOString().split("T")[0];
+                const cadastrosHoje = patients.filter(p => (p.criadoEm || "").startsWith(hojeStr)).length;
+                document.getElementById("indHoje").textContent = cadastrosHoje;
+                
+                const cursos = new Set(patients.filter(p => p.curso && p.curso.trim() !== "").map(p => p.curso));
+                document.getElementById("indCursos").textContent = cursos.size;
+                
+                let ultimaData = "-";
+                if (patients.length > 0) {
+                    const ordenados = [...patients].sort((a, b) => new Date(b.criadoEm || 0) - new Date(a.criadoEm || 0));
+                    ultimaData = formatDateLocal((ordenados[0].criadoEm || "").split("T")[0]);
+                }
+                document.getElementById("indUltimo").textContent = ultimaData;
+            }
+
+            function searchPatients() {
+                const term = (document.getElementById("searchPatient").value || "").trim().toLowerCase();
+                const termClean = term.replace(/\D/g, "");
+                
+                if (!term) {
+                    perfisFiltradosCache = [...patients];
+                } else {
+                    perfisFiltradosCache = patients.filter(function(p) {
+                        const nomeMatch = (p.nome || "").toLowerCase().includes(term);
+                        const cpfMatch = termClean.length >= 3 && (p.cpfClean || "").includes(termClean);
+                        const telMatch = termClean.length >= 3 && String(p.telefone || "").replace(/\D/g, "").includes(termClean);
+                        return nomeMatch || cpfMatch || telMatch;
+                    });
+                }
+                
+                perfisPaginaAtual = 1;
+                renderizarPagina();
+            }
+
+            function renderizarPagina() {
+                const container = document.getElementById("patientsList");
+                const pagInfo = document.getElementById("paginationInfo");
+                const btnPrev = document.getElementById("btnPrevPage");
+                const btnNext = document.getElementById("btnNextPage");
+                const pagNumbers = document.getElementById("paginationNumbers");
+                
+                if (perfisFiltradosCache.length === 0) {
+                    container.innerHTML = `<div class="empty-state" style="text-align:center; padding: 20px; color: #A26D85;">Nenhum acolhimento encontrado.</div>`;
+                    pagInfo.textContent = "";
+                    btnPrev.disabled = true;
+                    btnNext.disabled = true;
+                    pagNumbers.innerHTML = "";
+                    return;
+                }
+                
+                const total = perfisFiltradosCache.length;
+                const maxPages = Math.ceil(total / PERFIS_POR_PAGINA);
+                
+                if (perfisPaginaAtual > maxPages) perfisPaginaAtual = maxPages;
+                if (perfisPaginaAtual < 1) perfisPaginaAtual = 1;
+                
+                const startIdx = (perfisPaginaAtual - 1) * PERFIS_POR_PAGINA;
+                const endIdx = Math.min(startIdx + PERFIS_POR_PAGINA, total);
+                const pageItems = perfisFiltradosCache.slice(startIdx, endIdx);
+                
+                pagInfo.textContent = `Mostrando ${startIdx + 1}\u2013${endIdx} de ${total} perfis`;
+                btnPrev.disabled = perfisPaginaAtual === 1;
+                btnNext.disabled = perfisPaginaAtual === maxPages;
+                
+                let pagHtml = "";
+                for (let i = 1; i <= maxPages; i++) {
+                    if (i === 1 || i === maxPages || (i >= perfisPaginaAtual - 1 && i <= perfisPaginaAtual + 1)) {
+                        const active = i === perfisPaginaAtual ? "active" : "";
+                        pagHtml += `<button type="button" class="soft-page-button ${active}" onclick="window.irParaPagina(${i})">${i}</button>`;
+                    } else if (i === perfisPaginaAtual - 2 || i === perfisPaginaAtual + 2) {
+                        pagHtml += `<span style="color: #A26D85;">...</span>`;
+                    }
+                }
+                pagNumbers.innerHTML = pagHtml.replace(/(<span style="color: #A26D85;">\.\.\.<\/span>)+/g, '<span style="color: #A26D85;">...</span>');
+                
+                let html = "";
+                pageItems.forEach(function(p) {
+                    const atendidaPor = p.funcionarioAtendimentoNomeSnapshot || p.atendido || p.atendidaPorNome || p.atendidaPorId || "Não informado";
+                    const atendidaPorEmail = p.funcionarioAtendimentoEmailSnapshot || p.atendidaPorEmail || "";
+                    
+                    html += `
+                        <div class="coordenacao-perfil-card--compact">
+                            <div class="coordenacao-perfil-title">${escapeHtmlValue(p.nome)}</div>
+                            <div class="coordenacao-perfil-line">
+                                <span><strong>CPF:</strong> ${maskCpfAsterisks(p.cpf)}</span>
+                                <span><strong>Tel:</strong> ${escapeHtmlValue(p.telefone)}</span>
+                            </div>
+                            <div class="coordenacao-perfil-info">
+                                <strong>Endereço:</strong> ${escapeHtmlValue(p.endereco)}${p.enderecoNumero ? ", " + escapeHtmlValue(p.enderecoNumero) : ""}
+                            </div>
+                            <div class="coordenacao-perfil-info">
+                                <strong>Curso/Interesse:</strong> ${escapeHtmlValue(p.curso) || "Não informado"}
+                            </div>
+                            ${p.email ? `<div class="coordenacao-perfil-info"><strong>E-mail:</strong> ${escapeHtmlValue(p.email)}</div>` : ""}
+                            
+                            <hr class="coordenacao-perfil-divider">
+                            
+                            <div class="coordenacao-perfil-footer">
+                                Atendida por: <strong>${escapeHtmlValue(atendidaPor)}</strong> 
+                                ${atendidaPorEmail ? `<br>(${escapeHtmlValue(atendidaPorEmail)})` : ""}
+                                <br>
+                                Data: ${formatDateLocal((p.criadoEm || "").split("T")[0])}
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                container.innerHTML = html;
+            }
+
+            window.irParaPagina = function(page) {
+                perfisPaginaAtual = page;
+                renderizarPagina();
+            };
+
+            function escapeHtmlValue(value) {
+                return String(value || "")
+                    .replaceAll("&", "&amp;")
+                    .replaceAll("<", "&lt;")
+                    .replaceAll(">", "&gt;")
+                    .replaceAll('"', "&quot;")
+                    .replaceAll("'", "&#039;");
+            }
+            
+            function maskCpfAsterisks(cpf) {
+                if (!cpf) return "-";
+                const clean = cpf.replace(/\D/g, "");
+                if (clean.length === 11) {
+                    return `***.${clean.substring(3, 6)}.${clean.substring(6, 9)}-**`;
+                }
+                return cpf;
+            }
+
+            function formatDateLocal(dateString) {
+                if (!dateString) return "-";
+                const parts = String(dateString).split("-");
+                if (parts.length !== 3) return dateString;
+                return `${parts[2]}/${parts[1]}/${parts[0]}`;
+            }
+
+            document.addEventListener("DOMContentLoaded", init);
+        })();
+    </script>
+</head>
+<body class="soft-page">
+    <header class="soft-header" style="max-width: 1400px; margin: 0 auto; padding: 24px 20px;">
+        <div>
+            <h1 class="soft-header-title">Casa da Mulher de Itaquaquecetuba</h1>
+            <p class="soft-header-subtitle">Acompanhamento da recep&ccedil;&atilde;o</p>
+        </div>
+        
+        <div class="soft-session-card" id="sessionCard">
+            <div class="soft-clock session-trigger" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false" id="sessionTrigger">
+                <div id="currentDate"></div>
+                <div id="currentTime"></div>
+            </div>
+            
+            <div class="session-dropdown" id="sessionDropdown">
+                <div class="session-user-name" id="sessionUserName">-</div>
+                <div class="session-user-role" id="sessionUserRole">-</div>
+                <div class="session-user-meta" id="sessionUserEmail">-</div>
+                <div class="session-user-meta" style="margin-top: 4px;">ID: <span id="sessionUserId">-</span></div>
+                
+                <div class="session-actions">
+                    <a class="soft-btn soft-btn-warning" href="painel.html" data-painel-link style="text-decoration:none; flex: 1; justify-content: center;">Voltar</a>
+                    <button type="button" id="btnSairRecepcao" class="soft-btn soft-btn-danger" style="flex: 1; justify-content: center;">Sair</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="coordenacao-shell">
+        <aside class="coordenacao-sidebar" tabindex="0">
+            <div class="coordenacao-sidebar-icon">
+                <svg viewBox="0 0 24 24"><path d="M5 19h4V5H5v14zm6 0h4v-7h-4v7zm6 0h4v-11h-4v11z"/></svg>
+            </div>
+            <div class="coordenacao-sidebar-content">
+                <div class="coordenacao-sidebar-title">Indicadores</div>
+                <div class="coordenacao-indicadores-grid">
+                    <div class="coordenacao-indicador-card">
+                        <div class="coordenacao-indicador-label">Total acolhimentos</div>
+                        <div class="coordenacao-indicador-value" id="indTotal">0</div>
+                    </div>
+                    <div class="coordenacao-indicador-card">
+                        <div class="coordenacao-indicador-label">Acolhimentos hoje</div>
+                        <div class="coordenacao-indicador-value" id="indHoje">0</div>
+                    </div>
+                    <div class="coordenacao-indicador-card">
+                        <div class="coordenacao-indicador-label">Cursos registrados</div>
+                        <div class="coordenacao-indicador-value" id="indCursos">0</div>
+                    </div>
+                    <div class="coordenacao-indicador-card">
+                        <div class="coordenacao-indicador-label">&Uacute;ltimo acolhimento</div>
+                        <div class="coordenacao-indicador-value" id="indUltimo" style="font-size: 1.2rem;">-</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <section class="coordenacao-main">
+            <div class="soft-card" style="width: 100%;">
+                <h2 class="soft-card-title">Perfis acompanhados</h2>
+                <p style="color: #A26D85; font-size: 0.9rem; margin-bottom: 20px;">Consulta de todos os acolhimentos registrados pela equipe.</p>
+                
+                <div class="coordenacao-search-bar" style="margin-bottom: 28px;">
+                    <input type="text" id="searchPatient" class="soft-input" placeholder="Buscar por nome, CPF ou telefone" style="flex: 1; min-width: 200px; background: #FFFBFD;">
+                    <button type="button" id="btnBuscarPaciente" class="soft-btn soft-btn-primary">Buscar</button>
+                    <button type="button" id="btnMostrarTodas" class="soft-btn soft-btn-warning">Mostrar todas</button>
+                </div>
+
+                <div id="patientsList" class="coordenacao-pacientes-grid"></div>
+
+                <div class="soft-pagination">
+                    <div class="soft-pagination-info" id="paginationInfo"></div>
+                    <button type="button" class="soft-page-button" id="btnPrevPage">Anterior</button>
+                    <div id="paginationNumbers" style="display: flex; gap: 4px; align-items: center;"></div>
+                    <button type="button" class="soft-page-button" id="btnNextPage">Pr&oacute;xima</button>
+                </div>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

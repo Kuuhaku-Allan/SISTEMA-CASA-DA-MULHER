@@ -22,6 +22,9 @@ public class CriarFuncionarioConviteRequest
     [MaxLength(40)]
     public string Perfil { get; set; } = string.Empty;
 
+    [MaxLength(80)]
+    public string? ProfessorCurso { get; set; }
+
     [Range(1, 90)]
     public int DiasParaExpirar { get; set; } = 7;
 

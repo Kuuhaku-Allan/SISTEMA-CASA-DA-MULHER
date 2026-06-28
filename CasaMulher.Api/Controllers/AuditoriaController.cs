@@ -2,6 +2,7 @@ using CasaMulher.Api.Data;
 using CasaMulher.Api.DTOs;
 using CasaMulher.Api.Models;
 using CasaMulher.Api.Security;
+using CasaMulher.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -24,9 +25,7 @@ public class AuditoriaController : ControllerBase
     public async Task<ActionResult<IEnumerable<AuditoriaEventoResponse>>> Listar()
     {
         var eventos = await _dbContext.AuditoriaEventos
-            .Where(evento =>
-                evento.PerfilFuncionario != PerfisAcesso.Equipe
-                && !evento.Acao.StartsWith("EQUIPE_"))
+            .Where(evento => evento.Escopo == AuditoriaEscopos.Institucional)
             .OrderByDescending(evento => evento.CriadoEm)
             .Take(200)
             .ToListAsync();
@@ -44,8 +43,7 @@ public class AuditoriaController : ControllerBase
             return NotFound(new { mensagem = "Evento de auditoria não encontrado." });
         }
 
-        if (evento.PerfilFuncionario == PerfisAcesso.Equipe
-            || evento.Acao.StartsWith("EQUIPE_"))
+        if (evento.Escopo != AuditoriaEscopos.Institucional)
         {
             return NotFound(new { mensagem = "Evento de auditoria nao encontrado." });
         }
@@ -58,9 +56,7 @@ public class AuditoriaController : ControllerBase
     {
         var eventos = await _dbContext.AuditoriaEventos
             .Where(evento => evento.UsuarioId == usuarioId || evento.EntidadeId == usuarioId)
-            .Where(evento =>
-                evento.PerfilFuncionario != PerfisAcesso.Equipe
-                && !evento.Acao.StartsWith("EQUIPE_"))
+            .Where(evento => evento.Escopo == AuditoriaEscopos.Institucional)
             .OrderByDescending(evento => evento.CriadoEm)
             .Take(200)
             .ToListAsync();
@@ -77,6 +73,7 @@ public class AuditoriaController : ControllerBase
             IdentificadorFuncionario = evento.IdentificadorFuncionario,
             NomeFuncionario = evento.NomeFuncionario,
             PerfilFuncionario = evento.PerfilFuncionario,
+            Escopo = evento.Escopo,
             Acao = evento.Acao,
             Entidade = evento.Entidade,
             EntidadeId = evento.EntidadeId,

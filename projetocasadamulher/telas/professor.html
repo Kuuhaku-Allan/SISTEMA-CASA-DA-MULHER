@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aulas e Chamada - Casa da Mulher</title>
+    <link rel="stylesheet" href="style.css?v=8">
+    <script src="config.js" defer></script>
+    <script src="auth.js" defer></script>
+    <script src="app.js?v=6" defer></script>
+    <script src="professor.js" defer></script>
+</head>
+<body class="soft-page">
+    <main class="soft-admin-main" style="max-width: 1400px; margin: 0 auto; padding: 24px 20px;">
+        <header class="soft-header">
+            <div>
+                <h1 class="soft-header-title">Casa da Mulher de Itaquaquecetuba</h1>
+                <p class="soft-header-subtitle">&Aacute;rea do professor</p>
+            </div>
+            
+            <div class="soft-session-card" id="sessionCard">
+                <div class="soft-clock session-trigger" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false" id="sessionTrigger">
+                    <div id="currentDate"></div>
+                    <div id="currentTime"></div>
+                </div>
+                
+                <div class="session-dropdown" id="sessionDropdown">
+                    <div class="session-user-name" id="sessionUserName">-</div>
+                    <div class="session-user-role" id="sessionUserRole">-</div>
+                    <div class="session-user-meta" id="sessionUserEmail">-</div>
+                    <div class="session-user-meta" style="margin-top: 4px;">ID: <span id="sessionUserId">-</span></div>
+                    
+                    <div class="session-actions">
+                        <a href="painel.html" class="soft-btn soft-btn-warning" style="flex: 1; justify-content: center; text-decoration: none;">Voltar</a>
+                        <button type="button" id="btnSair" class="soft-btn soft-btn-danger" style="flex: 1; justify-content: center;">Sair</button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div id="professorEmptyState" class="professor-empty-state hidden" style="margin-top: 40px;">
+            <h2>Sem curso vinculado</h2>
+            <p>Nenhum curso foi vinculado ao seu perfil. Entre em contato com a coordena&ccedil;&atilde;o.</p>
+            <a href="painel.html" class="soft-btn soft-btn-warning" style="display: inline-flex; margin-top: 16px; text-decoration: none;">Voltar</a>
+        </div>
+
+        <datalist id="atividadesCursoList"></datalist>
+
+        <div id="professorShell" class="professor-workspace hidden">
+            <div class="professor-workspace-header">
+                <div class="professor-context-card">
+                    <div>
+                        <h2 style="color: #8A3D66; font-size: 1.2rem; margin: 0 0 4px 0;">Curso</h2>
+                        <p id="professorCursoDisplay" style="color: #A26D85; font-size: 1rem; font-weight: 600; margin: 0;">-</p>
+                    </div>
+                    <div style="text-align: right;">
+                        <p id="professorNomeDisplay" style="color: #8A3D66; font-weight: 700; margin: 0;">-</p>
+                        <p id="professorIdDisplay" style="color: #A26D85; font-size: 0.85rem; margin: 0;">-</p>
+                    </div>
+                </div>
+
+                <nav class="professor-tabs-card">
+                    <button class="professor-tab active" data-tab="alunas">Alunas do curso</button>
+                    <button class="professor-tab" data-tab="chamada">Chamada</button>
+                    <button class="professor-tab" data-tab="plano">Plano de ensino</button>
+                </nav>
+            </div>
+
+            <!-- Aba Alunas -->
+            <div id="tab-alunas" class="professor-panel active">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
+                    <div>
+                        <h3 style="color: #8A3D66; margin: 0 0 4px 0;">Lista de matriculadas</h3>
+                        <p style="color: #A26D85; margin: 0; font-size: 0.9rem;">Assistidas que pertencem ao seu curso.</p>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="buscaAlunas" class="soft-input" placeholder="Buscar aluna por nome..." style="min-width: 250px;">
+                    </div>
+                </div>
+
+                <div id="alunasGrid" class="professor-alunas-grid">
+                    <!-- Cards de alunas serao injetados aqui -->
+                </div>
+                <div id="alunasEmpty" class="hidden" style="text-align: center; padding: 32px; color: #A26D85;">
+                    Nenhuma aluna encontrada para este curso.
+                </div>
+            </div>
+
+            <!-- Aba Chamada -->
+            <div id="tab-chamada" class="professor-panel">
+                <h3 style="color: #8A3D66; margin: 0 0 4px 0;">Chamada da aula</h3>
+                <p style="color: #A26D85; margin: 0 0 24px 0; font-size: 0.9rem;">Registre a presen&ccedil;a das alunas e vincule a chamada ao tema do dia.</p>
+                
+                <div class="professor-chamada-toolbar" style="display: flex; gap: 16px; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 200px;">
+                        <label for="dataChamada" style="display: block; font-size: 0.85rem; color: #A26D85; font-weight: 600; margin-bottom: 4px;">Data da aula</label>
+                        <input type="date" id="dataChamada" class="soft-input" style="width: 100%;">
+                    </div>
+                    <div style="flex: 2; min-width: 300px;">
+                        <label for="temaAulaInput" style="display: block; font-size: 0.85rem; color: #A26D85; font-weight: 600; margin-bottom: 4px;">Aula / tema do dia</label>
+                        <input type="text" id="temaAulaInput" class="soft-input" list="aulasPlanejadasList" placeholder="Escolha uma aula planejada ou digite o tema de hoje">
+                        <datalist id="aulasPlanejadasList"></datalist>
+                    </div>
+                </div>
+
+                <div style="margin-top: 16px; margin-bottom: 24px; padding: 16px; background: #FEF6F9; border: 1px dashed #F1C8D8; border-radius: 12px;">
+                    <label style="display: block; font-size: 0.85rem; color: #A26D85; font-weight: 600; margin-bottom: 8px;">Atividades da aula (opcional)</label>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="novaAtividadeChamada" class="soft-input" list="atividadesCursoList" placeholder="Digite uma atividade e pressione adicionar" style="flex: 1;">
+                        <button type="button" id="btnAdicionarAtividadeChamada" class="professor-action-secondary" style="padding: 0.5rem 1rem;">Adicionar</button>
+                    </div>
+                    <div id="chipsAtividadesChamada" class="professor-chip-list"></div>
+                </div>
+
+                <h3 style="color: #8A3D66; margin: 0 0 16px 0;">Lista de chamada</h3>
+                <div id="chamadaList" class="professor-chamada-list">
+                    <!-- Cards de chamada serao injetados aqui -->
+                </div>
+
+                <div style="margin-top: 24px; text-align: right; border-top: 1px dashed #F1C8D8; padding-top: 24px;">
+                    <p id="chamadaAviso" class="hidden" style="color: #E59275; font-size: 0.85rem; font-weight: 600; margin-bottom: 12px;">Algumas alunas ainda est&atilde;o sem status de presen&ccedil;a.</p>
+                    <button type="button" id="btnSalvarChamada" class="professor-action-primary">Salvar chamada</button>
+                    <span id="chamadaFeedback" style="margin-left: 12px; font-weight: 600; font-size: 0.9rem;"></span>
+                </div>
+            </div>
+
+            <!-- Aba Plano de Ensino -->
+            <div id="tab-plano" class="professor-panel">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
+                    <div>
+                        <h3 style="color: #8A3D66; margin: 0 0 4px 0;">Plano de ensino</h3>
+                        <p style="color: #A26D85; margin: 0; font-size: 0.9rem;">Organize os temas e atividades previstas para o curso.</p>
+                    </div>
+                    <button type="button" id="btnNovaAula" class="professor-action-primary">Adicionar aula</button>
+                </div>
+
+                <form id="formPlanoEnsino" class="professor-plano-form hidden">
+                    <h4 id="tituloFormPlano" style="color: #8A3D66; margin: 0 0 16px 0;">Nova aula</h4>
+                    <input type="hidden" id="aulaId">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-bottom: 16px;">
+                        <div>
+                            <label for="aulaData" style="display: block; font-size: 0.85rem; color: #A26D85; font-weight: 600; margin-bottom: 4px;">Data prevista</label>
+                            <input type="date" id="aulaData" class="soft-input" required>
+                        </div>
+                        <div style="grid-column: 1 / -1;">
+                            <label for="aulaTema" style="display: block; font-size: 0.85rem; color: #A26D85; font-weight: 600; margin-bottom: 4px;">Tema da aula</label>
+                            <input type="text" id="aulaTema" class="soft-input" required>
+                        </div>
+                        <div style="grid-column: 1 / -1;">
+                            <label style="display: block; font-size: 0.85rem; color: #A26D85; font-weight: 600; margin-bottom: 4px;">Atividades da aula</label>
+                            <div style="display: flex; gap: 8px;">
+                                <input type="text" id="novaAtividadePlano" class="soft-input" list="atividadesCursoList" placeholder="Digite uma atividade e pressione adicionar" style="flex: 1;">
+                                <button type="button" id="btnAdicionarAtividadePlano" class="professor-action-secondary" style="padding: 0.5rem 1rem;">Adicionar</button>
+                            </div>
+                            <div id="chipsAtividadesPlano" class="professor-chip-list"></div>
+                        </div>
+                        <div style="grid-column: 1 / -1;">
+                            <label for="aulaObservacoes" style="display: block; font-size: 0.85rem; color: #A26D85; font-weight: 600; margin-bottom: 4px;">Observa&ccedil;&otilde;es (opcional)</label>
+                            <textarea id="aulaObservacoes" class="soft-input" rows="2"></textarea>
+                        </div>
+                    </div>
+                    <div style="display: flex; justify-content: flex-end; gap: 12px;">
+                        <button type="button" id="btnCancelarAula" class="professor-action-secondary">Cancelar</button>
+                        <button type="submit" class="professor-action-primary">Salvar aula</button>
+                    </div>
+                </form>
+
+                <div id="planoGrid" class="professor-plano-grid">
+                    <!-- Cards de aulas do plano serao injetados aqui -->
+                </div>
+                <div id="planoEmpty" class="hidden" style="text-align: center; padding: 32px; color: #A26D85;">
+                    Nenhuma aula planejada ainda. Adicione aulas para montar seu cronograma.
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

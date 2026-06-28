@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
@@ -9,60 +9,78 @@
     <script src="auth.js" defer></script>
     <script src="app.js" defer></script>
 </head>
-<body>
-    <main class="auth-container">
-        <section class="auth-box auth-box-wide">
-            <img src="IMAGENS/logo_oficial.png" alt="Logo Casa da Mulher" class="logo-login">
-            <h1 class="auth-title">Criar senha de acesso</h1>
-            <p class="auth-subtitle">Finalize o convite enviado pela coordena&ccedil;&atilde;o.</p>
-            <div id="avisoConvite" class="notice">
+<body class="soft-auth-page">
+    <div class="soft-auth-shell">
+        <div class="soft-auth-card" style="max-width: 500px; margin: 0 auto; padding: 32px 24px;">
+            <img src="IMAGENS/logo_oficial.png" alt="Logo Casa da Mulher" class="soft-auth-logo" style="width: 120px; margin-bottom: 16px;">
+            <h1 class="soft-auth-title">Criar senha de acesso</h1>
+            <p class="soft-auth-subtitle" style="margin-bottom: 24px;">Finalize o convite enviado pela coordena&ccedil;&atilde;o.</p>
+
+            <div id="avisoConvite" class="soft-auth-message" style="margin-bottom: 16px;">
                 Verificando convite...
             </div>
 
-            <form id="formCadastroFuncionario" class="auth-form hidden" novalidate>
-                <div class="input-group">
-                    <label for="nomeCompleto">Nome completo</label>
-                    <input type="text" id="nomeCompleto" name="nomeCompleto" autocomplete="name" readonly>
-                </div>
-
-                <div class="input-grid">
-                    <div class="input-group">
-                        <label for="email">E-mail</label>
-                        <input type="email" id="email" name="email" autocomplete="email" readonly>
+            <form id="formCadastroFuncionario" class="soft-auth-form hidden" novalidate style="gap: 1.5rem;">
+                <div class="cadastro-resumo-convite" id="cadastroResumoConvite" tabindex="0">
+                    <div class="cadastro-resumo-header">
+                        <h3 class="cadastro-resumo-title">Resumo do Convite</h3>
                     </div>
 
-                    <div class="input-group">
-                        <label for="identificadorFuncionario">ID do funcion&aacute;rio</label>
-                        <input type="text" id="identificadorFuncionario" name="identificadorFuncionario" readonly>
+                    <!-- Estado Compacto (Sempre visível) -->
+                    <div class="cadastro-resumo-grid cadastro-resumo-compact">
+                        <div class="cadastro-resumo-item">
+                            <span class="cadastro-resumo-label">Nome</span>
+                            <span id="displayNome" class="cadastro-resumo-value">-</span>
+                        </div>
+                        <div class="cadastro-resumo-item">
+                            <span class="cadastro-resumo-label">ID de acesso</span>
+                            <span id="displayIdentificador" class="cadastro-resumo-value id-acesso">-</span>
+                        </div>
+                    </div>
+
+                    <!-- Estado Expandido (Oculto por padrão, exibido no hover/focus/toggle) -->
+                    <div class="cadastro-resumo-details">
+                        <div class="cadastro-resumo-item">
+                            <span class="cadastro-resumo-label">E-mail</span>
+                            <span id="displayEmail" class="cadastro-resumo-value email">-</span>
+                        </div>
+                        <div class="cadastro-resumo-item">
+                            <span class="cadastro-resumo-label">Perfil</span>
+                            <span id="displayPerfil" class="cadastro-resumo-value" style="text-transform: capitalize;">-</span>
+                        </div>
+                        <div class="cadastro-resumo-item hidden" id="divDisplayCurso">
+                            <span class="cadastro-resumo-label">Curso/Interesse vinculado</span>
+                            <span id="displayCurso" class="cadastro-resumo-value">-</span>
+                        </div>
                     </div>
                 </div>
 
-                <div class="input-grid">
-                    <div class="input-group">
-                        <label for="senha">Senha</label>
-                        <input type="password" id="senha" name="senha" placeholder="********" autocomplete="new-password" required>
-                    </div>
+                <!-- Campos ocultos para envio do formulário -->
+                <input type="hidden" id="nomeCompleto" name="nomeCompleto">
+                <input type="hidden" id="email" name="email">
+                <input type="hidden" id="identificadorFuncionario" name="identificadorFuncionario">
+                <input type="hidden" id="codigoCadastro" name="codigoCadastro">
 
-                    <div class="input-group">
-                        <label for="confirmarSenha">Confirmar senha</label>
-                        <input type="password" id="confirmarSenha" name="confirmarSenha" placeholder="********" autocomplete="new-password" required>
-                    </div>
+
+
+                <div class="soft-form-group">
+                    <label for="senha">Crie sua senha</label>
+                    <input type="password" id="senha" class="soft-input" name="senha" placeholder="********" autocomplete="new-password" required>
                 </div>
 
-                <div class="input-group">
-                    <label for="codigoCadastro">C&oacute;digo do convite</label>
-                    <input type="text" id="codigoCadastro" name="codigoCadastro" readonly>
+                <div class="soft-form-group">
+                    <label for="confirmarSenha">Confirme sua senha</label>
+                    <input type="password" id="confirmarSenha" class="soft-input" name="confirmarSenha" placeholder="********" autocomplete="new-password" required>
                 </div>
 
-                <p class="hint">Os dados do convite n&atilde;o podem ser alterados nesta tela.</p>
+                <div id="mensagemCadastro" class="message soft-auth-message" aria-live="polite"></div>
 
-                <div id="mensagemCadastro" class="message" aria-live="polite"></div>
-
-                <button type="submit" class="btn-primary">Criar minha senha e ativar acesso</button>
+                <div class="soft-auth-actions" style="margin-top: 0;">
+                    <button type="submit" class="soft-btn soft-btn-primary" style="width: 100%;">Ativar minha conta</button>
+                </div>
             </form>
-
-            <a class="text-link" href="index.html">J&aacute; tenho cadastro</a>
-        </section>
-    </main>
+            </form>
+        </div>
+    </div>
 </body>
 </html>

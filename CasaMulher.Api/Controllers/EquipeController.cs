@@ -29,6 +29,7 @@ public class EquipeController : ControllerBase
     private readonly IAuditoriaService _auditoriaService;
     private readonly IEquipeGithubService _githubService;
     private readonly IMasterUserService _masterUserService;
+    private readonly ContaEquipeSincronizadaService _contaEquipeSincronizadaService;
     private readonly IWebHostEnvironment _environment;
 
     public EquipeController(
@@ -40,6 +41,7 @@ public class EquipeController : ControllerBase
         IAuditoriaService auditoriaService,
         IEquipeGithubService githubService,
         IMasterUserService masterUserService,
+        ContaEquipeSincronizadaService contaEquipeSincronizadaService,
         IWebHostEnvironment environment)
     {
         _dbContext = dbContext;
@@ -50,6 +52,7 @@ public class EquipeController : ControllerBase
         _auditoriaService = auditoriaService;
         _githubService = githubService;
         _masterUserService = masterUserService;
+        _contaEquipeSincronizadaService = contaEquipeSincronizadaService;
         _environment = environment;
     }
 
@@ -79,7 +82,7 @@ public class EquipeController : ControllerBase
 
         if (membro is null)
         {
-            return NotFound(new { mensagem = "Membro da equipe nao encontrado." });
+            return NotFound(new { mensagem = "Membro da equipe não encontrado." });
         }
 
         if (_masterUserService.EhEquipeOwnerPrincipal(membro.CodigoEquipe) && !await UsuarioAtualEhSuperAdminInstitucionalAsync())
@@ -92,31 +95,31 @@ public class EquipeController : ControllerBase
 
         if (!EquipePapeis.Todos.Contains(papel, StringComparer.OrdinalIgnoreCase))
         {
-            return BadRequest(new { mensagem = "Papel de equipe invalido." });
+            return BadRequest(new { mensagem = "Papel de equipe inválido." });
         }
 
         if (!EquipeFluxosTrabalho.Todos.Contains(fluxo, StringComparer.OrdinalIgnoreCase))
         {
-            return BadRequest(new { mensagem = "Fluxo de trabalho invalido." });
+            return BadRequest(new { mensagem = "Fluxo de trabalho inválido." });
         }
 
         if (request.PodeCriarConvitesEquipe && !EquipePapeis.PodeGerenciarConvites(papel))
         {
-            return BadRequest(new { mensagem = "Somente owner ou maintainer pode receber permissao de criar convites da equipe." });
+            return BadRequest(new { mensagem = "Somente owner ou maintainer pode receber permissão para criar convites da equipe." });
         }
 
         var usuarioMembro = await _userManager.FindByIdAsync(membro.UserId);
 
         if (usuarioMembro is null)
         {
-            return BadRequest(new { mensagem = "Usuario vinculado ao membro da equipe nao encontrado." });
+            return BadRequest(new { mensagem = "Usuário vinculado ao membro da equipe não encontrado." });
         }
 
         if (membro.PapelEquipe == EquipePapeis.Owner
             && (!request.Ativo || papel != EquipePapeis.Owner)
             && !await ExisteOutroOwnerOuAdmAtivoAsync(membro.UserId, membro.Id))
         {
-            return BadRequest(new { mensagem = "Nao e possivel remover o ultimo owner/super admin ativo." });
+            return BadRequest(new { mensagem = "Não é possível remover o último owner/super admin ativo." });
         }
 
         membro.PapelEquipe = papel;
@@ -142,7 +145,7 @@ public class EquipeController : ControllerBase
         {
             return BadRequest(new
             {
-                mensagem = "Nao foi possivel atualizar o usuario vinculado.",
+                mensagem = "Não foi possível atualizar o usuário vinculado.",
                 erros = updateUserResult.Errors.Select(error => error.Description)
             });
         }
@@ -170,12 +173,17 @@ public class EquipeController : ControllerBase
 
         if (membro is null)
         {
-            return NotFound(new { mensagem = "Membro da equipe nao encontrado." });
+            return NotFound(new { mensagem = "Membro da equipe não encontrado." });
+        }
+
+        if (await _contaEquipeSincronizadaService.EhSincronizadaAsync(membro.UserId))
+        {
+            return Conflict(new { mensagem = ContaEquipeSincronizadaService.MensagemAlteracaoSenha });
         }
 
         if (_masterUserService.EhEquipeOwnerPrincipal(membro.CodigoEquipe) && !await UsuarioAtualEhSuperAdminInstitucionalAsync())
         {
-            return BadRequest(new { mensagem = "Somente super admin institucional pode gerar redefinicao para o owner principal." });
+            return BadRequest(new { mensagem = "Somente o super admin institucional pode gerar uma redefinição para o owner principal." });
         }
 
         var codigo = await GerarCodigoRedefinicaoUnicoAsync();
@@ -194,7 +202,7 @@ public class EquipeController : ControllerBase
             "EQUIPE_SENHA_REDEFINICAO_GERADA",
             "EquipeSenhaReset",
             reset.Id.ToString(),
-            $"Gerou codigo de redefinicao de senha para {membro.CodigoEquipe}.");
+            $"Gerou código de redefinição de senha para {membro.CodigoEquipe}.");
 
         return Ok(new GerarRedefinicaoSenhaEquipeResponse
         {
@@ -211,7 +219,7 @@ public class EquipeController : ControllerBase
     {
         if (request.NovaSenha != request.ConfirmarNovaSenha)
         {
-            return BadRequest(new { mensagem = "Nova senha e confirmacao nao conferem." });
+            return BadRequest(new { mensagem = "Nova senha e confirmação não conferem." });
         }
 
         var codigoEquipe = NormalizarCodigoEquipe(request.CodigoEquipe);
@@ -219,8 +227,8 @@ public class EquipeController : ControllerBase
 
         if (reset is null || reset.Usado || reset.Revogado || reset.ExpiraEm < DateTime.UtcNow)
         {
-            await RegistrarAtivacaoFalhaAsync($"Tentativa de redefinicao de senha EQP invalida para {codigoEquipe}.");
-            return BadRequest(new { mensagem = "Codigo de redefinicao invalido ou expirado." });
+            await RegistrarAtivacaoFalhaAsync($"Tentativa de redefinição de senha EQP inválida para {codigoEquipe}.");
+            return BadRequest(new { mensagem = "Código de redefinição inválido ou expirado." });
         }
 
         var usuario = await _dbContext.Users.SingleOrDefaultAsync(item =>
@@ -229,7 +237,12 @@ public class EquipeController : ControllerBase
 
         if (usuario is null || !usuario.Ativo)
         {
-            return BadRequest(new { mensagem = "Conta da equipe nao encontrada ou inativa." });
+            return BadRequest(new { mensagem = "Conta da equipe não encontrada ou inativa." });
+        }
+
+        if (await _contaEquipeSincronizadaService.EhSincronizadaAsync(usuario.Id))
+        {
+            return Conflict(new { mensagem = ContaEquipeSincronizadaService.MensagemAlteracaoSenha });
         }
 
         var token = await _userManager.GeneratePasswordResetTokenAsync(usuario);
@@ -239,7 +252,7 @@ public class EquipeController : ControllerBase
         {
             return BadRequest(new
             {
-                mensagem = "Nao foi possivel redefinir a senha.",
+                mensagem = "Não foi possível redefinir a senha.",
                 erros = result.Errors.Select(error => error.Description)
             });
         }
@@ -251,7 +264,7 @@ public class EquipeController : ControllerBase
             "EQUIPE_SENHA_REDEFINIDA",
             "EquipeSenhaReset",
             reset.Id.ToString(),
-            $"Senha redefinida para {codigoEquipe} por codigo de uso unico.");
+            $"Senha redefinida para {codigoEquipe} por código de uso único.");
 
         return Ok(new { mensagem = "Senha da equipe redefinida com sucesso." });
     }
@@ -263,9 +276,7 @@ public class EquipeController : ControllerBase
         var usuarioId = ObterUsuarioAtualId();
         var podeVerTodos = await PodeVerTodosLogsEquipeAsync();
         var eventos = await _dbContext.AuditoriaEventos
-            .Where(evento =>
-                evento.PerfilFuncionario == PerfisAcesso.Equipe
-                || evento.Acao.StartsWith("EQUIPE_"))
+            .Where(evento => evento.Escopo == AuditoriaEscopos.Equipe)
             .Where(evento => podeVerTodos || evento.UsuarioId == usuarioId)
             .OrderByDescending(evento => evento.CriadoEm)
             .Take(200)
@@ -317,7 +328,7 @@ public class EquipeController : ControllerBase
 
         if (convite is null)
         {
-            return NotFound(new { mensagem = "Convite de equipe nao encontrado." });
+            return NotFound(new { mensagem = "Convite de equipe não encontrado." });
         }
 
         return Ok(MapearConvite(convite));
@@ -391,7 +402,7 @@ public class EquipeController : ControllerBase
     {
         if (!_environment.IsDevelopment() && !_environment.IsStaging())
         {
-            return NotFound(new { mensagem = "Bootstrap de equipe disponivel apenas em Development/Staging." });
+            return NotFound(new { mensagem = "Bootstrap da equipe disponível apenas em Development/Staging." });
         }
 
         var quantidadeIntegrantes = Math.Clamp(request.QuantidadeIntegrantes, 1, 20);
@@ -447,12 +458,12 @@ public class EquipeController : ControllerBase
 
         if (convite is null)
         {
-            return NotFound(new { mensagem = "Convite de equipe nao encontrado." });
+            return NotFound(new { mensagem = "Convite de equipe não encontrado." });
         }
 
         if (!string.Equals(convite.Status, EquipeConviteStatus.Disponivel, StringComparison.OrdinalIgnoreCase))
         {
-            return BadRequest(new { mensagem = "Apenas convites disponiveis podem ser revogados." });
+            return BadRequest(new { mensagem = "Apenas convites disponíveis podem ser revogados." });
         }
 
         convite.Status = EquipeConviteStatus.Revogado;
@@ -481,12 +492,12 @@ public class EquipeController : ControllerBase
 
         if (convite is null)
         {
-            return NotFound(new { mensagem = "Convite de equipe nao encontrado." });
+            return NotFound(new { mensagem = "Convite de equipe não encontrado." });
         }
 
         if (!string.Equals(convite.Status, EquipeConviteStatus.Disponivel, StringComparison.OrdinalIgnoreCase))
         {
-            return BadRequest(new { mensagem = "Apenas convites disponiveis podem ter codigo regenerado." });
+            return BadRequest(new { mensagem = "Apenas convites disponíveis podem ter o código regenerado." });
         }
 
         var codigoAtivacao = await GerarCodigoAtivacaoUnicoAsync();
@@ -497,7 +508,7 @@ public class EquipeController : ControllerBase
             "EQUIPE_CONVITE_CODIGO_REGENERADO",
             "EquipeConvite",
             convite.Id.ToString(),
-            $"Regenerou codigo de ativacao do convite {convite.CodigoEquipe}.");
+            $"Regenerou o código de ativação do convite {convite.CodigoEquipe}.");
 
         return Ok(MapearConviteCriado(convite, codigoAtivacao));
     }
@@ -509,7 +520,7 @@ public class EquipeController : ControllerBase
     {
         if (request.Senha != request.ConfirmarSenha)
         {
-            return BadRequest(new { mensagem = "Senha e confirmacao de senha nao conferem." });
+            return BadRequest(new { mensagem = "Senha e confirmação de senha não conferem." });
         }
 
         var codigoEquipe = NormalizarCodigoEquipe(request.CodigoEquipe);
@@ -517,8 +528,8 @@ public class EquipeController : ControllerBase
 
         if (!CodigoEquipeRegex.IsMatch(codigoEquipe) || string.IsNullOrWhiteSpace(nomeCompleto))
         {
-            await RegistrarAtivacaoFalhaAsync("Tentativa de ativacao EQP com dados obrigatorios invalidos.");
-            return BadRequest(new { mensagem = "Convite de equipe invalido ou indisponivel." });
+            await RegistrarAtivacaoFalhaAsync("Tentativa de ativação EQP com dados obrigatórios inválidos.");
+            return BadRequest(new { mensagem = "Convite de equipe inválido ou indisponível." });
         }
 
         var convite = await _dbContext.EquipeConvites
@@ -527,14 +538,14 @@ public class EquipeController : ControllerBase
         if (!ConvitePodeSerAtivado(convite)
             || !_codigoService.CodigoCorresponde(request.CodigoAtivacao, convite!.CodigoAtivacaoHash))
         {
-            await RegistrarAtivacaoFalhaAsync($"Tentativa de ativacao EQP recusada para {codigoEquipe}.");
-            return BadRequest(new { mensagem = "Convite de equipe invalido ou indisponivel." });
+            await RegistrarAtivacaoFalhaAsync($"Tentativa de ativação EQP recusada para {codigoEquipe}.");
+            return BadRequest(new { mensagem = "Convite de equipe inválido ou indisponível." });
         }
 
         if (await IdentificadorEquipeJaEstaEmUsoAsync(codigoEquipe))
         {
-            await RegistrarAtivacaoFalhaAsync($"Tentativa de ativacao EQP duplicada para {codigoEquipe}.");
-            return BadRequest(new { mensagem = "Convite de equipe invalido ou indisponivel." });
+            await RegistrarAtivacaoFalhaAsync($"Tentativa de ativação EQP duplicada para {codigoEquipe}.");
+            return BadRequest(new { mensagem = "Convite de equipe inválido ou indisponível." });
         }
 
         await using var transaction = await _dbContext.Database.BeginTransactionAsync();
@@ -547,7 +558,7 @@ public class EquipeController : ControllerBase
             {
                 return BadRequest(new
                 {
-                    mensagem = "Nao foi possivel preparar o perfil da equipe.",
+                    mensagem = "Não foi possível preparar o perfil da equipe.",
                     erros = roleResult.Errors.Select(error => error.Description)
                 });
             }
@@ -571,7 +582,7 @@ public class EquipeController : ControllerBase
         {
             return BadRequest(new
             {
-                mensagem = "Nao foi possivel ativar a conta da equipe.",
+                mensagem = "Não foi possível ativar a conta da equipe.",
                 erros = createResult.Errors.Select(error => error.Description)
             });
         }
@@ -582,7 +593,7 @@ public class EquipeController : ControllerBase
         {
             return BadRequest(new
             {
-                mensagem = "Nao foi possivel vincular o perfil da equipe.",
+                mensagem = "Não foi possível vincular o perfil da equipe.",
                 erros = roleAssignResult.Errors.Select(error => error.Description)
             });
         }
@@ -649,7 +660,7 @@ public class EquipeController : ControllerBase
                 CodigoEquipe = codigoNormalizado,
                 PapelEquipe = papelEquipe,
                 Status = "Ativado",
-                Observacao = $"{observacao}: conta ja ativada.",
+                Observacao = $"{observacao}: conta já ativada.",
                 Ativado = true
             };
         }
@@ -756,7 +767,7 @@ public class EquipeController : ControllerBase
             }
         }
 
-        throw new InvalidOperationException("Nao foi possivel gerar convite de equipe unico.");
+        throw new InvalidOperationException("Não foi possível gerar um convite de equipe único.");
     }
 
     private async Task<string> GerarCodigoAtivacaoUnicoAsync()
@@ -773,7 +784,7 @@ public class EquipeController : ControllerBase
             }
         }
 
-        throw new InvalidOperationException("Nao foi possivel gerar codigo de ativacao unico.");
+        throw new InvalidOperationException("Não foi possível gerar um código de ativação único.");
     }
 
     private async Task RegistrarConviteCriadoAsync(EquipeConvite convite)
@@ -934,7 +945,7 @@ public class EquipeController : ControllerBase
             }
         }
 
-        throw new InvalidOperationException("Nao foi possivel gerar codigo unico de redefinicao.");
+        throw new InvalidOperationException("Não foi possível gerar um código único de redefinição.");
     }
 
     private async Task<EquipeSenhaReset?> ObterResetSenhaPorCodigoAsync(string codigoEquipe, string codigoRedefinicao)
@@ -984,19 +995,19 @@ public class EquipeController : ControllerBase
 
         if (!EquipePapeis.Todos.Contains(papel, StringComparer.OrdinalIgnoreCase))
         {
-            return BadRequest(new { mensagem = "Papel de equipe invalido." });
+            return BadRequest(new { mensagem = "Papel de equipe inválido." });
         }
 
         if (request.PodeCriarConvitesEquipe && !EquipePapeis.PodeGerenciarConvites(papel))
         {
-            return BadRequest(new { mensagem = "Somente owner ou maintainer pode receber permissao de criar convites da equipe." });
+            return BadRequest(new { mensagem = "Somente owner ou maintainer pode receber permissão para criar convites da equipe." });
         }
 
         var fluxo = NormalizarFluxo(request.FluxoTrabalho);
 
         if (!EquipeFluxosTrabalho.Todos.Contains(fluxo, StringComparer.OrdinalIgnoreCase))
         {
-            return BadRequest(new { mensagem = "Fluxo de trabalho invalido." });
+            return BadRequest(new { mensagem = "Fluxo de trabalho inválido." });
         }
 
         return null;
@@ -1063,6 +1074,7 @@ public class EquipeController : ControllerBase
             IdentificadorFuncionario = evento.IdentificadorFuncionario,
             NomeFuncionario = evento.NomeFuncionario,
             PerfilFuncionario = evento.PerfilFuncionario,
+            Escopo = evento.Escopo,
             Acao = evento.Acao,
             Entidade = evento.Entidade,
             EntidadeId = evento.EntidadeId,

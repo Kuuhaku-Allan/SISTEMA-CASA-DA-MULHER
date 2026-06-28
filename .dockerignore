@@ -1,0 +1,11 @@
+.git
+.github
+.runtime
+**/bin
+**/obj
+**/*.db
+**/*.db-shm
+**/*.db-wal
+**/DataProtectionKeys
+node_modules
+npm-debug.log

@@ -1,96 +1,76 @@
 # Comece aqui - Equipe do Projeto
 
-Este repositório privado é o ponto fixo de entrada da equipe do projeto Sistema Casa da Mulher.
+Este repositorio privado e o ponto fixo de entrada da equipe do projeto Sistema Casa da Mulher.
 
-Não publique códigos EQP, senhas, tokens ou dados reais aqui.
+Nao publique senhas, tokens, hashes, Client Secrets ou dados reais aqui.
+
+## Portal central EQP
+
+Portal da equipe:
+
+```text
+https://casa-mulher-eqp.onrender.com/equipe.html
+```
+
+Fluxo:
+
+1. Entrar com GitHub.
+2. Ativar um EQP disponivel ou reservado.
+3. Informar e-mail de recuperacao e criar uma senha propria para este projeto.
+4. Receber o ADM pareado automaticamente.
+5. Abrir ambiente local ou Codespaces.
+6. Aguardar a sincronização automática da API.
+7. Fazer login com EQP ou ADM pareado.
+
+## Sincronizar depois da ativação
+
+A API sincroniza na inicialização e repete a atualização a cada minuto. Para forçar no Windows:
+
+```powershell
+.\casa_da_mulher.cmd equipe sync
+```
+
+Para forçar no Codespaces:
+
+```text
+Casa da Mulher: sincronizar equipe
+```
 
 ## Links principais
 
-- Repositório principal:
+- Repositorio principal:
   https://github.com/Sistema-Casa-da-Mulher/SISTEMA-CASA-DA-MULHER
 
-- Guia Comece Aqui:
+- Comece Aqui:
   https://github.com/Sistema-Casa-da-Mulher/SISTEMA-CASA-DA-MULHER/blob/main/docs/COMECE-AQUI-EQUIPE.md
 
 - Contas e convites EQP:
   https://github.com/Sistema-Casa-da-Mulher/SISTEMA-CASA-DA-MULHER/blob/main/docs/EQUIPE-E-CONVITES.md
 
-- Guia Codespaces:
+- Codespaces:
   https://github.com/Sistema-Casa-da-Mulher/SISTEMA-CASA-DA-MULHER/blob/main/docs/CODESPACES-PARA-COLABORADORAS.md
 
-- Guia Pull Request:
+- Pull Request:
   https://github.com/Sistema-Casa-da-Mulher/SISTEMA-CASA-DA-MULHER/blob/main/docs/GUIA-RAPIDO-PR.md
 
-- Matriz de permissões:
-  https://github.com/Sistema-Casa-da-Mulher/SISTEMA-CASA-DA-MULHER/blob/main/docs/MATRIZ-PERMISSOES-EQP-ADM.md
-
-## Se você é Allan/mantenedor
-
-1. Abra o projeto na sua IDE.
-2. Execute:
-
-   ```powershell
-   .\casa_da_mulher.cmd equipe
-   ```
-
-3. A Área da Equipe abrirá automaticamente.
-4. Se ainda não tiver EQP, execute:
-
-   ```powershell
-   .\casa_da_mulher.cmd equipe bootstrap
-   ```
-
-5. Use o `EQP-000001` e o código gerado para ativar sua conta.
-
-## Se você já tem fork
-
-1. Abra seu fork no Codespaces.
-2. Rode a task `Casa da Mulher: iniciar sistema`.
-3. Rode a task `Casa da Mulher: abrir área da equipe`.
-4. Clique em `Ativar meu EQP`.
-5. Use o ID e o código enviados pelo mantenedor.
-6. Trabalhe em `prototipos/` e envie Pull Request.
-
-## Se você ainda não tem fork
-
-1. Crie seu fork pelo guia.
-2. Abra Codespaces no seu fork.
-3. Rode `Casa da Mulher: iniciar sistema`.
-4. Rode `Casa da Mulher: abrir área da equipe`.
-5. Clique em `Ativar meu EQP`.
-6. Crie protótipos e envie Pull Request.
-
-## Como ativar meu EQP
-
-1. Peça seu ID EQP e código individual para o mantenedor.
-2. Abra a Área da Equipe no seu ambiente local ou Codespaces.
-3. Clique em `Ativar meu EQP`.
-4. Informe ID, código, nome e senha.
-5. Depois faça login normalmente com o ID EQP e a senha criada.
-
-Importante: não existe uma URL única permanente para a tela real sem uma API central. Em Codespaces, cada pessoa tem sua própria URL temporária.
-
-## Área de protótipos
-
-Protótipos ficam no repositório principal, dentro de:
+## Fonte privada da equipe
 
 ```text
-prototipos/
+data/equipe-db.json
+data/equipe-events.ndjson
+data/equipe-db.example.json
+data/README.md
 ```
 
-Cada pessoa deve trabalhar em:
+O portal grava `equipe-db.json` por commit automatico. Nao edite manualmente sem entender o fluxo.
 
-```text
-prototipos/colaboradores/seu-github/nome-da-tela/
-```
+Os campos privados `email`, `emailRecuperacao` e `emailRecuperacaoConfirmado` permitem reconstruir contas de homologacao sem trocar e-mail real por placeholder. `@equipe.local` e apenas fallback tecnico.
 
-PRs vindos de fork são bloqueados se alterarem arquivos fora de `prototipos/`.
+## Seguranca
 
-## Segurança
-
-- Não publicar código de ativação EQP.
-- Não publicar senha.
-- Não publicar token.
-- Não publicar `appsettings` real.
-- Não publicar dados reais.
-- Usar dados fictícios nos testes e protótipos.
+- Nao use senha pessoal.
+- Nao publique token.
+- Nao publique hash fora deste repositorio privado.
+- Nao publique `appsettings` real.
+- Nao publique dados reais.
+- Use dados ficticios nos testes e prototipos.

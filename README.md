@@ -16,10 +16,21 @@ Para gerar o primeiro owner e convites iniciais:
 .\casa_da_mulher.cmd equipe bootstrap
 ```
 
+O fluxo central de EQP usa o portal Render e o repositório privado `ACESSO-EQUIPE` como fonte versionada. Ao iniciar a API local ou o Codespaces, a equipe é sincronizada automaticamente e atualizada a cada minuto.
+
+Para forçar uma atualização imediata no Windows:
+
+```powershell
+.\casa_da_mulher.cmd equipe sync
+```
+
+No Codespaces, a task `Casa da Mulher: sincronizar equipe` também continua disponível como opção manual.
+
 Guias principais:
 
 - Guia central da equipe: `docs/COMECE-AQUI-EQUIPE.md`
 - Contas e convites EQP: `docs/EQUIPE-E-CONVITES.md`
+- Homologação do portal EQP no Render: `docs/HOMOLOGACAO-PORTAL-EQP-RENDER.md`
 - Codespaces para colaboradoras: `docs/CODESPACES-PARA-COLABORADORAS.md`
 - Enviar Pull Request: `docs/GUIA-RAPIDO-PR.md`
 - Matriz de permissões EQP/ADM: `docs/MATRIZ-PERMISSOES-EQP-ADM.md`

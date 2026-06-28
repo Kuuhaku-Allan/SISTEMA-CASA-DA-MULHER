@@ -1,136 +1,35 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Recep&ccedil;&atilde;o - Casa da Mulher</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=3">
     <style>
-        .recepcao-shell .admin-header,
-        .recepcao-layout {
-            width: min(1240px, 100%);
-        }
-
-        .recepcao-layout {
-            margin: 0 auto;
-            display: grid;
-            gap: 16px;
-        }
-
-        .recepcao-tabs {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-
-        .recepcao-tabs .btn-secondary.active {
-            color: #ffffff;
-            background: var(--color-accent);
-        }
-
         .recepcao-panel {
             display: none;
+            animation: fadeIn 0.25s ease;
         }
 
         .recepcao-panel.active {
-            display: flex;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 12px;
-        }
-
-        .stat-box {
-            min-height: 112px;
-            padding: 18px;
-            border: 1px solid var(--color-border);
-            border-radius: var(--border-radius);
-            background: #f8fbfa;
-        }
-
-        .stat-number {
             display: block;
-            color: var(--color-accent);
-            font-size: 2.2rem;
-            font-weight: 800;
-            line-height: 1;
         }
 
-        .stat-label {
-            display: block;
-            margin-top: 10px;
-            color: var(--color-text-light);
-            font-weight: 700;
-        }
-
-        .recepcao-form-grid {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 16px;
-        }
-
-        .input-group textarea {
-            width: 100%;
-            min-height: 90px;
-            padding: 11px 12px;
-            border: 1px solid #cfd7df;
-            border-radius: 6px;
-            background: #ffffff;
-            color: #1f2933;
-            font: inherit;
-            resize: vertical;
-        }
-
-        .input-group textarea:focus {
-            border-color: var(--color-accent);
-            outline: 3px solid rgba(24, 114, 107, 0.15);
-        }
-
-        .span-2 {
-            grid-column: span 2;
-        }
-
-        .search-row {
-            display: grid;
-            grid-template-columns: 1fr auto auto;
-            gap: 10px;
-            align-items: end;
-        }
-
-        .actions-inline {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-
-        .actions-inline .btn-link,
-        .actions-inline .btn-link-danger {
-            white-space: nowrap;
-        }
-
-        @media (max-width: 760px) {
-            .stats-grid,
-            .recepcao-form-grid,
-            .search-row {
-                grid-template-columns: 1fr;
-            }
-
-            .span-2 {
-                grid-column: auto;
-            }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
         }
     </style>
     <script src="config.js" defer></script>
     <script src="auth.js" defer></script>
-    <script src="app.js" defer></script>
+    <script src="app.js?v=3" defer></script>
     <script defer>
         (function () {
             "use strict";
 
             const STORAGE_KEY = "casamulher_itaqua";
             let patients = [];
+            let usuarioLogado = null;
 
             async function init() {
                 const usuario = await protegerTelaRecepcao();
@@ -139,13 +38,20 @@
                     return;
                 }
 
-                document.getElementById("recepcaoNome").textContent = usuario.nomeCompleto || "-";
-                document.getElementById("recepcaoPerfil").textContent = formatPerfilLocal(usuario.perfil);
+                inicializarSoftSessionCard(usuario);
+                usuarioLogado = usuario;
+
+                const atendidaPorNomeDisplay = document.getElementById("atendidaPorNomeDisplay");
+                const atendidaPorInfoDisplay = document.getElementById("atendidaPorInfoDisplay");
+                if (atendidaPorNomeDisplay && atendidaPorInfoDisplay) {
+                    atendidaPorNomeDisplay.textContent = usuario.nomeCompleto || "Desconhecido";
+                    atendidaPorInfoDisplay.textContent = `${usuario.email} | ID: ${usuario.identificadorFuncionario}`;
+                }
 
                 bindEvents();
                 updateDateTime();
                 setInterval(updateDateTime, 1000);
-                loadData();
+                await loadData();
                 updateDashboard();
                 displayPatients();
             }
@@ -159,7 +65,7 @@
 
                 if (!CasaMulherAuth.podeAcessar("recepcao")) {
                     alert("Voc\u00ea n\u00e3o tem permiss\u00e3o para acessar a recep\u00e7\u00e3o.");
-                    window.location.href = "painel.html";
+                    window.location.href = CasaMulherAuth.getPainelUrl(usuario);
                     return null;
                 }
 
@@ -167,9 +73,8 @@
             }
 
             function bindEvents() {
-                document.getElementById("btnSairRecepcao")?.addEventListener("click", function () {
-                    CasaMulherAuth.logout();
-                });
+                // Eventos do sessionCard foram migrados para o app.js
+                // O btnSairRecepcao também é bindado via inicializarSoftSessionCard
 
                 document.querySelectorAll("[data-tab]").forEach(function (button) {
                     button.addEventListener("click", function () {
@@ -219,13 +124,31 @@
                 document.getElementById("currentTime").textContent = now.toLocaleTimeString("pt-BR");
             }
 
-            function loadData() {
+            async function loadData() {
                 try {
                     const stored = localStorage.getItem(STORAGE_KEY);
                     patients = stored ? JSON.parse(stored) : [];
 
                     if (!Array.isArray(patients)) {
                         patients = [];
+                    }
+
+                    if (patients.length === 0) {
+                        const response = await CasaMulherAuth.apiFetch("/api/homologacao/recepcao-seed");
+                        if (response.ok) {
+                            const seed = await response.json();
+                            patients = Array.isArray(seed) ? seed.map(function (item) {
+                                return Object.assign({}, item, {
+                                    cpfClean: String(item.cpf || "").replace(/\D/g, ""),
+                                    criadoEm: item.criadoEm || new Date().toISOString(),
+                                    atualizadoEm: item.atualizadoEm || new Date().toISOString()
+                                });
+                            }) : [];
+                            if (patients.length > 0) {
+                                saveToLocal();
+                                showMessage("Dados fictícios de homologação carregados.", "info");
+                            }
+                        }
                     }
                 } catch {
                     patients = [];
@@ -320,9 +243,9 @@
                 const telefone = document.getElementById("telefone").value.trim();
                 const dataNascimento = document.getElementById("dataNascimento").value;
                 const curso = document.getElementById("curso").value;
-                const email = document.getElementById("email").value.trim();
+                const emailAssistida = document.getElementById("email").value.trim();
                 const endereco = document.getElementById("endereco").value.trim();
-                const atendido = document.getElementById("atendido").value.trim();
+                const enderecoNumero = document.getElementById("enderecoNumero").value.trim();
                 const observacoes = document.getElementById("observacoes").value.trim();
 
                 if (!validarCPF(cpfClean)) {
@@ -335,7 +258,7 @@
                 });
 
                 if (existingPatient) {
-                    showMessage("J\u00e1 existe um cadastro com este CPF.", "error");
+                    showMessage("Já existe uma mulher atendida com este CPF. O cadastro duplicado foi bloqueado.", "error");
                     return;
                 }
 
@@ -351,9 +274,14 @@
                     telefone,
                     dataNascimento,
                     curso,
-                    email,
+                    emailAssistida: emailAssistida,
+                    email: previous?.email || emailAssistida, // mantém compatibilidade
                     endereco,
-                    atendido,
+                    enderecoNumero,
+                    funcionarioAtendimentoId: usuarioLogado?.identificadorFuncionario || previous?.funcionarioAtendimentoId,
+                    funcionarioAtendimentoNomeSnapshot: usuarioLogado?.nomeCompleto || previous?.funcionarioAtendimentoNomeSnapshot,
+                    funcionarioAtendimentoEmailSnapshot: usuarioLogado?.email || previous?.funcionarioAtendimentoEmailSnapshot,
+                    atendido: previous?.atendido || usuarioLogado?.nomeCompleto, // fallback legado
                     observacoes,
                     criadoEm: previous?.criadoEm || new Date().toISOString(),
                     atualizadoEm: new Date().toISOString()
@@ -389,39 +317,81 @@
                 }
 
                 const term = String(searchTerm || "").trim().toLowerCase();
+                
+                // Remove acentos para a busca
+                const removeAcentos = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                const termSemAcento = removeAcentos(term);
+                
                 const filtered = term
                     ? patients.filter(function (patient) {
-                        return String(patient.nome || "").toLowerCase().includes(term);
+                        const termSomenteDigitos = term.replace(/\D/g, "");
+                        const temLetras = /[a-z]/i.test(termSemAcento);
+                        
+                        // Busca Parcial ou Exata por CPF/Telefone
+                        if (!temLetras && termSomenteDigitos.length >= 3) {
+                            // Se for CPF completo válido, checa exato
+                            if (termSomenteDigitos.length === 11 && validarCPF(termSomenteDigitos)) {
+                                if (patient.cpfClean === termSomenteDigitos) return true;
+                            }
+                            
+                            // Busca parcial em CPF ou Telefone
+                            const cpfStr = String(patient.cpfClean || "").replace(/\D/g, "");
+                            const telStr = String(patient.telefone || "").replace(/\D/g, "");
+                            if (cpfStr.includes(termSomenteDigitos) || telStr.includes(termSomenteDigitos)) {
+                                return true;
+                            }
+                        } else if (!temLetras && termSomenteDigitos.length > 0 && termSomenteDigitos.length < 3) {
+                            // Omitir busca numérica muito curta para não explodir resultados
+                            return false;
+                        }
+                        
+                        // Busca por Nome
+                        const patientName = removeAcentos(String(patient.nome || "").toLowerCase());
+                        return patientName.includes(termSemAcento);
                     })
                     : patients;
 
                 if (filtered.length === 0) {
-                    tbody.innerHTML = "<tr><td colspan=\"7\">Nenhum acolhimento encontrado.</td></tr>";
+                    tbody.innerHTML = "<div class=\"soft-empty-state\">Nenhum acolhimento encontrado.</div>";
                     return;
                 }
 
                 tbody.innerHTML = filtered.map(function (patient) {
+                    const emailExibir = patient.emailAssistida || patient.email;
+                    const atendenteExibir = patient.funcionarioAtendimentoNomeSnapshot || patient.atendido || "-";
+                    const funcionarioEmail = patient.funcionarioAtendimentoEmailSnapshot || "";
+                    
+                    let enderecoExibir = "Não informado";
+                    if (patient.endereco) {
+                        enderecoExibir = patient.endereco;
+                        if (patient.enderecoNumero) {
+                            enderecoExibir += `, ${patient.enderecoNumero}`;
+                        }
+                    }
+
+                    // Mascarar CPF: 123.456.789-00 vira ***.456.789-** ou similar.
+                    let cpfMascarado = "---";
+                    if (patient.cpfClean && patient.cpfClean.length === 11) {
+                        cpfMascarado = "***." + patient.cpfClean.substring(3, 6) + "." + patient.cpfClean.substring(6, 9) + "-**";
+                    }
+
                     return `
-                        <tr>
-                            <td>
-                                <strong>${escapeHtmlValue(patient.nome)}</strong>
-                                ${patient.email ? `<br><small>${escapeHtmlValue(patient.email)}</small>` : ""}
-                            </td>
-                            <td>${escapeHtmlValue(patient.cpf || "---")}</td>
-                            <td>${escapeHtmlValue(patient.telefone || "-")}</td>
-                            <td>${escapeHtmlValue(formatDateLocal(patient.dataNascimento))}</td>
-                            <td>${escapeHtmlValue(patient.curso || "A definir")}</td>
-                            <td>
-                                ${escapeHtmlValue(patient.atendido || "-")}
-                                ${patient.endereco ? `<br><small>${escapeHtmlValue(patient.endereco)}</small>` : ""}
-                            </td>
-                            <td>
-                                <div class="actions-inline">
-                                    <button type="button" class="btn-link" data-action="edit" data-id="${patient.id}">Editar</button>
-                                    <button type="button" class="btn-link-danger" data-action="delete" data-id="${patient.id}">Remover</button>
-                                </div>
-                            </td>
-                        </tr>
+                        <div class="entity-card">
+                            <div class="entity-title">${escapeHtmlValue(patient.nome)}</div>
+                            <div class="entity-info">CPF: ${escapeHtmlValue(cpfMascarado)}</div>
+                            <div class="entity-info">Telefone: ${escapeHtmlValue(patient.telefone || "-")}</div>
+                            <div class="entity-info">Nascimento: ${escapeHtmlValue(formatDateLocal(patient.dataNascimento))}</div>
+                            <div class="entity-info">Endereço: ${escapeHtmlValue(enderecoExibir)}</div>
+                            <div class="entity-info">Curso: ${escapeHtmlValue(patient.curso || "A definir")}</div>
+                            ${emailExibir ? `<div class="entity-info">E-mail: ${escapeHtmlValue(emailExibir)}</div>` : ""}
+                            <div class="entity-info">Atendida por: ${escapeHtmlValue(atendenteExibir)}</div>
+                            ${funcionarioEmail ? `<div class="entity-info">E-mail institucional: ${escapeHtmlValue(funcionarioEmail)}</div>` : ""}
+                            
+                            <div class="entity-actions">
+                                <button type="button" class="soft-btn soft-btn-warning" data-action="edit" data-id="${patient.id}">Editar</button>
+                                <button type="button" class="soft-btn soft-btn-danger" data-action="delete" data-id="${patient.id}">Remover</button>
+                            </div>
+                        </div>
                     `;
                 }).join("");
             }
@@ -441,9 +411,9 @@
                 document.getElementById("telefone").value = patient.telefone || "";
                 document.getElementById("dataNascimento").value = patient.dataNascimento || "";
                 document.getElementById("curso").value = patient.curso || "";
-                document.getElementById("email").value = patient.email || "";
+                document.getElementById("email").value = patient.emailAssistida || patient.email || "";
                 document.getElementById("endereco").value = patient.endereco || "";
-                document.getElementById("atendido").value = patient.atendido || "";
+                document.getElementById("enderecoNumero").value = patient.enderecoNumero || "";
                 document.getElementById("observacoes").value = patient.observacoes || "";
 
                 document.getElementById("formTitle").textContent = "Editar acolhimento";
@@ -568,166 +538,155 @@
         })();
     </script>
 </head>
-<body>
-    <main id="recepcaoPage" class="admin-shell recepcao-shell">
-        <header class="admin-header">
+<body class="soft-page">
+    <main id="recepcaoPage" style="max-width: 1400px; margin: 0 auto; padding: 24px 20px;">
+        <header class="soft-header">
             <div>
-                <img src="IMAGENS/logo_oficial.png" alt="Logo Casa da Mulher" class="logo-admin">
-                <div>
-                    <h1>Recep&ccedil;&atilde;o</h1>
-                    <p><span id="recepcaoNome">-</span> &middot; <span id="recepcaoPerfil">-</span></p>
-                </div>
+                <h1 class="soft-header-title">Casa da Mulher de Itaquaquecetuba</h1>
+                <p class="soft-header-subtitle">Recep&ccedil;&atilde;o</p>
             </div>
-            <div class="header-actions">
-                <a class="btn-secondary btn-compact button-link" href="painel.html">Voltar</a>
-                <button type="button" id="btnSairRecepcao" class="btn-secondary btn-compact">Sair</button>
+            
+            <div class="soft-session-card" id="sessionCard">
+                <div class="soft-clock session-trigger" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false" id="sessionTrigger">
+                    <div id="currentDate"></div>
+                    <div id="currentTime"></div>
+                </div>
+                
+                <div class="session-dropdown" id="sessionDropdown">
+                    <div class="session-user-name" id="sessionUserName">-</div>
+                    <div class="session-user-role" id="sessionUserRole">-</div>
+                    <div class="session-user-meta" id="sessionUserEmail">-</div>
+                    <div class="session-user-meta" style="margin-top: 4px;">ID: <span id="sessionUserId">-</span></div>
+                    
+                    <div class="session-actions">
+                        <a class="soft-btn soft-btn-warning" href="painel.html" data-painel-link style="text-decoration:none; flex: 1; justify-content: center;">Voltar</a>
+                        <button type="button" id="btnSairRecepcao" class="soft-btn soft-btn-danger" style="flex: 1; justify-content: center;">Sair</button>
+                    </div>
+                </div>
             </div>
         </header>
 
         <section class="recepcao-layout">
-            <section class="admin-panel">
-                <div class="table-heading">
-                    <div>
-                        <h2>Acolhimentos</h2>
-                        <p class="section-intro">Registro inicial da recep&ccedil;&atilde;o.</p>
-                    </div>
-                    <div>
-                        <div id="currentDate" class="muted"></div>
-                        <strong id="currentTime"></strong>
-                    </div>
-                </div>
+            <div class="soft-tabs" aria-label="Se&ccedil;&otilde;es da recep&ccedil;&atilde;o">
+                <button type="button" class="soft-tab active" data-tab="dashboard">Painel de Apoio</button>
+                <button type="button" class="soft-tab" data-tab="patients">Mulheres atendidas</button>
+                <button type="button" class="soft-tab" data-tab="register">Novo acolhimento</button>
+            </div>
 
-                <div class="recepcao-tabs" aria-label="Se&ccedil;&otilde;es da recep&ccedil;&atilde;o">
-                    <button type="button" class="btn-secondary btn-compact active" data-tab="dashboard">Painel</button>
-                    <button type="button" class="btn-secondary btn-compact" data-tab="patients">Mulheres atendidas</button>
-                    <button type="button" class="btn-secondary btn-compact" data-tab="register">Novo acolhimento</button>
-                </div>
+            <div id="mensagemRecepcao" aria-live="polite"></div>
 
-                <div id="mensagemRecepcao" class="message" aria-live="polite"></div>
-            </section>
-
-            <section class="admin-panel recepcao-panel active" data-panel="dashboard">
-                <div class="table-heading">
-                    <h2>Indicadores</h2>
-                </div>
-
-                <div class="stats-grid">
-                    <div class="stat-box">
-                        <span id="totalPatients" class="stat-number">0</span>
-                        <span class="stat-label">Mulheres acolhidas</span>
-                    </div>
-                    <div class="stat-box">
-                        <span id="totalCourses" class="stat-number">0</span>
-                        <span class="stat-label">Com curso/oficina</span>
-                    </div>
-                    <div class="stat-box">
-                        <span id="activeEnrollments" class="stat-number">0</span>
-                        <span class="stat-label">Cursos diferentes</span>
+            <section class="recepcao-panel active" data-panel="dashboard">
+                <div class="soft-card" style="width: 100%;">
+                    <h2 class="soft-card-title">Indicadores</h2>
+                    <div class="soft-stat-grid">
+                        <div class="soft-stat-card">
+                            <span id="totalPatients" class="stat-number">0</span>
+                            <span class="stat-label">Mulheres acolhidas</span>
+                        </div>
+                        <div class="soft-stat-card">
+                            <span id="totalCourses" class="stat-number">0</span>
+                            <span class="stat-label">Com curso/oficina</span>
+                        </div>
+                        <div class="soft-stat-card">
+                            <span id="activeEnrollments" class="stat-number">0</span>
+                            <span class="stat-label">Cursos diferentes</span>
+                        </div>
                     </div>
                 </div>
             </section>
 
-            <section class="admin-panel table-panel recepcao-panel" data-panel="patients">
-                <div class="table-heading">
-                    <h2>Mulheres atendidas</h2>
-                </div>
-
-                <div class="search-row">
-                    <div class="input-group">
-                        <label for="searchPatient">Buscar por nome</label>
-                        <input type="text" id="searchPatient" placeholder="Digite o nome">
+            <section class="recepcao-panel" data-panel="patients">
+                <div class="soft-card" style="width: 100%;">
+                    <h2 class="soft-card-title">Mulheres atendidas</h2>
+                    
+                    <div style="display: flex; gap: 12px; margin-bottom: 28px; flex-wrap: wrap;">
+                        <input type="text" id="searchPatient" class="soft-input" placeholder="Buscar por nome, CPF ou telefone" style="flex: 1; background: #FFFBFD;">
+                        <button type="button" id="btnBuscarPaciente" class="soft-btn soft-btn-primary">Buscar</button>
+                        <button type="button" id="btnMostrarTodas" class="soft-btn soft-btn-warning">Mostrar todas</button>
                     </div>
-                    <button type="button" id="btnBuscarPaciente" class="btn-primary btn-compact">Buscar</button>
-                    <button type="button" id="btnMostrarTodas" class="btn-secondary btn-compact">Mostrar todas</button>
-                </div>
 
-                <div class="table-wrap">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Nome</th>
-                                <th>CPF</th>
-                                <th>Telefone</th>
-                                <th>Nascimento</th>
-                                <th>Curso/Oficina</th>
-                                <th>Atendimento</th>
-                                <th>A&ccedil;&otilde;es</th>
-                            </tr>
-                        </thead>
-                        <tbody id="patientsList"></tbody>
-                    </table>
+                    <div id="patientsList" class="entity-grid"></div>
                 </div>
             </section>
 
-            <section class="admin-panel recepcao-panel" data-panel="register">
-                <div class="table-heading">
-                    <h2 id="formTitle">Novo acolhimento</h2>
+            <section class="recepcao-panel" data-panel="register">
+                <div class="soft-card" style="width: 100%;">
+                    <h2 id="formTitle" class="soft-card-title">Novo acolhimento</h2>
+
+                    <form id="patientForm">
+                        <input type="hidden" id="patientId">
+
+                        <div class="soft-form-row">
+                            <div class="soft-form-group">
+                                <label for="nome">Nome completo *</label>
+                                <input type="text" id="nome" class="soft-input" autocomplete="name" placeholder="Ex: Ana Maria da Silva" required>
+                            </div>
+                            <div class="soft-form-group">
+                                <label for="cpf">CPF *</label>
+                                <input type="text" id="cpf" class="soft-input" inputmode="numeric" placeholder="000.000.000-00" required>
+                            </div>
+                        </div>
+
+                        <div class="soft-form-row">
+                            <div class="soft-form-group">
+                                <label for="telefone">Telefone *</label>
+                                <input type="tel" id="telefone" class="soft-input" autocomplete="tel" placeholder="(11) 99999-9999" required>
+                            </div>
+                            <div class="soft-form-group">
+                                <label for="dataNascimento">Data de nascimento *</label>
+                                <input type="date" id="dataNascimento" class="soft-input" required>
+                            </div>
+                        </div>
+
+                        <div class="soft-form-row">
+                            <div class="soft-form-group">
+                                <label for="endereco">Endere&ccedil;o</label>
+                                <input type="text" id="endereco" class="soft-input" autocomplete="street-address" placeholder="Rua, Bairro - Itaquá">
+                            </div>
+                            <div class="soft-form-group">
+                                <label for="enderecoNumero">N&ordm; / Complemento</label>
+                                <input type="text" id="enderecoNumero" class="soft-input" placeholder="Ex: 123, S/N, Apto...">
+                            </div>
+                        </div>
+
+                        <div class="soft-form-row">
+                            <div class="responsavel-card">
+                                <div class="responsavel-title">Respons&aacute;vel pelo atendimento</div>
+                                <div class="responsavel-name" id="atendidaPorNomeDisplay">-</div>
+                                <div class="responsavel-meta" id="atendidaPorInfoDisplay">-</div>
+                            </div>
+                            <div class="soft-form-group">
+                                <label for="curso">Curso / oficina</label>
+                                <select id="curso" class="soft-input">
+                                    <option value="">A definir</option>
+                                    <option value="Informatica">Inform&aacute;tica e Inclus&atilde;o Digital</option>
+                                    <option value="Culinaria">Culin&aacute;ria e Autonomia</option>
+                                    <option value="Estetica">Est&eacute;tica e Autoestima</option>
+                                    <option value="Primeiros Socorros">Primeiros Socorros</option>
+                                    <option value="Danca">Dan&ccedil;a Circular</option>
+                                    <option value="Pilates">Pilates e Bem-estar</option>
+                                    <option value="Empoderamento">Empoderamento Feminino</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="soft-form-row">
+                            <div class="soft-form-group">
+                                <label for="email">E-mail da assistida &mdash; opcional</label>
+                                <input type="email" id="email" class="soft-input" autocomplete="email" placeholder="exemplo@email.com (opcional)">
+                            </div>
+                            <div class="soft-form-group">
+                                <label for="observacoes">Observa&ccedil;&otilde;es</label>
+                                <textarea id="observacoes" class="soft-input" style="min-height: 50px;"></textarea>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; gap: 15px; justify-content: flex-end; margin-top: 18px;">
+                            <button type="button" id="btnLimparFormulario" class="soft-btn soft-btn-warning">Limpar campos</button>
+                            <button type="submit" class="soft-btn soft-btn-primary"><span id="submitLabel">Salvar acolhimento</span></button>
+                        </div>
+                    </form>
                 </div>
-
-                <form id="patientForm" class="auth-form">
-                    <input type="hidden" id="patientId">
-
-                    <div class="recepcao-form-grid">
-                        <div class="input-group">
-                            <label for="nome">Nome completo *</label>
-                            <input type="text" id="nome" autocomplete="name" required>
-                        </div>
-
-                        <div class="input-group">
-                            <label for="cpf">CPF *</label>
-                            <input type="text" id="cpf" inputmode="numeric" placeholder="000.000.000-00" required>
-                        </div>
-
-                        <div class="input-group">
-                            <label for="telefone">Telefone *</label>
-                            <input type="tel" id="telefone" autocomplete="tel" placeholder="(11) 99999-9999" required>
-                        </div>
-
-                        <div class="input-group">
-                            <label for="dataNascimento">Data de nascimento *</label>
-                            <input type="date" id="dataNascimento" required>
-                        </div>
-
-                        <div class="input-group">
-                            <label for="endereco">Endere&ccedil;o</label>
-                            <input type="text" id="endereco" autocomplete="street-address">
-                        </div>
-
-                        <div class="input-group">
-                            <label for="atendido">Atendida por</label>
-                            <input type="text" id="atendido">
-                        </div>
-
-                        <div class="input-group">
-                            <label for="curso">Curso / oficina</label>
-                            <select id="curso">
-                                <option value="">A definir</option>
-                                <option value="Informatica">Inform&aacute;tica e Inclus&atilde;o Digital</option>
-                                <option value="Culinaria">Culin&aacute;ria e Autonomia</option>
-                                <option value="Estetica">Est&eacute;tica e Autoestima</option>
-                                <option value="Primeiros Socorros">Primeiros Socorros</option>
-                                <option value="Danca">Dan&ccedil;a Circular</option>
-                                <option value="Pilates">Pilates e Bem-estar</option>
-                                <option value="Empoderamento">Empoderamento Feminino</option>
-                            </select>
-                        </div>
-
-                        <div class="input-group">
-                            <label for="email">E-mail</label>
-                            <input type="email" id="email" autocomplete="email">
-                        </div>
-
-                        <div class="input-group span-2">
-                            <label for="observacoes">Observa&ccedil;&otilde;es</label>
-                            <textarea id="observacoes"></textarea>
-                        </div>
-                    </div>
-
-                    <div class="action-row">
-                        <button type="button" id="btnLimparFormulario" class="btn-secondary">Limpar campos</button>
-                        <button type="submit" class="btn-primary"><span id="submitLabel">Salvar acolhimento</span></button>
-                    </div>
-                </form>
             </section>
         </section>
     </main>

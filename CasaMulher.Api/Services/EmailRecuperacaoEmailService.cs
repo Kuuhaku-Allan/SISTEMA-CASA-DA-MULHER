@@ -112,6 +112,9 @@ public class EmailRecuperacaoEmailService : IEmailRecuperacaoEmailService
         var link = WebUtility.HtmlEncode(linkConfirmacao);
 
         return $"""
+            <div style="text-align: center; margin-bottom: 24px;">
+                <img src="https://files.catbox.moe/ovf0uf.png" alt="Casa da Mulher de Itaquaquecetuba" style="height: 80px; width: auto;" />
+            </div>
             <p>Olá, {nome}.</p>
             <p>Foi solicitado o cadastro deste e-mail como e-mail de recuperação no Sistema Casa da Mulher.</p>
             <p>Depois de confirmado, ele poderá ser usado em fluxos futuros de recuperação de acesso.</p>

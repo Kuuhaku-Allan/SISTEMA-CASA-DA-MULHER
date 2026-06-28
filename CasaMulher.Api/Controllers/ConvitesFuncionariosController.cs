@@ -113,6 +113,18 @@ public class ConvitesFuncionariosController : ControllerBase
             return BadRequest(new { mensagem = "Perfil inválido para convite." });
         }
 
+        if (perfil == "professor")
+        {
+            if (string.IsNullOrWhiteSpace(request.ProfessorCurso))
+            {
+                return BadRequest(new { mensagem = "O curso/interesse vinculado é obrigatório para professores." });
+            }
+        }
+        else
+        {
+            request.ProfessorCurso = null; // Ignora se não for professor
+        }
+
         var usuarioExistente = await _userManager.FindByEmailAsync(email);
 
         if (usuarioExistente is not null)
@@ -132,6 +144,7 @@ public class ConvitesFuncionariosController : ControllerBase
             NomeCompleto = nomeCompleto,
             Email = email,
             Perfil = perfil,
+            ProfessorCurso = request.ProfessorCurso?.Trim(),
             IdentificadorFuncionario = identificadorFuncionario,
             CodigoHash = _codigoService.GerarHash(codigoCadastro),
             ExpiraEm = DateTime.UtcNow.AddDays(request.DiasParaExpirar)
@@ -284,6 +297,7 @@ public class ConvitesFuncionariosController : ControllerBase
             NomeCompleto = convite.NomeCompleto,
             Email = convite.Email,
             Perfil = convite.Perfil,
+            ProfessorCurso = convite.ProfessorCurso,
             IdentificadorFuncionario = convite.IdentificadorFuncionario,
             Status = ObterStatus(convite, agora),
             CriadoEm = convite.CriadoEm,
@@ -400,6 +414,9 @@ public class ConvitesFuncionariosController : ControllerBase
         var link = WebUtility.HtmlEncode(linkCadastro);
 
         return $"""
+            <div style="text-align: center; margin-bottom: 24px;">
+                <img src="https://files.catbox.moe/ovf0uf.png" alt="Casa da Mulher de Itaquaquecetuba" style="height: 80px; width: auto;" />
+            </div>
             <p>Olá, {nome}.</p>
             <p>Você recebeu um convite para criar seu acesso ao Sistema Casa da Mulher de Itaquaquecetuba.</p>
             <p>Seu ID de funcionário será:</p>

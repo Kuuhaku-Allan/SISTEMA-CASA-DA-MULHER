@@ -8,6 +8,7 @@ obj/
 .runtime/
 
 CasaMulher.Api/casamulher.db*
+CasaMulher.Api/test_*.db*
 CasaMulher.Api/DataProtectionKeys/
 projetocasadamulher/telas/dev-status.json
 

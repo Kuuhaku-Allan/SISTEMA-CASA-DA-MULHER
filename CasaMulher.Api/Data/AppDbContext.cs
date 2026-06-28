@@ -28,6 +28,14 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
 
     public DbSet<PasskeyReconfirmacao> PasskeyReconfirmacoes => Set<PasskeyReconfirmacao>();
 
+    public DbSet<UserLoginIdentifier> UserLoginIdentifiers => Set<UserLoginIdentifier>();
+
+    public DbSet<RecuperacaoSegurancaToken> RecuperacaoSegurancaTokens => Set<RecuperacaoSegurancaToken>();
+
+    public DbSet<GitHubOAuthState> GitHubOAuthStates => Set<GitHubOAuthState>();
+
+    public DbSet<GitHubUsuarioVinculo> GitHubUsuarioVinculos => Set<GitHubUsuarioVinculo>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -51,6 +59,33 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
 
             entity.Property(user => user.EmailRecuperacao)
                 .HasMaxLength(256);
+        });
+
+        builder.Entity<UserLoginIdentifier>(entity =>
+        {
+            entity.ToTable("UserLoginIdentifiers");
+
+            entity.HasIndex(identifier => identifier.Identificador)
+                .IsUnique();
+
+            entity.HasIndex(identifier => identifier.UserId);
+
+            entity.Property(identifier => identifier.UserId)
+                .HasMaxLength(80)
+                .IsRequired();
+
+            entity.Property(identifier => identifier.Identificador)
+                .HasMaxLength(20)
+                .IsRequired();
+
+            entity.Property(identifier => identifier.Tipo)
+                .HasMaxLength(20)
+                .IsRequired();
+
+            entity.HasOne(identifier => identifier.User)
+                .WithMany(user => user.LoginIdentifiers)
+                .HasForeignKey(identifier => identifier.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         builder.Entity<FuncionarioConvite>(entity =>
@@ -205,6 +240,8 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             entity.Property(evento => evento.IdentificadorFuncionario).HasMaxLength(20);
             entity.Property(evento => evento.NomeFuncionario).HasMaxLength(160);
             entity.Property(evento => evento.PerfilFuncionario).HasMaxLength(40);
+            entity.Property(evento => evento.Escopo).HasMaxLength(20).IsRequired();
+            entity.HasIndex(evento => evento.Escopo);
             entity.Property(evento => evento.Acao).HasMaxLength(80).IsRequired();
             entity.Property(evento => evento.Entidade).HasMaxLength(80).IsRequired();
             entity.Property(evento => evento.EntidadeId).HasMaxLength(80);
@@ -246,6 +283,16 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             entity.Property(c => c.Transports)
                 .HasMaxLength(200);
 
+            entity.Property(c => c.RpId)
+                .HasMaxLength(253)
+                .IsRequired();
+
+            entity.Property(c => c.Origin)
+                .HasMaxLength(253);
+
+            entity.Property(c => c.CreatedEnvironment)
+                .HasMaxLength(40);
+
             entity.HasOne(c => c.User)
                 .WithMany(u => u.PasskeyCredentials)
                 .HasForeignKey(c => c.UserId)
@@ -270,6 +317,12 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             entity.Property(c => c.UserId)
                 .HasMaxLength(80);
 
+            entity.Property(c => c.ContextoPerfil)
+                .HasMaxLength(20);
+
+            entity.Property(c => c.ContextoIdentificador)
+                .HasMaxLength(20);
+
             entity.Property(c => c.OptionsJson)
                 .IsRequired();
         });
@@ -288,6 +341,17 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             entity.Property(r => r.UserId)
                 .HasMaxLength(80)
                 .IsRequired();
+        });
+        builder.Entity<RecuperacaoSegurancaToken>(entity =>
+        {
+            entity.ToTable("RecuperacaoSegurancaTokens");
+            entity.HasIndex(t => t.TokenHash).IsUnique();
+            entity.HasIndex(t => t.FuncionarioId);
+            entity.HasIndex(t => t.ExpiraEm);
+
+            entity.Property(t => t.TokenHash).IsRequired().HasMaxLength(256);
+            entity.Property(t => t.Tipo).IsRequired().HasMaxLength(50);
+            entity.Property(t => t.EmailDestino).HasMaxLength(256);
         });
     }
 }

@@ -12,6 +12,8 @@ public class AuthResponse
 
     public string Perfil { get; set; } = string.Empty;
 
+    public string? ProfessorCurso { get; set; }
+
     public string IdentificadorFuncionario { get; set; } = string.Empty;
 
     public bool RequerDoisFatores { get; set; }
@@ -23,4 +25,6 @@ public class AuthResponse
     public bool DoisFatoresAtivado { get; set; }
 
     public bool DeveTrocarSenha { get; set; }
+
+    public bool SecuritySetupRequired { get; set; }
 }

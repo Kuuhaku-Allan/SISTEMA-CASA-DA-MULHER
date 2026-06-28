@@ -1,0 +1,666 @@
+/* ==========================================================================
+   IDE DA EQUIPE - APP SHELL (FASE 1)
+   ========================================================================== */
+
+:root {
+    --ide-bg: #f8eef4;
+    --ide-surface: rgba(255, 250, 253, 0.98);
+    --ide-surface-strong: #fff7fb;
+    --ide-border: #efd3df;
+    --ide-accent: #8B5A96;
+    --ide-accent-strong: #6B4C73;
+    --ide-accent-soft: #f3d8e4;
+    --ide-text: #26313d;
+    --ide-muted: #8b6f7f;
+    --ide-editor-bg: #282a36; /* Dracula bg */
+    --ide-editor-border: #3a3d4d;
+    --ide-status: #4b2136;
+}
+
+body.ide-page-body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', sans-serif;
+    background-color: var(--ide-bg);
+    color: var(--ide-text);
+}
+
+.ide-app-shell {
+    height: 100vh;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* Mantém o shell sem scroll global */
+}
+
+/* --------------------------------------------------------------------------
+   TOPBAR
+   -------------------------------------------------------------------------- */
+.ide-topbar {
+    height: 48px;
+    background: #ffffff;
+    border-bottom: 1px solid var(--ide-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px 0 0;
+    flex-shrink: 0;
+    box-shadow: 0 2px 4px rgba(139, 90, 150, 0.05);
+}
+
+.ide-topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.ide-brand-container {
+    width: 52px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.ide-brand-mark {
+    width: 36px;
+    height: 36px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.ide-title-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ide-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--ide-accent-strong);
+    margin: 0;
+}
+
+.ide-subtitle {
+    font-size: 0.8rem;
+    color: var(--ide-muted);
+    margin: 0;
+    display: none; /* Só mostra em telas grandes */
+}
+
+.ide-pill {
+    background: var(--ide-accent-soft);
+    color: var(--ide-accent-strong);
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.ide-pill.warning {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.ide-topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Compact Session Card */
+.ide-session-wrapper {
+    position: relative;
+}
+
+.ide-session-btn {
+    background: var(--ide-surface-strong);
+    border: 1px solid var(--ide-border);
+    border-radius: 6px;
+    padding: 4px 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: var(--ide-text);
+}
+
+.ide-session-btn:hover {
+    background: var(--ide-accent-soft);
+}
+
+.ide-session-avatar {
+    width: 24px;
+    height: 24px;
+    background: var(--ide-accent);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 0.75rem;
+}
+
+.ide-session-info {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+}
+
+.ide-session-name {
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.ide-session-role {
+    font-size: 0.7rem;
+    color: var(--ide-muted);
+}
+
+.ide-session-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 4px;
+    background: white;
+    border: 1px solid var(--ide-border);
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    min-width: 200px;
+    z-index: 1000;
+}
+
+.ide-session-dropdown-header {
+    padding: 12px;
+    border-bottom: 1px solid var(--ide-border);
+    font-size: 0.8rem;
+    color: var(--ide-muted);
+}
+
+.ide-session-dropdown-actions {
+    padding: 8px;
+}
+
+.ide-session-logout {
+    width: 100%;
+    text-align: left;
+    padding: 8px 12px;
+    background: transparent;
+    border: none;
+    color: #e74c3c;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.ide-session-logout:hover {
+    background: #fdf3f2;
+}
+
+/* --------------------------------------------------------------------------
+   WORKSPACE (Activity Bar, Sidebar, Editor, Preview)
+   -------------------------------------------------------------------------- */
+.ide-workspace {
+    flex: 1;
+    display: grid;
+    /* Grid padrão para desktop */
+    grid-template-columns: 52px 280px minmax(420px, 1fr) minmax(360px, 42%);
+    gap: 0;
+    min-height: 0;
+}
+
+/* ACTIVITY BAR */
+.ide-activitybar {
+    background: var(--ide-surface-strong);
+    border-right: 1px solid var(--ide-border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 8px;
+    gap: 12px;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.ide-activity-icon {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ide-muted);
+    border-radius: 6px;
+    cursor: pointer;
+    background: transparent;
+    border: none;
+    transition: all 0.2s;
+}
+
+.ide-activity-icon:hover {
+    color: var(--ide-accent);
+}
+
+.ide-activity-icon.active {
+    color: var(--ide-accent-strong);
+    border-left: 2px solid var(--ide-accent);
+    border-radius: 0 6px 6px 0;
+    background: var(--ide-accent-soft);
+}
+
+/* SIDEBAR (EXPLORER) */
+.ide-sidebar {
+    background: var(--ide-surface);
+    border-right: 1px solid var(--ide-border);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.ide-sidebar-header {
+    padding: 12px 16px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--ide-muted);
+    border-bottom: 1px solid var(--ide-border);
+}
+
+.ide-sidebar-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 0;
+}
+
+.ide-accordion-section {
+    margin-bottom: 16px;
+}
+
+.ide-accordion-title {
+    padding: 4px 16px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--ide-accent-strong);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.ide-file-item, .ide-template-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 16px 6px 32px;
+    font-size: 0.85rem;
+    color: var(--ide-text);
+    cursor: pointer;
+    background: transparent;
+    border: none;
+    width: 100%;
+    text-align: left;
+    transition: background 0.1s;
+}
+
+.ide-template-item {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 8px 12px;
+    gap: 4px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+}
+
+.ide-template-item strong {
+    font-size: 0.8rem;
+    color: var(--ide-accent-strong);
+}
+
+.ide-template-item span {
+    font-size: 0.7rem;
+    color: var(--ide-muted);
+}
+
+.ide-file-item:hover, .ide-template-item:hover {
+    background: var(--ide-accent-soft);
+}
+
+.ide-file-item.active {
+    background: var(--ide-accent-soft);
+    color: var(--ide-accent-strong);
+    font-weight: 500;
+    border-left: 3px solid var(--ide-accent);
+    padding-left: 29px;
+}
+
+.ide-sidebar-actions-panel {
+    padding: 16px;
+    border-top: 1px solid var(--ide-border);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* EDITOR AREA */
+.ide-main-editor {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: var(--ide-editor-bg);
+}
+
+.ide-editor-tabs {
+    display: flex;
+    background: #1e1f29; /* Escuro do dracula top */
+    overflow-x: auto;
+}
+
+.ide-tab {
+    padding: 10px 16px;
+    background: #1e1f29;
+    color: #8b92a5;
+    border: none;
+    font-size: 0.85rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-top: 2px solid transparent;
+}
+
+.ide-tab.active {
+    background: var(--ide-editor-bg);
+    color: #f8f8f2;
+    border-top: 2px solid var(--ide-accent);
+}
+
+.ide-tab:hover:not(.active) {
+    background: #282a36;
+}
+
+.ide-editor-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 16px;
+    background: var(--ide-editor-bg);
+    border-bottom: 1px solid var(--ide-editor-border);
+}
+
+.ide-editor-path {
+    color: #f8f8f2;
+    font-size: 0.85rem;
+}
+
+.ide-editor-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.ide-editor-container {
+    flex: 1;
+    min-height: 0;
+    position: relative;
+    background: var(--ide-editor-bg);
+}
+
+.ide-editor-container textarea {
+    width: 100%;
+    height: 100%;
+    border: none;
+    padding: 16px;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 14px;
+    resize: none;
+    outline: none;
+    background-color: var(--ide-editor-bg);
+    color: #f8f8f2;
+    line-height: 1.5;
+}
+
+.ide-editor-container .CodeMirror {
+    height: 100% !important;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 14px;
+}
+
+/* PREVIEW AREA */
+.ide-preview-panel {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: #ffffff;
+    border-left: 1px solid var(--ide-border);
+}
+
+.ide-preview-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 16px;
+    background: var(--ide-surface-strong);
+    border-bottom: 1px solid var(--ide-border);
+}
+
+.ide-preview-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--ide-accent-strong);
+}
+
+.ide-preview-container {
+    flex: 1;
+    min-height: 0;
+    padding: 16px;
+    background: #f1f5f9;
+    display: flex;
+    flex-direction: column;
+}
+
+.ide-preview-frame {
+    width: 100%;
+    flex: 1;
+    border: 1px solid var(--ide-border);
+    border-radius: 8px;
+    background: #ffffff;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.ide-preview-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--ide-muted);
+    text-align: center;
+    gap: 12px;
+}
+
+/* --------------------------------------------------------------------------
+   STATUS BAR
+   -------------------------------------------------------------------------- */
+.ide-statusbar {
+    height: 28px;
+    background: var(--ide-status);
+    color: #e2d1da;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    font-size: 0.75rem;
+    flex-shrink: 0;
+}
+
+.ide-statusbar-section {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.ide-statusbar-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.ide-statusbar-item.success {
+    color: #a7f3d0;
+}
+
+.ide-statusbar-item.warning {
+    color: #fde68a;
+}
+
+/* --------------------------------------------------------------------------
+   BUTTONS (IDE Custom)
+   -------------------------------------------------------------------------- */
+.ide-button {
+    border: none;
+    border-radius: 4px;
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+}
+
+.ide-button.primary {
+    background: var(--ide-accent);
+    color: white;
+}
+.ide-button.primary:hover {
+    background: var(--ide-accent-strong);
+}
+
+.ide-button.secondary {
+    background: white;
+    color: var(--ide-accent-strong);
+    border: 1px solid var(--ide-border);
+}
+.ide-button.secondary:hover {
+    background: var(--ide-accent-soft);
+}
+
+.ide-button.ghost {
+    background: transparent;
+    color: var(--ide-muted);
+}
+.ide-button.ghost:hover {
+    background: var(--ide-accent-soft);
+    color: var(--ide-accent-strong);
+}
+
+.ide-button.danger {
+    background: transparent;
+    color: #e74c3c;
+    border: 1px solid #fadbd8;
+}
+.ide-button.danger:hover {
+    background: #e74c3c;
+    color: white;
+}
+
+/* --------------------------------------------------------------------------
+   MODAL / DRAWER
+   -------------------------------------------------------------------------- */
+.ide-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(45, 20, 35, 0.42);
+    backdrop-filter: blur(8px);
+}
+.ide-modal-overlay.hidden {
+    display: none !important;
+}
+.ide-modal-overlay.is-open {
+    display: flex;
+}
+
+.ide-modal-content {
+    background: white;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 600px;
+    max-height: calc(100vh - 80px);
+    overflow-y: auto;
+    padding: 24px;
+    box-sizing: border-box;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+}
+
+/* --------------------------------------------------------------------------
+   RESPONSIVIDADE
+   -------------------------------------------------------------------------- */
+@media (min-width: 768px) {
+    .ide-subtitle {
+        display: inline-block;
+    }
+}
+
+@media (max-width: 1100px) {
+    .ide-workspace {
+        grid-template-columns: 52px 240px 1fr;
+    }
+    .ide-preview-panel {
+        /* Empilha o preview abaixo do editor ou remove do grid para ser via aba no mobile, mas aqui vou empilhar */
+        grid-column: 3;
+        grid-row: 2;
+        border-left: none;
+        border-top: 1px solid var(--ide-border);
+    }
+    .ide-main-editor {
+        grid-row: 1;
+    }
+}
+
+@media (max-width: 768px) {
+    .ide-workspace {
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+    }
+    .ide-activitybar {
+        flex-direction: row;
+        height: 48px;
+        min-height: 48px;
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--ide-border);
+        overflow-x: auto;
+        padding-top: 0;
+        align-items: center;
+    }
+    .ide-activity-icon {
+        border-radius: 6px;
+    }
+    .ide-activity-icon.active {
+        border-left: none;
+        border-bottom: 2px solid var(--ide-accent);
+        border-radius: 6px 6px 0 0;
+    }
+    .ide-sidebar {
+        border-right: none;
+        border-bottom: 1px solid var(--ide-border);
+        min-height: 200px;
+    }
+    .ide-main-editor {
+        min-height: 400px;
+    }
+    .ide-preview-panel {
+        min-height: 400px;
+    }
+}

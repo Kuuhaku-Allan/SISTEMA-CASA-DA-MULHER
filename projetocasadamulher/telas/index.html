@@ -1,69 +1,134 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Casa da Mulher</title>
-    <link rel="stylesheet" href="style.css">
-    <script src="config.js?v=20260616-codespaces" defer></script>
-    <script src="auth.js?v=20260616-equipe-eqp" defer></script>
-    <script src="app.js?v=20260616-equipe-eqp" defer></script>
+    <title>Acesso - Casa da Mulher</title>
+    <link rel="stylesheet" href="style.css?v=20">
+    <script src="config.js?v=20" defer></script>
+    <script src="auth.js?v=20" defer></script>
+    <script src="app.js?v=20" defer></script>
 </head>
-<body>
-    <main class="auth-container">
-        <section class="auth-box">
-            <img src="IMAGENS/logo_oficial.png" alt="Logo Casa da Mulher" class="logo-login">
-            <h1 class="auth-title">Acesso de funcion&aacute;rios</h1>
-            <p class="auth-subtitle">Entre com o ID fornecido pela coordena&ccedil;&atilde;o.</p>
+<body class="soft-auth-page">
+    <div class="soft-auth-shell">
+        <div class="soft-auth-card" style="max-width: 440px; margin: 0 auto; padding: 32px 24px;">
+            <!-- Logo menor no topo -->
+            <img src="IMAGENS/logo_oficial.png" alt="Logo Casa da Mulher" class="soft-auth-logo" style="width: 120px; margin-bottom: 16px;">
 
+            <!-- VISÃO 1: LOGIN -->
+            <section data-auth-view="login">
+                <h1 class="soft-auth-title">Acesso de funcion&aacute;rios</h1>
+                <p class="soft-auth-subtitle" style="margin-bottom: 16px;">Entre com seu ID institucional para acessar o sistema.</p>
 
+                <!-- Formulário Principal -->
+                <form id="formLogin" class="soft-auth-form" novalidate style="margin-bottom: 16px; gap: 1rem;">
+                    <div class="soft-form-group">
+                        <label for="identificador">ID Institucional</label>
+                        <input type="text" id="identificador" class="soft-input" name="identificador" required autocomplete="username" oninput="document.getElementById('identificador-passkey').value = this.value">
+                    </div>
+                    
+                    <div class="soft-form-group">
+                        <label for="senha">Senha</label>
+                        <input type="password" id="senha" class="soft-input" name="senha" required autocomplete="current-password">
+                    </div>
+                    
+                    <div class="soft-auth-actions" style="margin-top: 0;">
+                        <button type="submit" class="soft-btn soft-btn-primary">Entrar no sistema</button>
+                    </div>
+                </form>
 
-            <form id="formLogin" class="auth-form" novalidate>
-                <div class="input-group">
-                    <label for="identificador">ID do funcion&aacute;rio</label>
-                    <input type="text" id="identificador" name="identificador" placeholder="CM-000001" autocomplete="username" required>
-                    <p class="field-help">Seu ID foi informado no convite ou pela coordena&ccedil;&atilde;o.</p>
+                <div id="mensagemLogin" class="message soft-auth-message" aria-live="polite"></div>
+
+                <!-- Link Esqueci a Senha -->
+                <div>
+                    <a href="recuperar-acesso.html" class="soft-auth-link">Perdeu o acesso? Clique aqui</a>
                 </div>
 
-                <div class="input-group">
-                    <label for="senha">Senha</label>
-                    <input type="password" id="senha" name="senha" placeholder="********" autocomplete="current-password" required>
+                <!-- Divisor -->
+                <div class="soft-auth-divider" style="margin: 24px 0;">
+                    <span>Ou</span>
                 </div>
 
-                <div id="mensagemLogin" class="message" aria-live="polite"></div>
+                <!-- Botão de Acesso Rápido -->
+                <div>
+                    <button type="button" class="soft-auth-passkey-button" onclick="mostrarAuthView('acessoRapido')">
+                        Entrar mais r&aacute;pido
+                    </button>
+                </div>
+            </section>
 
-                <button type="submit" class="btn-primary">Entrar no sistema</button>
-                <a class="text-link" href="solicitar-redefinicao.html">Esqueci minha senha</a>
-            </form>
+            <!-- VISÃO 2: ACESSO RÁPIDO -->
+            <section data-auth-view="acessoRapido" hidden>
+                <h1 class="soft-auth-title">Entrar mais r&aacute;pido</h1>
+                <p class="soft-auth-subtitle" style="margin-bottom: 24px;">Escolha uma forma de acesso dispon&iacute;vel para sua conta.</p>
+                
+                <div style="display: flex; flex-direction: column; gap: 16px; text-align: left;">
+                    
+                    <!-- Card Chave de Acesso -->
+                    <div id="passkey-login-container" class="painel-action-card soft-quick-access-card-1" style="cursor: pointer; min-height: 80px; padding: 16px;" onclick="mostrarAuthView('passkey')">
+                        <span class="painel-action-card-title" style="margin-bottom: 4px; color: #8B586F;">Chave de acesso</span>
+                        <span class="painel-action-card-subtitle" style="color: #9A6A81;">Use digital, rosto, PIN ou dispositivo autorizado.</span>
+                    </div>
 
-            <div id="passkey-login-container" class="passkey-login-container" hidden>
-                <div class="login-divider">
-                    <span>ou</span>
                 </div>
 
-                <button type="button" id="btn-passkey-login" class="btn-passkey-login">
+                <div style="margin-top: 24px;">
+                    <a href="javascript:void(0)" class="soft-auth-link" onclick="mostrarAuthView('login')">Voltar para login</a>
+                </div>
+            </section>
+
+            <!-- VISÃO 3: PASSKEY -->
+            <section data-auth-view="passkey" hidden>
+                <h1 class="soft-auth-title">Chave de acesso</h1>
+                <p class="soft-auth-subtitle" style="margin-bottom: 24px;">Use uma chave cadastrada neste dispositivo para acessar com mais rapidez.</p>
+                
+                <div class="soft-auth-form" style="margin-bottom: 16px; gap: 1rem;">
+                    <div class="soft-form-group">
+                        <label for="identificador-passkey">Confirme seu ID Institucional</label>
+                        <input type="text" id="identificador-passkey" class="soft-input" oninput="document.getElementById('identificador').value = this.value">
+                    </div>
+                </div>
+
+                <!-- Botão REAL da passkey que o app.js vai atrelar o evento -->
+                <button type="button" id="btn-passkey-login" class="soft-auth-passkey-button" style="background: linear-gradient(135deg, #FDE8F1 0%, #F5D3E3 100%); border-color: #F0C2D6;">
                     Entrar com chave de acesso
                 </button>
 
-                <p class="form-help text-center">
-                    Use seu dispositivo, digital, rosto ou PIN para entrar com mais rapidez.
-                </p>
+                <div id="mensagem-passkey-login" class="message soft-auth-message" aria-live="polite"></div>
 
-                <div id="mensagem-passkey-login" class="form-message"></div>
+                <div style="margin-top: 24px;">
+                    <a href="javascript:void(0)" class="soft-auth-link" onclick="mostrarAuthView('acessoRapido')">Voltar</a>
+                </div>
+            </section>
+
+            <!-- VISÃO 4: 2FA -->
+            <section data-auth-view="doisFatores" hidden>
+                <h1 class="soft-auth-title">C&oacute;digo de seguran&ccedil;a</h1>
+                <p class="soft-auth-subtitle" style="margin-bottom: 24px;">Informe o c&oacute;digo gerado no seu aplicativo autenticador.</p>
+                
+                <form id="formLogin2fa" class="soft-auth-form" novalidate style="margin-bottom: 16px; gap: 1rem;">
+                    <div class="soft-form-group">
+                        <label for="codigo2fa">C&oacute;digo (6 d&iacute;gitos)</label>
+                        <input type="text" id="codigo2fa" name="codigo" class="soft-input" inputmode="numeric" placeholder="000000" autocomplete="one-time-code" required>
+                    </div>
+                    
+                    <div class="soft-auth-actions" style="margin-top: 0;">
+                        <button type="submit" class="soft-btn soft-btn-primary" style="background: linear-gradient(135deg, #A26D85 0%, #8B586F 100%); border-color: #75445B; color: #FFF;">Confirmar c&oacute;digo</button>
+                    </div>
+                    <div id="mensagemLogin2fa" class="message soft-auth-message" aria-live="polite"></div>
+                </form>
+
+                <div style="margin-top: 24px;">
+                    <a href="javascript:void(0)" class="soft-auth-link" onclick="mostrarAuthView('login')">Voltar para login</a>
+                </div>
+            </section>
+
+            <!-- Aviso temporário para caso o usuário clique em Código de Segurança no Acesso Rápido -->
+            <div id="msg2faWarning" hidden style="margin-top: 16px; background: #FFF9FC; padding: 12px; border-radius: 8px; border: 1px solid #FDE8F0; color: #A26D85; font-size: 0.85rem;">
+                Entre com ID e senha. Se sua conta exigir c&oacute;digo de seguran&ccedil;a, ele ser&aacute; solicitado na pr&oacute;xima etapa.
             </div>
 
-            <form id="formLogin2fa" class="auth-form hidden" novalidate>
-                <div class="input-group">
-                    <label for="codigo2fa">C&oacute;digo de seguran&ccedil;a</label>
-                    <input type="text" id="codigo2fa" name="codigo" inputmode="numeric" placeholder="123456" autocomplete="one-time-code" required>
-                    <p class="field-help">Abra seu aplicativo autenticador e informe o c&oacute;digo de 6 n&uacute;meros.</p>
-                </div>
-
-                <div id="mensagemLogin2fa" class="message" aria-live="polite"></div>
-
-                <button type="submit" class="btn-primary">Confirmar c&oacute;digo</button>
-            </form>
-        </section>
-    </main>
+        </div>
+    </div>
 </body>
 </html>
