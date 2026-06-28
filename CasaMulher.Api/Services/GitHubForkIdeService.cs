@@ -153,14 +153,49 @@ namespace CasaMulher.Api.Services
                         }
                     }
                 }
+                var areaProjetoSection = "";
+                if (request.AreaProjeto != null)
+                {
+                    var safeAreaNome = IdeContentSanitizer.SanitizarTextoCurtoIde(request.AreaProjeto.Nome ?? "", "AreaNome", usuario.IdentificadorFuncionario ?? "SYS", _logger, "forkPessoal");
+                    var safeAreaPerfil = IdeContentSanitizer.SanitizarTextoCurtoIde(request.AreaProjeto.Perfil ?? "", "AreaPerfil", usuario.IdentificadorFuncionario ?? "SYS", _logger, "forkPessoal");
+                    var safeAreaStatus = IdeContentSanitizer.SanitizarTextoCurtoIde(request.AreaProjeto.Status ?? "", "AreaStatus", usuario.IdentificadorFuncionario ?? "SYS", _logger, "forkPessoal");
+                    
+                    areaProjetoSection = $"\n\n## Area relacionada\n\n- Area: {safeAreaNome}\n- Perfil: {safeAreaPerfil}\n- Status: {safeAreaStatus}";
+                }
+                else
+                {
+                    areaProjetoSection = "\n\n## Area relacionada\n\n- Area: Nao informada";
+                }
+
+                var validacoesSection = "";
+                if (request.Validacoes != null && request.Validacoes.Count > 0)
+                {
+                    var bloqueios = request.Validacoes.Count(v => v.Severidade == "bloqueio");
+                    var avisos = request.Validacoes.Count(v => v.Severidade == "aviso");
+                    var infos = request.Validacoes.Count(v => v.Severidade == "info");
+
+                    validacoesSection = $"\n\n## Validacao automatica\n\n- Bloqueios: {bloqueios}\n- Avisos: {avisos}\n- Informacoes: {infos}";
+                    
+                    if (avisos > 0 || bloqueios > 0)
+                    {
+                        validacoesSection += "\n\n### Avisos e Bloqueios\n";
+                        foreach (var v in request.Validacoes.Where(x => x.Severidade == "aviso" || x.Severidade == "bloqueio"))
+                        {
+                            var sFile = IdeContentSanitizer.SanitizarTextoCurtoIde(v.Arquivo, "ValidacaoArquivo", usuario.IdentificadorFuncionario ?? "SYS", _logger, "forkPessoal");
+                            var sTitle = IdeContentSanitizer.SanitizarTextoCurtoIde(v.Titulo, "ValidacaoTitulo", usuario.IdentificadorFuncionario ?? "SYS", _logger, "forkPessoal");
+                            validacoesSection += $"\n- `{sFile}`: {sTitle}";
+                        }
+                    }
+                }
 
                 // Add README
-                var readmeContent = $"# {safeTitulo}\n\n**Usuário**: {usuario.NomeCompleto} ({usuario.IdentificadorFuncionario})\n**GitHub**: @{vinculo.GitHubLogin}\n**Descrição**: {safeDescricao}{tarefaSection}";
+                var readmeContent = $"# {safeTitulo}\n\n**Usuário**: {usuario.NomeCompleto} ({usuario.IdentificadorFuncionario})\n**GitHub**: @{vinculo.GitHubLogin}\n**Descrição**: {safeDescricao}{tarefaSection}{areaProjetoSection}{validacoesSection}";
                 var readmeBase64 = IdeContentSanitizer.SanitizarEConverterParaBase64(readmeContent, "README.md", usuario.IdentificadorFuncionario, _logger, "forkPessoal");
                 var readmeBlob = new NewBlob { Content = readmeBase64, Encoding = EncodingType.Base64 };
-                var readmeRef = await client.Git.Blob.Create(personalFork.Owner.Login, personalFork.Name, readmeBlob);
-                tree.Tree.Add(new NewTreeItem { Path = $"{basePath}/{folderName}/README.md", Mode = "100644", Type = TreeType.Blob, Sha = readmeRef.Sha });
+                var readmeBlobRef = await client.Git.Blob.Create(personalFork.Owner.Login, personalFork.Name, readmeBlob);
+                tree.Tree.Add(new NewTreeItem { Path = $"{basePath}/{folderName}/README.md", Mode = "100644", Type = TreeType.Blob, Sha = readmeBlobRef.Sha });
 
+                // Create Tree
                 var createdTree = await client.Git.Tree.Create(personalFork.Owner.Login, personalFork.Name, tree);
 
                 // Create Commit
@@ -175,7 +210,7 @@ namespace CasaMulher.Api.Services
                 var prHead = $"{vinculo.GitHubLogin}:ide/{folderName}";
                 var newPr = new NewPullRequest(commitMsg, prHead, _settings.BaseBranch)
                 {
-                    Body = $"## {safeTitulo}\n\n{safeDescricao}{tarefaSection}\n\n---\n*Enviado via IDE*"
+                    Body = $"## {safeTitulo}\n\n{safeDescricao}{tarefaSection}{areaProjetoSection}{validacoesSection}\n\n---\n*Enviado via IDE*"
                 };
 
                 var pr = await client.PullRequest.Create(_settings.Owner, _settings.Repo, newPr);

@@ -108,6 +108,40 @@ namespace CasaMulher.Api.Services
                         }
                     }
                 }
+                var areaProjetoSection = "";
+                if (request.AreaProjeto != null)
+                {
+                    var safeAreaNome = IdeContentSanitizer.SanitizarTextoCurtoIde(request.AreaProjeto.Nome ?? "", "AreaNome", usuario.IdentificadorFuncionario ?? "SYS", _logger, "manualToken");
+                    var safeAreaPerfil = IdeContentSanitizer.SanitizarTextoCurtoIde(request.AreaProjeto.Perfil ?? "", "AreaPerfil", usuario.IdentificadorFuncionario ?? "SYS", _logger, "manualToken");
+                    var safeAreaStatus = IdeContentSanitizer.SanitizarTextoCurtoIde(request.AreaProjeto.Status ?? "", "AreaStatus", usuario.IdentificadorFuncionario ?? "SYS", _logger, "manualToken");
+                    
+                    areaProjetoSection = $"\n\n## Area relacionada\n\n- Area: {safeAreaNome}\n- Perfil: {safeAreaPerfil}\n- Status: {safeAreaStatus}";
+                }
+                else
+                {
+                    areaProjetoSection = "\n\n## Area relacionada\n\n- Area: Nao informada";
+                }
+
+                var validacoesSection = "";
+                if (request.Validacoes != null && request.Validacoes.Count > 0)
+                {
+                    var bloqueios = request.Validacoes.Count(v => v.Severidade == "bloqueio");
+                    var avisos = request.Validacoes.Count(v => v.Severidade == "aviso");
+                    var infos = request.Validacoes.Count(v => v.Severidade == "info");
+
+                    validacoesSection = $"\n\n## Validacao automatica\n\n- Bloqueios: {bloqueios}\n- Avisos: {avisos}\n- Informacoes: {infos}";
+                    
+                    if (avisos > 0 || bloqueios > 0)
+                    {
+                        validacoesSection += "\n\n### Avisos e Bloqueios\n";
+                        foreach (var v in request.Validacoes.Where(x => x.Severidade == "aviso" || x.Severidade == "bloqueio"))
+                        {
+                            var sFile = IdeContentSanitizer.SanitizarTextoCurtoIde(v.Arquivo, "ValidacaoArquivo", identificador, _logger, "Seguro");
+                            var sTitle = IdeContentSanitizer.SanitizarTextoCurtoIde(v.Titulo, "ValidacaoTitulo", identificador, _logger, "Seguro");
+                            validacoesSection += $"\n- `{sFile}`: {sTitle}";
+                        }
+                    }
+                }
 
                 // Criar README dinamicamente
                 string readmeContent = $@"# Protótipo enviado pela IDE da Equipe
@@ -123,6 +157,32 @@ namespace CasaMulher.Api.Services
 ## Descrição
 {safeDescricao}
 {tarefaSection}
+{areaProjetoSection}
+{validacoesSection}
+
+## Arquivos
+{string.Join(Environment.NewLine, request.Arquivos.Keys.Select(k => $"- {k}"))}
+
+## Checklist
+- [{(request.Checklist.PreviewTestado ? "x" : " ")}] Preview testado
+- [{(request.Checklist.SemDadosSensiveis ? "x" : " ")}] Sem dados sensíveis
+- [{(request.Checklist.EscopoConfirmado ? "x" : " ")}] Escopo confirmado
+
+## Observação
+> Este rascunho foi gerado automaticamente pela ferramenta de Design Seguro da Equipe.";
+
+                // Cria Pull Request
+                var prBody = $@"Protótipo gerado pela IDE da Equipe.
+                
+Autor: {usuario.NomeCompleto} ({usuario.Perfil})
+Descrição: {safeDescricao}
+{tarefaSection}
+{areaProjetoSection}
+{validacoesSection}
+
+[✓] Preview validado visualmente na máquina local
+[✓] Nenhuma informação sensível/real foi inserida nos arquivos
+[✓] Escopo limitado aos arquivos de tela no diretório rascunhos
 
 ## Arquivos
 {string.Join(Environment.NewLine, request.Arquivos.Keys.Select(k => $"- {k}"))}

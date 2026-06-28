@@ -6,6 +6,7 @@
     --ide-bg: #f8eef4;
     --ide-surface: rgba(255, 250, 253, 0.98);
     --ide-surface-strong: #fff7fb;
+    --ide-bg-elevated: #ffffff;
     --ide-border: #efd3df;
     --ide-accent: #8B5A96;
     --ide-accent-strong: #6B4C73;
@@ -663,4 +664,106 @@ body.ide-page-body {
     .ide-preview-panel {
         min-height: 400px;
     }
+}
+
+/* =========================================================
+   Fase 3: Mapa do Projeto (Context Drawer e Estilos)
+   ========================================================= */
+
+.ide-map-item {
+    background: var(--ide-bg);
+    border: 1px solid var(--ide-border);
+    border-radius: 6px;
+    padding: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+    width: 100%;
+}
+.ide-map-item:hover {
+    border-color: var(--ide-accent);
+    background: var(--ide-bg-elevated);
+}
+.ide-map-item-title {
+    font-weight: 600;
+    color: var(--ide-text);
+    margin-bottom: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.ide-map-item-desc {
+    font-size: 0.8rem;
+    color: var(--ide-muted);
+}
+.ide-badge {
+    font-size: 0.65rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    font-weight: bold;
+}
+.ide-badge.estavel { background: #d4edda; color: #155724; }
+.ide-badge.sensivel { background: #f8d7da; color: #721c24; }
+.ide-badge.evolucao { background: #fff3cd; color: #856404; }
+
+/* DRAWER DE CONTEXTO DO MAPA */
+.ide-context-drawer {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    width: 400px;
+    background: var(--ide-bg-elevated);
+    border-left: 1px solid var(--ide-border);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    box-shadow: -4px 0 15px rgba(0,0,0,0.05);
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+}
+.ide-context-drawer:not(.hidden) {
+    transform: translateX(0);
+}
+.ide-drawer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    border-bottom: 1px solid var(--ide-border);
+}
+.ide-drawer-header h3 {
+    margin: 0;
+    color: var(--ide-accent-strong);
+    font-size: 1.1rem;
+}
+.ide-drawer-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+}
+.ide-drawer-content h4 {
+    margin: 16px 0 8px 0;
+    font-size: 0.85rem;
+    color: var(--ide-text-light);
+    border-bottom: 1px solid var(--ide-border);
+    padding-bottom: 4px;
+}
+.ide-drawer-content h4:first-child {
+    margin-top: 0;
+}
+.ide-drawer-content ul {
+    margin: 0;
+    padding-left: 20px;
+    color: var(--ide-text);
+    font-size: 0.85rem;
+}
+.ide-drawer-content ul li {
+    margin-bottom: 4px;
+}
+.ide-drawer-footer {
+    padding: 16px;
+    border-top: 1px solid var(--ide-border);
+    background: var(--ide-bg);
 }

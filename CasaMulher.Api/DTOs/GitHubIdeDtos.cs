@@ -26,11 +26,28 @@ namespace CasaMulher.Api.DTOs
         public string Tipo { get; set; } = string.Empty;
     }
 
+    public sealed class GitHubIdeAreaProjetoDto
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Nome { get; set; } = string.Empty;
+        public string Perfil { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+    }
+
     public class GitHubIdeChecklistItemDto
     {
         public string Id { get; set; } = string.Empty;
         public string Texto { get; set; } = string.Empty;
         public bool Marcado { get; set; }
+    }
+
+    public sealed class GitHubIdeValidacaoItemDto
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Severidade { get; set; } = string.Empty;
+        public string Titulo { get; set; } = string.Empty;
+        public string Mensagem { get; set; } = string.Empty;
+        public string Arquivo { get; set; } = string.Empty;
     }
 
     public class GitHubIdeRevisaoRequest
@@ -40,9 +57,11 @@ namespace CasaMulher.Api.DTOs
         public string Descricao { get; set; } = string.Empty;
         public string Modelo { get; set; } = string.Empty;
         public GitHubIdeTarefaDto? Tarefa { get; set; }
+        public GitHubIdeAreaProjetoDto? AreaProjeto { get; set; }
+        public GitHubIdeChecklist? Checklist { get; set; }
         public List<GitHubIdeChecklistItemDto> ChecklistTarefa { get; set; } = new();
+        public List<GitHubIdeValidacaoItemDto> Validacoes { get; set; } = new();
         public Dictionary<string, string> Arquivos { get; set; } = new();
-        public GitHubIdeChecklist Checklist { get; set; } = new();
     }
 
     public class GitHubPullRequestResultadoDto

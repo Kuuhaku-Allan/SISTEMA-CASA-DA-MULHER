@@ -62,9 +62,38 @@ Isso garante que nenhum rascunho de tela afete o sistema real em produção ante
 - Todo o código passa por processos rígidos de **sanitização** antes de chegar no GitHub (evitando injeções de caracteres ocultos ou quebras do sistema).
 - Tokens de acesso do GitHub nunca são expostos no navegador.
 
-## 11. O que a IDE ainda não faz (Próximas fases)
-- Ela ainda não possui um **Mapa do Sistema** que mostre o projeto inteiro (Fase 3).
+---
+
+## 11. O Mapa do Projeto (Fase 3)
+A IDE agora possui uma aba chamada **Mapa do Projeto**. Esta aba mostra a você o contexto e as áreas reais do sistema Casa da Mulher. O mapa te ajuda a entender *onde* você está mexendo e *qual* o impacto disso.
+
+### Como usar o Mapa do Projeto?
+1. Clique no segundo ícone na barra lateral esquerda (Activity Bar) para abrir o **Mapa do Projeto**.
+2. Clique em **Ver contexto** em qualquer área para abrir o painel lateral com detalhes completos (quais os arquivos principais, o perfil que usa aquela área, cuidados e restrições).
+3. Dentro do painel de contexto, você pode clicar em **Associar ao rascunho atual**. Isso vinculará o seu rascunho àquela área.
+
+> **Importante:** Associar uma área ao rascunho *não* te dá permissão para alterar os arquivos reais daquela área em produção. Isso serve como um "contexto seguro" para orientar os desenvolvedores que revisarão o seu rascunho, sabendo de onde a sua ideia veio e para onde ela vai.
+
+## 12. Validação Automática de Rascunhos (Fase 4)
+Antes de você enviar um rascunho para revisão, a IDE analisa o seu código automaticamente e gera um **Relatório de Validação**. Esse motor verifica itens de segurança e qualidade do frontend antes da abertura do Pull Request.
+
+### O que é analisado?
+1. **Regras de Escopo:** Impede o envio de arquivos que não são HTML, CSS ou JS.
+2. **HTML:** Detecta tela vazia, ausência de conteúdo útil, IDs duplicados, botões sem texto, inputs sem label, além de possíveis CPFs e E-mails expostos indevidamente.
+3. **CSS:** Detecta potencial vazamento de scroll horizontal e uso abusivo de `!important`.
+4. **JS:** Verifica se a sintaxe está correta (o código não "quebra") e checa se IDs/Classes referenciadas no script realmente existem no seu HTML.
+5. **Tarefas:** Verifica se os itens do seu checklist foram todos concluídos.
+
+### Como funciona?
+O relatório classifica os avisos em:
+- **Bloqueios (Vermelho):** A revisão fica paralisada. Você **não conseguirá** criar o PR enquanto não corrigir esse bloqueio. (Ex: Erro de sintaxe grave, HTML vazio para tarefas visuais, ID duplicado).
+- **Avisos (Amarelo):** Recomendações de melhoria de qualidade. Não impedem a criação do PR, mas ajudam você a não mandar um rascunho imperfeito.
+- **Informações (Cinza):** Exibem detalhes como a tarefa e a área do projeto selecionada.
+
+Para ver o relatório, basta preencher os checklists e clicar em **Validar agora** (ou o relatório se atualizará sozinho à medida que você for marcando as tarefas).
+
+## 13. O que a IDE ainda não faz (Próximas fases)
 - Ela não lida com edição do backend em C# ou execução da API local.
-- Ela ainda não força vinculação obrigatória com *Issues* do GitHub ou ferramentas de Inteligência Artificial.
+- Ela ainda não força vinculação obrigatória com ferramentas de Inteligência Artificial para escrita de código em massa.
 
 > Estamos construindo a ponte para um desenvolvimento Full-Stack gradualmente. Aproveite a criação de protótipos de alta qualidade!
