@@ -1,0 +1,14 @@
+body {
+    /* Teste 6: Overflow e 100vw */
+    width: 100vw;
+    overflow-x: scroll;
+    margin: 0;
+    padding: 0 !important;
+}
+
+h1 {
+    /* Teste 7: Uso excessivo de !important */
+    color: blue !important;
+    font-size: 24px !important;
+    text-align: center !important;
+}
