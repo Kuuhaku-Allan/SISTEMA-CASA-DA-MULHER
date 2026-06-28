@@ -26,6 +26,14 @@ namespace CasaMulher.Api.DTOs
         public string Tipo { get; set; } = string.Empty;
     }
 
+    public sealed class GitHubIdeAreaProjetoDto
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Nome { get; set; } = string.Empty;
+        public string Perfil { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+    }
+
     public class GitHubIdeChecklistItemDto
     {
         public string Id { get; set; } = string.Empty;
@@ -40,6 +48,7 @@ namespace CasaMulher.Api.DTOs
         public string Descricao { get; set; } = string.Empty;
         public string Modelo { get; set; } = string.Empty;
         public GitHubIdeTarefaDto? Tarefa { get; set; }
+        public GitHubIdeAreaProjetoDto? AreaProjeto { get; set; }
         public List<GitHubIdeChecklistItemDto> ChecklistTarefa { get; set; } = new();
         public Dictionary<string, string> Arquivos { get; set; } = new();
         public GitHubIdeChecklist Checklist { get; set; } = new();

@@ -153,9 +153,22 @@ namespace CasaMulher.Api.Services
                         }
                     }
                 }
+                var areaProjetoSection = "";
+                if (request.AreaProjeto != null)
+                {
+                    var safeAreaNome = IdeContentSanitizer.SanitizarTextoCurtoIde(request.AreaProjeto.Nome ?? "", "AreaNome", usuario.IdentificadorFuncionario ?? "SYS", _logger, "forkPessoal");
+                    var safeAreaPerfil = IdeContentSanitizer.SanitizarTextoCurtoIde(request.AreaProjeto.Perfil ?? "", "AreaPerfil", usuario.IdentificadorFuncionario ?? "SYS", _logger, "forkPessoal");
+                    var safeAreaStatus = IdeContentSanitizer.SanitizarTextoCurtoIde(request.AreaProjeto.Status ?? "", "AreaStatus", usuario.IdentificadorFuncionario ?? "SYS", _logger, "forkPessoal");
+                    
+                    areaProjetoSection = $"\n\n## Area relacionada\n\n- Area: {safeAreaNome}\n- Perfil: {safeAreaPerfil}\n- Status: {safeAreaStatus}";
+                }
+                else
+                {
+                    areaProjetoSection = "\n\n## Area relacionada\n\n- Area: Nao informada";
+                }
 
                 // Add README
-                var readmeContent = $"# {safeTitulo}\n\n**Usuário**: {usuario.NomeCompleto} ({usuario.IdentificadorFuncionario})\n**GitHub**: @{vinculo.GitHubLogin}\n**Descrição**: {safeDescricao}{tarefaSection}";
+                var readmeContent = $"# {safeTitulo}\n\n**Usuário**: {usuario.NomeCompleto} ({usuario.IdentificadorFuncionario})\n**GitHub**: @{vinculo.GitHubLogin}\n**Descrição**: {safeDescricao}{tarefaSection}{areaProjetoSection}";
                 var readmeBase64 = IdeContentSanitizer.SanitizarEConverterParaBase64(readmeContent, "README.md", usuario.IdentificadorFuncionario, _logger, "forkPessoal");
                 var readmeBlob = new NewBlob { Content = readmeBase64, Encoding = EncodingType.Base64 };
                 var readmeRef = await client.Git.Blob.Create(personalFork.Owner.Login, personalFork.Name, readmeBlob);
@@ -175,7 +188,7 @@ namespace CasaMulher.Api.Services
                 var prHead = $"{vinculo.GitHubLogin}:ide/{folderName}";
                 var newPr = new NewPullRequest(commitMsg, prHead, _settings.BaseBranch)
                 {
-                    Body = $"## {safeTitulo}\n\n{safeDescricao}{tarefaSection}\n\n---\n*Enviado via IDE*"
+                    Body = $"## {safeTitulo}\n\n{safeDescricao}{tarefaSection}{areaProjetoSection}\n\n---\n*Enviado via IDE*"
                 };
 
                 var pr = await client.PullRequest.Create(_settings.Owner, _settings.Repo, newPr);

@@ -72,6 +72,200 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 2. Chave de Rascunho por Usuário
     const DRAFT_KEY = "ide_casa_mulher_draft";
     
+    // MAPA DO PROJETO - FASE 3
+    const MAPA_PROJETO_IDE = [
+        {
+            id: "login",
+            nome: "Login",
+            descricao: "Tela de autenticação e portais de entrada.",
+            quemUsa: "Todos os usuários.",
+            perfil: "Todos",
+            status: "estavel",
+            arquivosPrincipais: ["index.html", "auth.js", "style.css"],
+            arquivosRelacionados: ["recuperar-acesso.html"],
+            endpointsRelacionados: ["/api/auth/login"],
+            cuidados: ["Não alterar form de login.", "Não expor senhas no front."],
+            comoTestar: ["Testar login com credenciais válidas e inválidas."],
+            observacoes: ["Área crítica."]
+        },
+        {
+            id: "painel-adm",
+            nome: "Painel ADM",
+            descricao: "Área de administração geral do sistema.",
+            quemUsa: "Administradores",
+            perfil: "ADM",
+            status: "estavel",
+            arquivosPrincipais: ["painel-adm.html", "painel-adm.js", "style.css"],
+            arquivosRelacionados: ["equipe.html", "funcionarios.html"],
+            endpointsRelacionados: ["/api/dashboard/adm"],
+            cuidados: ["Evitar carregamento pesado de gráficos.", "Proteção de rota obrigatória."],
+            comoTestar: ["Acessar via login de ADM."],
+            observacoes: ["Nesta fase, o mapa é apenas informativo."]
+        },
+        {
+            id: "recepcao",
+            nome: "Recepção",
+            descricao: "Área operacional usada para cadastro, busca e atendimento inicial.",
+            quemUsa: "Equipe de recepção e administração",
+            perfil: "REC / ADM",
+            status: "estavel",
+            arquivosPrincipais: [
+                "projetocasadamulher/telas/recepcao.html",
+                "projetocasadamulher/telas/recepcao.js",
+                "projetocasadamulher/telas/recepcao.css"
+            ],
+            arquivosRelacionados: [
+                "projetocasadamulher/telas/recepcao-coordenacao.html",
+                "projetocasadamulher/telas/app.js",
+                "projetocasadamulher/telas/auth.js"
+            ],
+            endpointsRelacionados: [
+                "/api/recepcao",
+                "/api/acolhimentos"
+            ],
+            cuidados: [
+                "Não alterar fluxo de login sem revisar auth.js.",
+                "Não remover IDs usados pelo JavaScript.",
+                "Evitar tabelas largas e scroll horizontal.",
+                "Não usar dados reais em rascunhos."
+            ],
+            comoTestar: [
+                "Entrar com perfil REC ou ADM.",
+                "Abrir a tela de recepção.",
+                "Testar busca, cadastro e navegação principal."
+            ],
+            observacoes: [
+                "Nesta fase, o mapa é apenas informativo."
+            ]
+        },
+        {
+            id: "coord-recepcao",
+            nome: "Coordenação da Recepção",
+            descricao: "Área de gerência para a equipe de recepção.",
+            quemUsa: "Coordenadores",
+            perfil: "COORD_REC / ADM",
+            status: "em evolucao",
+            arquivosPrincipais: ["recepcao-coordenacao.html"],
+            arquivosRelacionados: ["recepcao.html"],
+            endpointsRelacionados: [],
+            cuidados: ["Dados sensíveis de atendimento."],
+            comoTestar: ["Login como Coordenador."],
+            observacoes: []
+        },
+        {
+            id: "professor",
+            nome: "Professor",
+            descricao: "Área para lançamento de notas e presenças.",
+            quemUsa: "Professores",
+            perfil: "PRO / ADM",
+            status: "estavel",
+            arquivosPrincipais: ["professor.html", "professor.js"],
+            arquivosRelacionados: [],
+            endpointsRelacionados: ["/api/professor/cursos"],
+            cuidados: ["Validar datas de aulas rigorosamente."],
+            comoTestar: ["Login como Professor e abrir diário."],
+            observacoes: []
+        },
+        {
+            id: "equipe",
+            nome: "Equipe",
+            descricao: "Portal da equipe interna.",
+            quemUsa: "Equipe",
+            perfil: "EQP / ADM",
+            status: "estavel",
+            arquivosPrincipais: ["equipe.html", "equipe-painel.html"],
+            arquivosRelacionados: ["equipe-ide.html"],
+            endpointsRelacionados: [],
+            cuidados: ["Não alterar menus de navegação fixos."],
+            comoTestar: ["Acessar painel da equipe."],
+            observacoes: []
+        },
+        {
+            id: "convites",
+            nome: "Convites",
+            descricao: "Sistema de emissão e gestão de convites para equipe.",
+            quemUsa: "Administradores",
+            perfil: "ADM",
+            status: "sensivel",
+            arquivosPrincipais: ["equipe-convites.html"],
+            arquivosRelacionados: [],
+            endpointsRelacionados: ["/api/equipe/convite"],
+            cuidados: ["O link do convite não pode ser vazado no frontend."],
+            comoTestar: ["Criar convite e revogar."],
+            observacoes: []
+        },
+        {
+            id: "funcionarios",
+            nome: "Funcionários",
+            descricao: "Gestão do quadro de funcionários.",
+            quemUsa: "RH / ADM",
+            perfil: "ADM",
+            status: "estavel",
+            arquivosPrincipais: ["funcionarios.html"],
+            arquivosRelacionados: [],
+            endpointsRelacionados: [],
+            cuidados: ["Validar perfis atribuídos."],
+            comoTestar: ["Cadastrar e inativar funcionário."],
+            observacoes: []
+        },
+        {
+            id: "auditoria",
+            nome: "Auditoria",
+            descricao: "Painel de logs do sistema.",
+            quemUsa: "Sysadmin",
+            perfil: "SYS / ADM",
+            status: "sensivel",
+            arquivosPrincipais: ["auditoria.html"],
+            arquivosRelacionados: [],
+            endpointsRelacionados: ["/api/auditoria"],
+            cuidados: ["Pode gerar paginação lenta, cuidado com requisições."],
+            comoTestar: ["Visualizar e filtrar logs."],
+            observacoes: []
+        },
+        {
+            id: "emails",
+            nome: "E-mails",
+            descricao: "Modelos e envios de comunicação oficial.",
+            quemUsa: "Sistema",
+            perfil: "SYS",
+            status: "estavel",
+            arquivosPrincipais: [],
+            arquivosRelacionados: [],
+            endpointsRelacionados: [],
+            cuidados: ["Garantir templates responsivos."],
+            comoTestar: ["Testar disparos simulados."],
+            observacoes: ["Focado no backend."]
+        },
+        {
+            id: "seguranca-conta",
+            nome: "Segurança da Conta",
+            descricao: "Área de reset de senha e Passkeys.",
+            quemUsa: "Todos",
+            perfil: "Todos",
+            status: "sensivel",
+            arquivosPrincipais: ["recuperacao-seguranca.html", "recuperar-acesso.html"],
+            arquivosRelacionados: ["auth.js"],
+            endpointsRelacionados: ["/api/auth/reset-password"],
+            cuidados: ["Segurança crítica. Não modificar sem revisão estrita."],
+            comoTestar: ["Solicitar reset de senha."],
+            observacoes: []
+        },
+        {
+            id: "ide-equipe",
+            nome: "IDE da Equipe",
+            descricao: "Ambiente de desenvolvimento e prototipagem seguro.",
+            quemUsa: "Desenvolvedores e Designers da Equipe",
+            perfil: "EQP / ADM",
+            status: "em evolucao",
+            arquivosPrincipais: ["equipe-ide.html", "equipe-ide.js", "equipe-ide.css"],
+            arquivosRelacionados: [],
+            endpointsRelacionados: ["/api/equipe-ide/github"],
+            cuidados: ["Manter restrição ao diretório de rascunhos.", "Não permitir execução irrestrita no servidor."],
+            comoTestar: ["Criar um rascunho, gerar um PR e validar."],
+            observacoes: ["Área em constante evolução (Fase 3 em progresso)."]
+        }
+    ];
+    
     // TAREFAS GUIADAS
     const TAREFAS_GUIADAS = [
         {
@@ -367,7 +561,8 @@ console.log("Lista carregada");`
         nome: 'Tela Soft UI',
         arquivos: { ...TEMPLATES['soft-ui'].arquivos },
         arquivoAtivo: 'index.html',
-        tarefa: TAREFA_PADRAO
+        tarefa: TAREFA_PADRAO,
+        areaProjeto: null
     };
 
     let editorInstance = null;
@@ -472,6 +667,7 @@ console.log("Lista carregada");`
                     rascunhoAtual = salvo;
                     if (!rascunhoAtual.arquivoAtivo) rascunhoAtual.arquivoAtivo = 'index.html';
                     if (!rascunhoAtual.tarefa) rascunhoAtual.tarefa = TAREFA_PADRAO;
+                    if (rascunhoAtual.areaProjeto === undefined) rascunhoAtual.areaProjeto = null;
                     
                     document.getElementById('ideCurrentFileName').textContent = rascunhoAtual.arquivoAtivo;
                     atualizarStatusTarefa();
@@ -618,7 +814,8 @@ console.log("Lista carregada");`
                     nome: TEMPLATES[templateId].nome,
                     arquivos: { ...TEMPLATES[templateId].arquivos },
                     arquivoAtivo: 'index.html',
-                    tarefa: TAREFA_PADRAO
+                    tarefa: TAREFA_PADRAO,
+                    areaProjeto: null
                 };
                 
                 // Em vez de chamar abrirArquivo (que salvaria o editor atual no novo rascunho),
@@ -704,9 +901,144 @@ console.log("Lista carregada");`
     function atualizarStatusTarefa() {
         const badge = document.getElementById("statusBarTask");
         if (badge) {
-            badge.textContent = `Tarefa: ${rascunhoAtual.tarefa ? rascunhoAtual.tarefa.titulo : "Livre"}`;
+            const tituloTarefa = rascunhoAtual.tarefa ? rascunhoAtual.tarefa.titulo : "Livre";
+            const tituloArea = rascunhoAtual.areaProjeto ? rascunhoAtual.areaProjeto.nome : "Não informada";
+            badge.textContent = `Tarefa: ${tituloTarefa} • Área: ${tituloArea}`;
         }
     }
+
+    // ==============================================================================
+    // MAPA DO PROJETO E CONTEXTO
+    // ==============================================================================
+
+    const btnTabExplorer = document.getElementById("btnTabExplorer");
+    const btnTabMap = document.getElementById("btnTabMap");
+    const panelExplorer = document.getElementById("panelExplorer");
+    const panelMap = document.getElementById("panelMap");
+    const mapContextDrawer = document.getElementById("mapContextDrawer");
+
+    let areaEmFoco = null;
+
+    if (btnTabExplorer && btnTabMap) {
+        btnTabExplorer.addEventListener("click", () => {
+            btnTabExplorer.classList.add("active");
+            btnTabMap.classList.remove("active");
+            panelExplorer.classList.remove("hidden");
+            panelExplorer.style.display = "";
+            panelMap.classList.add("hidden");
+            panelMap.style.display = "none";
+        });
+
+        btnTabMap.addEventListener("click", () => {
+            btnTabMap.classList.add("active");
+            btnTabExplorer.classList.remove("active");
+            panelMap.classList.remove("hidden");
+            panelMap.style.display = "flex";
+            panelExplorer.classList.add("hidden");
+            panelExplorer.style.display = "none";
+            renderizarMapaProjeto();
+        });
+    }
+
+    function renderizarMapaProjeto() {
+        const container = document.getElementById("ideMapList");
+        if (!container) return;
+
+        container.innerHTML = "";
+        MAPA_PROJETO_IDE.forEach(area => {
+            const el = document.createElement("div");
+            el.className = "ide-map-item";
+            
+            let classeStatus = "";
+            if (area.status === "estavel") classeStatus = "estavel";
+            else if (area.status === "sensivel") classeStatus = "sensivel";
+            else classeStatus = "evolucao";
+
+            el.innerHTML = `
+                <div class="ide-map-item-title">
+                    ${area.nome}
+                    <span class="ide-badge ${classeStatus}">${area.status}</span>
+                </div>
+                <div class="ide-map-item-desc">${area.descricao}</div>
+                <div style="font-size: 0.75rem; margin-top: 8px; color: var(--ide-accent);">Ver contexto &rarr;</div>
+            `;
+
+            el.addEventListener("click", () => abrirContextoArea(area));
+            container.appendChild(el);
+        });
+    }
+
+    function abrirContextoArea(area) {
+        areaEmFoco = area;
+        document.getElementById("drawerAreaNome").textContent = area.nome;
+        
+        const content = document.getElementById("drawerAreaContent");
+        
+        let htmlContexto = `<p style="margin-top: 0; color: var(--ide-muted);">${area.descricao}</p>`;
+        
+        htmlContexto += `<h4>Acessos</h4>`;
+        htmlContexto += `<ul><li><strong>Quem usa:</strong> ${area.quemUsa}</li><li><strong>Perfil:</strong> ${area.perfil}</li></ul>`;
+
+        if (area.arquivosPrincipais && area.arquivosPrincipais.length > 0) {
+            htmlContexto += `<h4>Arquivos Principais</h4><ul>`;
+            area.arquivosPrincipais.forEach(arq => htmlContexto += `<li>${arq}</li>`);
+            htmlContexto += `</ul>`;
+        }
+
+        if (area.cuidados && area.cuidados.length > 0) {
+            htmlContexto += `<h4>Cuidados e Restrições</h4><ul>`;
+            area.cuidados.forEach(c => htmlContexto += `<li>${c}</li>`);
+            htmlContexto += `</ul>`;
+        }
+
+        if (area.comoTestar && area.comoTestar.length > 0) {
+            htmlContexto += `<h4>Como Testar</h4><ul>`;
+            area.comoTestar.forEach(c => htmlContexto += `<li>${c}</li>`);
+            htmlContexto += `</ul>`;
+        }
+
+        content.innerHTML = htmlContexto;
+        mapContextDrawer.classList.remove("hidden");
+    }
+
+    document.getElementById("btnFecharDrawer")?.addEventListener("click", () => {
+        mapContextDrawer.classList.add("hidden");
+        areaEmFoco = null;
+    });
+
+    document.getElementById("btnAssociarArea")?.addEventListener("click", () => {
+        if (!areaEmFoco) return;
+        rascunhoAtual.areaProjeto = {
+            id: areaEmFoco.id,
+            nome: areaEmFoco.nome,
+            perfil: areaEmFoco.perfil,
+            status: areaEmFoco.status
+        };
+        salvarRascunhoLocal();
+        atualizarStatusTarefa();
+        alert(`Rascunho atual associado à área: ${areaEmFoco.nome}`);
+        mapContextDrawer.classList.add("hidden");
+        areaEmFoco = null;
+    });
+
+    function atualizarSelectAreaProjeto() {
+        const select = document.getElementById("ideReviewArea");
+        if (!select) return;
+        
+        select.innerHTML = '<option value="">(Não informada)</option>';
+        MAPA_PROJETO_IDE.forEach(area => {
+            const opt = document.createElement("option");
+            opt.value = area.id;
+            opt.textContent = area.nome;
+            select.appendChild(opt);
+        });
+
+        if (rascunhoAtual.areaProjeto) {
+            select.value = rascunhoAtual.areaProjeto.id;
+        }
+    }
+
+    // ==============================================================================
 
     btnSave.addEventListener('click', () => {
         salvarRascunhoLocal();
@@ -726,7 +1058,8 @@ console.log("Lista carregada");`
                     "style.css": "",
                     "script.js": ""
                 },
-                tarefa: TAREFA_PADRAO
+                tarefa: TAREFA_PADRAO,
+                areaProjeto: null
             };
             
             lblCurrentFile.textContent = 'index.html';
@@ -760,7 +1093,8 @@ console.log("Lista carregada");`
                 nome: TEMPLATES['soft-ui'].nome,
                 arquivos: { ...TEMPLATES['soft-ui'].arquivos },
                 arquivoAtivo: 'index.html',
-                tarefa: TAREFA_PADRAO
+                tarefa: TAREFA_PADRAO,
+                areaProjeto: null
             };
             
             lblCurrentFile.textContent = 'index.html';
@@ -803,6 +1137,19 @@ console.log("Lista carregada");`
         }
 
         salvarRascunhoLocal();
+
+        const htmlContent = rascunhoAtual.arquivos['index.html'] || "";
+        if (htmlContent.trim() === "") {
+            const ehTarefaVisual = rascunhoAtual.tarefa && (rascunhoAtual.tarefa.id === "criar-tela-soft-ui" || rascunhoAtual.tarefa.id === "criar-prototipo-html-simples" || rascunhoAtual.tarefa.id === "criar-lista-cards");
+            if (ehTarefaVisual) {
+                alert("O arquivo index.html está vazio. Tarefas visuais requerem um HTML válido. A revisão foi bloqueada.");
+                return;
+            } else {
+                if (!confirm("O arquivo index.html está vazio. Deseja continuar e enviar o Pull Request mesmo assim?")) {
+                    return;
+                }
+            }
+        }
 
         modal.classList.remove("hidden");
         modal.classList.add("is-open");
@@ -879,6 +1226,7 @@ console.log("Lista carregada");`
             event.preventDefault();
             console.log("[IDE] Botão Preparar revisão clicado");
             console.log("[IDE] Modal:", document.getElementById("ideReviewModal"));
+            atualizarSelectAreaProjeto();
             abrirModalRevisao();
         });
     } else {
@@ -1106,12 +1454,29 @@ console.log("Lista carregada");`
 
         erroMsg.style.color = "#856404";
 
+        const areaSelecionadaId = document.getElementById("ideReviewArea")?.value;
+        let areaPayload = null;
+        if (areaSelecionadaId) {
+            const areaMap = MAPA_PROJETO_IDE.find(a => a.id === areaSelecionadaId);
+            if (areaMap) {
+                areaPayload = {
+                    id: areaMap.id,
+                    nome: areaMap.nome,
+                    perfil: areaMap.perfil,
+                    status: areaMap.status
+                };
+            }
+        } else if (rascunhoAtual.areaProjeto) {
+            areaPayload = rascunhoAtual.areaProjeto;
+        }
+
         const payload = {
             modo: modo,
             titulo: customTitle ? customTitle : `Protótipo: ${rascunhoAtual.nome}`,
             descricao: desc,
             modelo: rascunhoAtual.nome,
             tarefa: rascunhoAtual.tarefa || TAREFA_PADRAO,
+            areaProjeto: areaPayload,
             checklistTarefa: checklistTarefa,
             arquivos: rascunhoAtual.arquivos,
             checklist: {

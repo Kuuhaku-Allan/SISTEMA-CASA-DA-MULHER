@@ -62,7 +62,19 @@ Isso garante que nenhum rascunho de tela afete o sistema real em produção ante
 - Todo o código passa por processos rígidos de **sanitização** antes de chegar no GitHub (evitando injeções de caracteres ocultos ou quebras do sistema).
 - Tokens de acesso do GitHub nunca são expostos no navegador.
 
-## 11. O que a IDE ainda não faz (Próximas fases)
+---
+
+## 11. O Mapa do Projeto (Fase 3)
+A IDE agora possui uma aba chamada **Mapa do Projeto**. Esta aba mostra a você o contexto e as áreas reais do sistema Casa da Mulher. O mapa te ajuda a entender *onde* você está mexendo e *qual* o impacto disso.
+
+### Como usar o Mapa do Projeto?
+1. Clique no segundo ícone na barra lateral esquerda (Activity Bar) para abrir o **Mapa do Projeto**.
+2. Clique em **Ver contexto** em qualquer área para abrir o painel lateral com detalhes completos (quais os arquivos principais, o perfil que usa aquela área, cuidados e restrições).
+3. Dentro do painel de contexto, você pode clicar em **Associar ao rascunho atual**. Isso vinculará o seu rascunho àquela área.
+
+> **Importante:** Associar uma área ao rascunho *não* te dá permissão para alterar os arquivos reais daquela área em produção. Isso serve como um "contexto seguro" para orientar os desenvolvedores que revisarão o seu rascunho, sabendo de onde a sua ideia veio e para onde ela vai.
+
+## 12. O que a IDE ainda não faz (Próximas fases)
 - Ela ainda não possui um **Mapa do Sistema** que mostre o projeto inteiro (Fase 3).
 - Ela não lida com edição do backend em C# ou execução da API local.
 - Ela ainda não força vinculação obrigatória com *Issues* do GitHub ou ferramentas de Inteligência Artificial.

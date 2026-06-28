@@ -108,6 +108,19 @@ namespace CasaMulher.Api.Services
                         }
                     }
                 }
+                var areaProjetoSection = "";
+                if (request.AreaProjeto != null)
+                {
+                    var safeAreaNome = IdeContentSanitizer.SanitizarTextoCurtoIde(request.AreaProjeto.Nome ?? "", "AreaNome", usuario.IdentificadorFuncionario ?? "SYS", _logger, "manualToken");
+                    var safeAreaPerfil = IdeContentSanitizer.SanitizarTextoCurtoIde(request.AreaProjeto.Perfil ?? "", "AreaPerfil", usuario.IdentificadorFuncionario ?? "SYS", _logger, "manualToken");
+                    var safeAreaStatus = IdeContentSanitizer.SanitizarTextoCurtoIde(request.AreaProjeto.Status ?? "", "AreaStatus", usuario.IdentificadorFuncionario ?? "SYS", _logger, "manualToken");
+                    
+                    areaProjetoSection = $"\n\n## Area relacionada\n\n- Area: {safeAreaNome}\n- Perfil: {safeAreaPerfil}\n- Status: {safeAreaStatus}";
+                }
+                else
+                {
+                    areaProjetoSection = "\n\n## Area relacionada\n\n- Area: Nao informada";
+                }
 
                 // Criar README dinamicamente
                 string readmeContent = $@"# Protótipo enviado pela IDE da Equipe
@@ -123,6 +136,30 @@ namespace CasaMulher.Api.Services
 ## Descrição
 {safeDescricao}
 {tarefaSection}
+{areaProjetoSection}
+
+## Arquivos
+{string.Join(Environment.NewLine, request.Arquivos.Keys.Select(k => $"- {k}"))}
+
+## Checklist
+- [{(request.Checklist.PreviewTestado ? "x" : " ")}] Preview testado
+- [{(request.Checklist.SemDadosSensiveis ? "x" : " ")}] Sem dados sensíveis
+- [{(request.Checklist.EscopoConfirmado ? "x" : " ")}] Escopo confirmado
+
+## Observação
+> Este rascunho foi gerado automaticamente pela ferramenta de Design Seguro da Equipe.";
+
+                // Cria Pull Request
+                var prBody = $@"Protótipo gerado pela IDE da Equipe.
+                
+Autor: {usuario.NomeCompleto} ({usuario.Perfil})
+Descrição: {safeDescricao}
+{tarefaSection}
+{areaProjetoSection}
+
+[✓] Preview validado visualmente na máquina local
+[✓] Nenhuma informação sensível/real foi inserida nos arquivos
+[✓] Escopo limitado aos arquivos de tela no diretório rascunhos
 
 ## Arquivos
 {string.Join(Environment.NewLine, request.Arquivos.Keys.Select(k => $"- {k}"))}
