@@ -86,7 +86,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             endpointsRelacionados: ["/api/auth/login"],
             cuidados: ["Não alterar form de login.", "Não expor senhas no front."],
             comoTestar: ["Testar login com credenciais válidas e inválidas."],
-            observacoes: ["Área crítica."]
+            observacoes: ["Área crítica."],
+            dependeBackend: true
         },
         {
             id: "painel-adm",
@@ -100,7 +101,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             endpointsRelacionados: ["/api/dashboard/adm"],
             cuidados: ["Evitar carregamento pesado de gráficos.", "Proteção de rota obrigatória."],
             comoTestar: ["Acessar via login de ADM."],
-            observacoes: ["Nesta fase, o mapa é apenas informativo."]
+            observacoes: ["Nesta fase, o mapa é apenas informativo."],
+            dependeBackend: true
         },
         {
             id: "recepcao",
@@ -136,7 +138,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             ],
             observacoes: [
                 "Nesta fase, o mapa é apenas informativo."
-            ]
+            ],
+            dependeBackend: true
         },
         {
             id: "coord-recepcao",
@@ -150,7 +153,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             endpointsRelacionados: [],
             cuidados: ["Dados sensíveis de atendimento."],
             comoTestar: ["Login como Coordenador."],
-            observacoes: []
+            observacoes: [],
+            dependeBackend: true
         },
         {
             id: "professor",
@@ -164,7 +168,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             endpointsRelacionados: ["/api/professor/cursos"],
             cuidados: ["Validar datas de aulas rigorosamente."],
             comoTestar: ["Login como Professor e abrir diário."],
-            observacoes: []
+            observacoes: [],
+            dependeBackend: true
         },
         {
             id: "equipe",
@@ -178,7 +183,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             endpointsRelacionados: [],
             cuidados: ["Não alterar menus de navegação fixos."],
             comoTestar: ["Acessar painel da equipe."],
-            observacoes: []
+            observacoes: [],
+            dependeBackend: true
         },
         {
             id: "convites",
@@ -192,7 +198,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             endpointsRelacionados: ["/api/equipe/convite"],
             cuidados: ["O link do convite não pode ser vazado no frontend."],
             comoTestar: ["Criar convite e revogar."],
-            observacoes: []
+            observacoes: [],
+            dependeBackend: true
         },
         {
             id: "funcionarios",
@@ -206,7 +213,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             endpointsRelacionados: [],
             cuidados: ["Validar perfis atribuídos."],
             comoTestar: ["Cadastrar e inativar funcionário."],
-            observacoes: []
+            observacoes: [],
+            dependeBackend: true
         },
         {
             id: "auditoria",
@@ -220,7 +228,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             endpointsRelacionados: ["/api/auditoria"],
             cuidados: ["Pode gerar paginação lenta, cuidado com requisições."],
             comoTestar: ["Visualizar e filtrar logs."],
-            observacoes: []
+            observacoes: [],
+            dependeBackend: true
         },
         {
             id: "emails",
@@ -234,7 +243,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             endpointsRelacionados: [],
             cuidados: ["Garantir templates responsivos."],
             comoTestar: ["Testar disparos simulados."],
-            observacoes: ["Focado no backend."]
+            observacoes: ["Focado no backend."],
+            dependeBackend: true
         },
         {
             id: "seguranca-conta",
@@ -248,7 +258,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             endpointsRelacionados: ["/api/auth/reset-password"],
             cuidados: ["Segurança crítica. Não modificar sem revisão estrita."],
             comoTestar: ["Solicitar reset de senha."],
-            observacoes: []
+            observacoes: [],
+            dependeBackend: true
         },
         {
             id: "ide-equipe",
@@ -262,7 +273,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             endpointsRelacionados: ["/api/equipe-ide/github"],
             cuidados: ["Manter restrição ao diretório de rascunhos.", "Não permitir execução irrestrita no servidor."],
             comoTestar: ["Criar um rascunho, gerar um PR e validar."],
-            observacoes: ["Área em constante evolução (Fase 3 em progresso)."]
+            observacoes: ["Área em constante evolução (Fase 3 em progresso)."],
+            dependeBackend: true
         }
     ];
     
@@ -924,8 +936,10 @@ console.log("Lista carregada");`
 
     const btnTabExplorer = document.getElementById("btnTabExplorer");
     const btnTabMap = document.getElementById("btnTabMap");
+    const btnTabBackend = document.getElementById("btnTabBackend");
     const panelExplorer = document.getElementById("panelExplorer");
     const panelMap = document.getElementById("panelMap");
+    const panelBackend = document.getElementById("panelBackend");
     const mapContextDrawer = document.getElementById("mapContextDrawer");
 
     let areaEmFoco = null;
@@ -934,21 +948,98 @@ console.log("Lista carregada");`
         btnTabExplorer.addEventListener("click", () => {
             btnTabExplorer.classList.add("active");
             btnTabMap.classList.remove("active");
+            if (btnTabBackend) btnTabBackend.classList.remove("active");
             panelExplorer.classList.remove("hidden");
             panelExplorer.style.display = "";
             panelMap.classList.add("hidden");
             panelMap.style.display = "none";
+            if (panelBackend) {
+                panelBackend.classList.add("hidden");
+                panelBackend.style.display = "none";
+            }
         });
 
         btnTabMap.addEventListener("click", () => {
             btnTabMap.classList.add("active");
             btnTabExplorer.classList.remove("active");
+            if (btnTabBackend) btnTabBackend.classList.remove("active");
             panelMap.classList.remove("hidden");
             panelMap.style.display = "flex";
             panelExplorer.classList.add("hidden");
             panelExplorer.style.display = "none";
+            if (panelBackend) {
+                panelBackend.classList.add("hidden");
+                panelBackend.style.display = "none";
+            }
             renderizarMapaProjeto();
         });
+
+        if (btnTabBackend) {
+            btnTabBackend.addEventListener("click", () => {
+                btnTabBackend.classList.add("active");
+                btnTabExplorer.classList.remove("active");
+                btnTabMap.classList.remove("active");
+                panelBackend.classList.remove("hidden");
+                panelBackend.style.display = "flex";
+                panelExplorer.classList.add("hidden");
+                panelExplorer.style.display = "none";
+                panelMap.classList.add("hidden");
+                panelMap.style.display = "none";
+                verificarStatusBackend();
+            });
+        }
+    }
+
+    async function verificarStatusBackend() {
+        const statusCard = document.getElementById("backendStatusCard");
+        if (!statusCard) return;
+
+        statusCard.innerHTML = `<span style="color: var(--ide-muted);">Consultando API...</span>`;
+        
+        try {
+            const res = await CasaMulherAuth.apiFetch('/api/equipe-ide/ambiente/status', { method: 'GET' });
+
+            if (res.status === 401 || res.status === 403) {
+                statusCard.innerHTML = `
+                    <div style="color: #e34c26; font-weight:600; display:flex; align-items:center; gap:8px;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                        Acesso Negado
+                    </div>
+                    <div style="font-size:0.8rem; white-space: normal; line-height: 1.4;">Você não tem permissão para consultar o status da API.</div>
+                `;
+                return;
+            }
+
+            if (!res.ok) throw new Error("Erro de conexão");
+            
+            const data = await res.json();
+            
+            statusCard.innerHTML = `
+                <div style="color: #2ea043; font-weight:600; display:flex; align-items:center; gap:8px;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                    API Online
+                </div>
+                <div style="font-size:0.8rem; margin-top:8px; white-space: normal; line-height: 1.4;"><strong>Ambiente:</strong> ${data.ambiente}</div>
+                <div style="font-size:0.8rem; white-space: normal; line-height: 1.4;"><strong>Usuário:</strong> ${data.usuario.nome} (${data.usuario.perfil})</div>
+                <div style="font-size:0.8rem; margin-top:8px; color: var(--ide-accent); white-space: normal; line-height: 1.4;">
+                    Runner Full-Stack: ${data.recursos.runnerBackend ? 'Disponível' : 'Desativado nesta fase'}
+                </div>
+            `;
+        } catch (e) {
+            console.warn("API Offline ou indisponível", e);
+            statusCard.innerHTML = `
+                <div style="color: #e34c26; font-weight:600; display:flex; align-items:center; gap:8px;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                    API Offline ou Indisponível
+                </div>
+                <div style="font-size:0.8rem; margin-top:4px; white-space: normal; line-height: 1.4;">A IDE continua abrindo rascunhos locais, mas recursos que dependem da API podem não funcionar.</div>
+            `;
+        }
+    }
+
+    const btnVerificarBackend = document.getElementById("btnVerificarBackend");
+    if (btnVerificarBackend) {
+        btnVerificarBackend.addEventListener("click", verificarStatusBackend);
     }
 
     function renderizarMapaProjeto() {
@@ -987,6 +1078,14 @@ console.log("Lista carregada");`
         
         let htmlContexto = `<p style="margin-top: 0; color: var(--ide-muted);">${area.descricao}</p>`;
         
+        if (area.dependeBackend) {
+            htmlContexto += `
+                <div class="ide-pill info" style="margin-top: 12px; font-size: 0.8rem; white-space: normal; line-height: 1.4;">
+                    <strong>Depende da API:</strong> Nesta fase, a IDE apenas informa o status da API; testes reais de endpoints ficam para fases futuras.
+                </div>
+            `;
+        }
+        
         htmlContexto += `<h4>Acessos</h4>`;
         htmlContexto += `<ul><li><strong>Quem usa:</strong> ${area.quemUsa}</li><li><strong>Perfil:</strong> ${area.perfil}</li></ul>`;
 
@@ -1023,7 +1122,8 @@ console.log("Lista carregada");`
             id: areaEmFoco.id,
             nome: areaEmFoco.nome,
             perfil: areaEmFoco.perfil,
-            status: areaEmFoco.status
+            status: areaEmFoco.status,
+            dependeBackend: !!areaEmFoco.dependeBackend
         };
         salvarRascunhoLocal();
         atualizarStatusTarefa();

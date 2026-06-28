@@ -32,6 +32,7 @@ namespace CasaMulher.Api.DTOs
         public string Nome { get; set; } = string.Empty;
         public string Perfil { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
+        public bool DependeBackend { get; set; }
     }
 
     public class GitHubIdeChecklistItemDto

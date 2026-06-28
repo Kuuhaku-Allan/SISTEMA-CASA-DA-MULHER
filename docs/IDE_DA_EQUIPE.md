@@ -92,8 +92,14 @@ O relatório classifica os avisos em:
 
 Para ver o relatório, basta preencher os checklists e clicar em **Validar agora** (ou o relatório se atualizará sozinho à medida que você for marcando as tarefas).
 
-## 13. O que a IDE ainda não faz (Próximas fases)
-- Ela não lida com edição do backend em C# ou execução da API local.
+## 13. Status da API (Integração Controlada - Fase 5)
+A IDE agora possui uma aba **Status da API** (ícone de servidor no menu esquerdo). O objetivo desse painel é consultar informações de ambiente do backend sem realizar qualquer execução local.
+- **O que ele faz:** Consulta se a API está online, qual o ambiente atual (Development, Staging), identifica o usuário logado e alerta sobre áreas que dependem de lógicas de backend.
+- **O que ele não faz:** Não executa testes, não roda comandos do terminal, não roda migrations e não compila código backend.
+- **Aviso no Relatório:** Se você estiver desenvolvendo um rascunho de uma área que depende de API (ex: Recepção), o seu Relatório de Validação irá adicionar uma notificação de informação avisando que testes full-stack deverão ser feitos nas etapas futuras.
+
+## 14. O que a IDE ainda não faz (Próximas fases)
+- Ela não lida com edição de código de negócio no backend C# ou terminal executável pela interface.
 - Ela ainda não força vinculação obrigatória com ferramentas de Inteligência Artificial para escrita de código em massa.
 
-> Estamos construindo a ponte para um desenvolvimento Full-Stack gradualmente. Aproveite a criação de protótipos de alta qualidade!
+> Estamos construindo a ponte para um desenvolvimento Full-Stack gradualmente. Aproveite a observabilidade com o painel Backend!
