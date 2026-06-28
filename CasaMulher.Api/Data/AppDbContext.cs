@@ -32,6 +32,10 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
 
     public DbSet<RecuperacaoSegurancaToken> RecuperacaoSegurancaTokens => Set<RecuperacaoSegurancaToken>();
 
+    public DbSet<GitHubOAuthState> GitHubOAuthStates => Set<GitHubOAuthState>();
+
+    public DbSet<GitHubUsuarioVinculo> GitHubUsuarioVinculos => Set<GitHubUsuarioVinculo>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
