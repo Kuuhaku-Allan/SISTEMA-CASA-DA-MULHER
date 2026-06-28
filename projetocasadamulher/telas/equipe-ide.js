@@ -682,9 +682,20 @@ console.log("Lista carregada");`
 
     function salvarRascunhoLocal() {
         // Puxa do editor o valor do arquivo atual para o objeto antes de salvar
-        rascunhoAtual.arquivos[rascunhoAtual.arquivoAtivo] = getEditorValue();
-        rascunhoAtual.atualizadoEm = new Date().toISOString();
+        const file = rascunhoAtual.arquivoAtivo || 'index.html';
+        if (editorInstance) {
+            rascunhoAtual.arquivos[file] = getEditorValue();
+        }
         
+        // Remove lixo caso exista
+        if (rascunhoAtual.arquivos['undefined'] !== undefined) {
+            delete rascunhoAtual.arquivos['undefined'];
+        }
+        if (rascunhoAtual.arquivos['null'] !== undefined) {
+            delete rascunhoAtual.arquivos['null'];
+        }
+
+        rascunhoAtual.atualizadoEm = new Date().toISOString();
         localStorage.setItem(DRAFT_KEY, JSON.stringify(rascunhoAtual));
         marcarComoSalvo();
     }
@@ -1059,7 +1070,8 @@ console.log("Lista carregada");`
                     "script.js": ""
                 },
                 tarefa: TAREFA_PADRAO,
-                areaProjeto: null
+                areaProjeto: null,
+                arquivoAtivo: 'index.html'
             };
             
             lblCurrentFile.textContent = 'index.html';
@@ -1138,19 +1150,6 @@ console.log("Lista carregada");`
 
         salvarRascunhoLocal();
 
-        const htmlContent = rascunhoAtual.arquivos['index.html'] || "";
-        if (htmlContent.trim() === "") {
-            const ehTarefaVisual = rascunhoAtual.tarefa && (rascunhoAtual.tarefa.id === "criar-tela-soft-ui" || rascunhoAtual.tarefa.id === "criar-prototipo-html-simples" || rascunhoAtual.tarefa.id === "criar-lista-cards");
-            if (ehTarefaVisual) {
-                alert("O arquivo index.html está vazio. Tarefas visuais requerem um HTML válido. A revisão foi bloqueada.");
-                return;
-            } else {
-                if (!confirm("O arquivo index.html está vazio. Deseja continuar e enviar o Pull Request mesmo assim?")) {
-                    return;
-                }
-            }
-        }
-
         modal.classList.remove("hidden");
         modal.classList.add("is-open");
         modal.setAttribute("aria-hidden", "false");
@@ -1208,6 +1207,148 @@ console.log("Lista carregada");`
             taskContainer.style.display = "none";
             taskList.innerHTML = "";
         }
+
+        // Amarrar o evento Validar Agora e os checkboxes
+        setTimeout(() => {
+            renderizarRelatorioValidacao();
+            
+            const btnValidarAgora = document.getElementById('btnIdeValidarAgora');
+            if (btnValidarAgora && !btnValidarAgora.dataset.bound) {
+                btnValidarAgora.dataset.bound = "true";
+                btnValidarAgora.addEventListener('click', renderizarRelatorioValidacao);
+            }
+            
+            ['chkPreview', 'chkEscopo', 'chkDados'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el && !el.dataset.bound) {
+                    el.dataset.bound = "true";
+                    el.addEventListener('change', renderizarRelatorioValidacao);
+                }
+            });
+            
+            document.querySelectorAll('.chk-tarefa-item').forEach(el => {
+                if (!el.dataset.bound) {
+                    el.dataset.bound = "true";
+                    el.addEventListener('change', renderizarRelatorioValidacao);
+                }
+            });
+            
+            const selectArea = document.getElementById("ideReviewArea");
+            if (selectArea && !selectArea.dataset.bound) {
+                selectArea.dataset.bound = "true";
+                selectArea.addEventListener('change', (e) => {
+                    const selectedId = e.target.value;
+                    if (selectedId) {
+                        // MAPA_PROJETO_IDE está disponível no contexto global (app.js/equipe-ide.js)
+                        const area = MAPA_PROJETO_IDE.find(a => a.id === selectedId);
+                        if (area) {
+                            rascunhoAtual.areaProjeto = {
+                                id: area.id,
+                                nome: area.nome,
+                                perfil: area.perfil,
+                                status: area.status
+                            };
+                        }
+                    } else {
+                        rascunhoAtual.areaProjeto = null;
+                    }
+                    salvarRascunhoLocal();
+                    renderizarRelatorioValidacao();
+                });
+            }
+        }, 50);
+    }
+
+    function obterChecklistGeral() {
+        return {
+            previewTestado: document.getElementById('chkPreview')?.checked || false,
+            semDadosSensiveis: document.getElementById('chkDados')?.checked || false,
+            escopoConfirmado: document.getElementById('chkEscopo')?.checked || false
+        };
+    }
+
+    function renderizarRelatorioValidacao() {
+        if (!window.IdeValidacoes) return null;
+
+        salvarRascunhoLocal();
+        
+        if (rascunhoAtual.checklistTarefa) {
+            const chks = document.querySelectorAll('.chk-tarefa-item');
+            chks.forEach(chk => {
+                const id = chk.getAttribute('data-id');
+                const t = rascunhoAtual.checklistTarefa.find(x => x.id === id);
+                if (t) t.marcado = chk.checked;
+            });
+        }
+        
+        const relatorio = window.IdeValidacoes.gerarRelatorioValidacao(rascunhoAtual, obterChecklistGeral());
+        
+        const container = document.getElementById('ideReviewValidationReport');
+        const summary = document.getElementById('ideReviewValidationSummary');
+        const list = document.getElementById('ideReviewValidationList');
+        const btnPR = document.getElementById('btnIdeGitHubPR');
+        
+        if (!container || !summary || !list) return relatorio;
+        
+        container.style.display = 'flex';
+        
+        summary.innerHTML = `
+            <div style="color: ${relatorio.bloqueios.length > 0 ? 'var(--ide-error)' : 'inherit'}">Bloqueios: <strong>${relatorio.bloqueios.length}</strong></div>
+            <div style="color: ${relatorio.avisos.length > 0 ? 'var(--ide-warning)' : 'inherit'}">Avisos: <strong>${relatorio.avisos.length}</strong></div>
+            <div style="color: var(--ide-muted)">Informações: <strong>${relatorio.infos.length}</strong></div>
+        `;
+        
+        list.innerHTML = '';
+        const todos = window.IdeValidacoes.achatarRelatorio(relatorio);
+        
+        todos.forEach(v => {
+            const el = document.createElement('div');
+            let color = 'var(--ide-muted)';
+            let bg = 'transparent';
+            if (v.severidade === 'bloqueio') { color = 'var(--ide-error)'; bg = 'rgba(239,68,68,0.1)'; }
+            if (v.severidade === 'aviso') { color = 'var(--ide-warning)'; bg = 'rgba(245,158,11,0.1)'; }
+            
+            el.style.padding = '8px';
+            el.style.borderRadius = '4px';
+            el.style.background = bg;
+            el.style.borderLeft = `3px solid ${color}`;
+            
+            el.innerHTML = `
+                <div style="font-weight: 600; color: ${color}; margin-bottom: 2px;">${v.titulo}</div>
+                <div style="color: var(--ide-text-light);">${v.mensagem}</div>
+                ${v.arquivo ? `<div style="font-size: 0.75rem; color: var(--ide-muted); margin-top: 4px;">Arquivo: ${v.arquivo}</div>` : ''}
+            `;
+            list.appendChild(el);
+        });
+        
+        if (relatorio.bloqueios.length > 0) {
+            btnPR.disabled = true;
+            btnPR.style.opacity = '0.5';
+            btnPR.style.cursor = 'not-allowed';
+            btnPR.title = "Corrija os bloqueios antes de criar o Pull Request.";
+            
+            const btnAlert = document.createElement('div');
+            btnAlert.id = "ideReviewBtnAlert";
+            btnAlert.style.color = "var(--ide-error)";
+            btnAlert.style.fontSize = "0.85rem";
+            btnAlert.style.marginTop = "8px";
+            btnAlert.innerText = "Corrija os bloqueios antes de criar o Pull Request.";
+            
+            const existingAlert = document.getElementById("ideReviewBtnAlert");
+            if (!existingAlert) {
+                btnPR.parentNode.appendChild(btnAlert);
+            }
+        } else {
+            btnPR.disabled = false;
+            btnPR.style.opacity = '1';
+            btnPR.style.cursor = 'pointer';
+            btnPR.title = "";
+            
+            const existingAlert = document.getElementById("ideReviewBtnAlert");
+            if (existingAlert) existingAlert.remove();
+        }
+        
+        return relatorio;
     }
 
     function fecharModalRevisao() {
@@ -1400,43 +1541,17 @@ console.log("Lista carregada");`
         if (!githubStatus.enabled || !githubStatus.canCreatePullRequest) return;
         
         // Validação de checklists obrigatórios
-        const chkPreview = document.getElementById('chkPreview').checked;
-        const chkEscopo = document.getElementById('chkEscopo').checked;
-        const chkDados = document.getElementById('chkDados').checked;
-
-        if (!chkPreview || !chkEscopo || !chkDados) {
-            alert("Por favor, marque todos os itens do checklist geral antes de enviar.");
-            return;
-        }
-
-        const taskCheckboxes = document.querySelectorAll('.chk-tarefa-item');
-        const checklistTarefa = [];
-        let todasMarcadas = true;
-
-        taskCheckboxes.forEach(chk => {
-            if (!chk.checked) todasMarcadas = false;
-            checklistTarefa.push({
-                id: chk.getAttribute('data-id'),
-                texto: chk.getAttribute('data-texto'),
-                marcado: chk.checked
-            });
-        });
-
-        if (taskCheckboxes.length > 0 && !todasMarcadas) {
-            alert("Por favor, marque todos os itens do checklist da tarefa antes de enviar.");
-            return;
-        }
-
-        const desc = document.getElementById('ideReviewDescription').value.trim();
-        const customTitle = document.getElementById('ideReviewTitle')?.value.trim();
-        
         const modoEl = document.querySelector('input[name="ideModoEnvio"]:checked');
         const modo = modoEl ? modoEl.value : 'modoSeguroEquipe';
 
-        if (!chkPreview || !chkEscopo || !chkDados) {
-            alert("Por favor, confirme todos os itens do checklist antes de enviar.");
+        // Recalcular validações rigorosamente antes de enviar
+        const relatorioFinal = renderizarRelatorioValidacao();
+        if (relatorioFinal && window.IdeValidacoes.temBloqueios(relatorioFinal)) {
+            alert("A validação falhou e encontrou bloqueios. Por favor, corrija-os antes de enviar o Pull Request.");
             return;
         }
+
+        const validacoesAchatadas = relatorioFinal ? window.IdeValidacoes.achatarRelatorio(relatorioFinal) : [];
 
         const btnPR = document.getElementById('btnIdeGitHubPR');
         const loadingDiv = document.getElementById('ideReviewLoading');
@@ -1472,18 +1587,15 @@ console.log("Lista carregada");`
 
         const payload = {
             modo: modo,
-            titulo: customTitle ? customTitle : `Protótipo: ${rascunhoAtual.nome}`,
-            descricao: desc,
+            titulo: document.getElementById('ideReviewTitle')?.value || `Protótipo: ${rascunhoAtual.nome}`,
+            descricao: document.getElementById('ideReviewDescription')?.value || "Sem descrição",
             modelo: rascunhoAtual.nome,
             tarefa: rascunhoAtual.tarefa || TAREFA_PADRAO,
             areaProjeto: areaPayload,
-            checklistTarefa: checklistTarefa,
+            checklistTarefa: rascunhoAtual.checklistTarefa || [],
             arquivos: rascunhoAtual.arquivos,
-            checklist: {
-                previewTestado: chkPreview,
-                semDadosSensiveis: chkDados,
-                escopoConfirmado: chkEscopo
-            }
+            checklist: obterChecklistGeral(),
+            validacoes: validacoesAchatadas
         };
 
         try {

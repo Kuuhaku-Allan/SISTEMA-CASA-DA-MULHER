@@ -122,6 +122,27 @@ namespace CasaMulher.Api.Services
                     areaProjetoSection = "\n\n## Area relacionada\n\n- Area: Nao informada";
                 }
 
+                var validacoesSection = "";
+                if (request.Validacoes != null && request.Validacoes.Count > 0)
+                {
+                    var bloqueios = request.Validacoes.Count(v => v.Severidade == "bloqueio");
+                    var avisos = request.Validacoes.Count(v => v.Severidade == "aviso");
+                    var infos = request.Validacoes.Count(v => v.Severidade == "info");
+
+                    validacoesSection = $"\n\n## Validacao automatica\n\n- Bloqueios: {bloqueios}\n- Avisos: {avisos}\n- Informacoes: {infos}";
+                    
+                    if (avisos > 0 || bloqueios > 0)
+                    {
+                        validacoesSection += "\n\n### Avisos e Bloqueios\n";
+                        foreach (var v in request.Validacoes.Where(x => x.Severidade == "aviso" || x.Severidade == "bloqueio"))
+                        {
+                            var sFile = IdeContentSanitizer.SanitizarTextoCurtoIde(v.Arquivo, "ValidacaoArquivo", identificador, _logger, "Seguro");
+                            var sTitle = IdeContentSanitizer.SanitizarTextoCurtoIde(v.Titulo, "ValidacaoTitulo", identificador, _logger, "Seguro");
+                            validacoesSection += $"\n- `{sFile}`: {sTitle}";
+                        }
+                    }
+                }
+
                 // Criar README dinamicamente
                 string readmeContent = $@"# Protótipo enviado pela IDE da Equipe
 
@@ -137,6 +158,7 @@ namespace CasaMulher.Api.Services
 {safeDescricao}
 {tarefaSection}
 {areaProjetoSection}
+{validacoesSection}
 
 ## Arquivos
 {string.Join(Environment.NewLine, request.Arquivos.Keys.Select(k => $"- {k}"))}
@@ -156,6 +178,7 @@ Autor: {usuario.NomeCompleto} ({usuario.Perfil})
 Descrição: {safeDescricao}
 {tarefaSection}
 {areaProjetoSection}
+{validacoesSection}
 
 [✓] Preview validado visualmente na máquina local
 [✓] Nenhuma informação sensível/real foi inserida nos arquivos

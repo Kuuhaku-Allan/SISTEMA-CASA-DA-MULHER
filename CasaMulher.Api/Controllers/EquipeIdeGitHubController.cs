@@ -140,6 +140,11 @@ namespace CasaMulher.Api.Controllers
                 return BadRequest(new GitHubPullRequestResultadoDto { Sucesso = false, Mensagem = "O checklist de segurança não foi preenchido corretamente." });
             }
 
+            if (request.Validacoes != null && request.Validacoes.Any(v => v.Severidade == "bloqueio"))
+            {
+                return BadRequest(new GitHubPullRequestResultadoDto { Sucesso = false, Mensagem = "A revisão possui bloqueios de validação. Corrija antes de abrir o Pull Request." });
+            }
+
             var allowedFiles = new[] { "index.html", "style.css", "script.js" };
             long totalSize = 0;
             foreach (var file in request.Arquivos)

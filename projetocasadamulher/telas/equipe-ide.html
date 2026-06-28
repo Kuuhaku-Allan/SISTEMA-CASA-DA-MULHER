@@ -27,6 +27,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/htmlmixed/htmlmixed.min.js" defer></script>
     
     <!-- Lógica IDE -->
+    <script src="equipe-ide-validacoes.js?v=1" defer></script>
     <script src="equipe-ide.js?v=2" defer></script>
 </head>
 <body class="ide-page-body">
@@ -352,6 +353,15 @@
                     <div id="ideReviewTaskChecklist" style="display: flex; flex-direction: column; gap: 8px;">
                         <!-- Preenchido via JS -->
                     </div>
+                </div>
+                
+                <div id="ideReviewValidationReport" style="background: var(--ide-bg-elevated); padding: 16px; border-radius: 6px; border: 1px solid var(--ide-border); display: none; flex-direction: column; gap: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <div style="font-weight: 600; font-size: 0.9rem;">Relatório de Validação</div>
+                        <button type="button" id="btnIdeValidarAgora" class="ide-button secondary" style="padding: 4px 10px; font-size: 0.8rem;">Validar agora</button>
+                    </div>
+                    <div id="ideReviewValidationSummary" style="display: flex; gap: 12px; font-size: 0.85rem;"></div>
+                    <div id="ideReviewValidationList" style="display: flex; flex-direction: column; gap: 8px; font-size: 0.85rem; margin-top: 8px;"></div>
                 </div>
             </div>
 
