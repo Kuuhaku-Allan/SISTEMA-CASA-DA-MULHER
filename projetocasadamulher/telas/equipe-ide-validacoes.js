@@ -158,6 +158,17 @@
             }
         }
 
+        // 6. Dependência de Backend
+        if (rascunho.areaProjeto && rascunho.areaProjeto.dependeBackend) {
+            relatorio.infos.push({ 
+                id: 'depende-backend', 
+                titulo: 'Dependência de Backend', 
+                mensagem: 'A área relacionada depende da API. A validação atual é estática e não executa endpoints, banco, build ou testes de backend.', 
+                arquivo: 'Contexto', 
+                severidade: 'info' 
+            });
+        }
+
         return relatorio;
     }
 

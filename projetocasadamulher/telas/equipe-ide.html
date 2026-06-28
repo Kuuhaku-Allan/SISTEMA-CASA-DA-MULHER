@@ -88,6 +88,9 @@
                 <button class="ide-activity-icon" id="btnTabMap" title="Mapa do Projeto" aria-label="Mapa do Projeto">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon><line x1="8" y1="2" x2="8" y2="18"></line><line x1="16" y1="6" x2="16" y2="22"></line></svg>
                 </button>
+                <button class="ide-activity-icon" id="btnTabBackend" title="Status da API (Backend)" aria-label="Backend">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+                </button>
                 <button class="ide-activity-icon" title="Buscar" aria-label="Buscar">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                 </button>
@@ -168,6 +171,17 @@
                     <div class="ide-sidebar-header">Mapa do Projeto</div>
                     <div class="ide-sidebar-content" style="padding: 12px; gap: 12px; display: flex; flex-direction: column;" id="ideMapList">
                         <!-- Renderizado via JS -->
+                    </div>
+                </div>
+
+                <!-- PAINEL BACKEND STATUS -->
+                <div id="panelBackend" class="ide-sidebar-panel hidden" style="display: none; height: 100%; flex-direction: column;">
+                    <div class="ide-sidebar-header">Status da API</div>
+                    <div class="ide-sidebar-content" style="padding: 12px; gap: 12px; display: flex; flex-direction: column;">
+                        <div id="backendStatusCard" class="ide-pill" style="justify-content: center; background: rgba(255,255,255,0.05); padding: 16px; flex-direction: column; align-items: flex-start; gap: 8px;">
+                            <span style="color: var(--ide-muted);">Carregando status...</span>
+                        </div>
+                        <button type="button" id="btnVerificarBackend" class="ide-button secondary" style="justify-content: center; margin-top: 8px;">Verificar novamente</button>
                     </div>
                 </div>
             </aside>

@@ -72,3 +72,17 @@ Por design estrutural nos controllers e services, todo envio obrigatoriamente ca
 - Qualquer edição nas propriedades obrigatórias de `GitHubIdeRevisaoRequest` causará erro no parse JSON na chamada `apiFetch` do frontend caso não sejam alinhadas.
 - O catálogo de tarefas e o `MAPA_PROJETO_IDE` estão *hardcoded* em JavaScript nas fases atuais (Fase 2 e 3) para facilitar a usabilidade. O backend apenas confia e sanitiza (via `SanitizarTextoCurtoIde`) os metadados. Numa futura transição de integração de *GitHub Issues* (Fase 4), será recomendado espelhar IDs de Issues reais e carregar o mapa do projeto dinamicamente a partir do repositório.
 - Configurações de acesso (como o webhook e o Secret do OAuth Pessoal) ficam no `.env` (quando local) e no cofre do servidor de implantação.
+
+---
+
+## 6. Observabilidade de Backend (Fase 5)
+A Fase 5 estabelece a comunicação (somente leitura) entre a IDE e o Backend via o `EquipeIdeAmbienteController`.
+
+### 6.1. Segurança e DTOs de Ambiente
+- **Controller:** O `EquipeIdeAmbienteController` expõe o endpoint `GET /api/equipe-ide/ambiente/status`.
+- **Restrição de Acesso:** Protegido por `[Authorize]`. O endpoint recusa chamadas de usuários não autenticados (401) e o frontend é instruído a exibir alertas "Acesso Negado" se o perfil for inválido (403).
+- **Tipagem (DTOs):** O retorno é estritamente controlado via `EquipeIdeAmbienteStatusDto` e seus sub-objetos. 
+- **Limites da Fase:** 
+  - A API reporta status (online, ambiente, nome/perfil do usuário e flags booleanas dos recursos).
+  - A API **NÃO DEVE** trafegar strings de conexão, secrets de arquivos locais, tokens de OAuth puros ou paths sensíveis.
+  - A IDE não executa comandos (`cmd`, `bash`), processos full-stack ou *Test Runners*. Trata-se de uma observabilidade segura.
