@@ -569,6 +569,77 @@ console.log("Lista carregada");`
         }
     };
 
+
+function caminhoWorkspaceValido(caminho) {
+  if (typeof caminho !== "string") return false;
+  const valor = caminho.trim();
+  if (!valor) return false;
+  if (valor === ".") return false;
+  if (valor.includes("../")) return false;
+  if (valor.includes("..\\")) return false;
+  if (valor.startsWith("/")) return false;
+  if (valor.startsWith("\\")) return false;
+  if (/^[a-zA-Z]:\\/.test(valor)) return false;
+  return true;
+}
+
+function normalizarEstadoWorkspaceIde(rascunho) {
+  if (!rascunho) return rascunho;
+
+  rascunho.arquivos = rascunho.arquivos || {};
+  rascunho.arquivosBase = rascunho.arquivosBase || {};
+  rascunho.pastas = Array.isArray(rascunho.pastas) ? rascunho.pastas : [];
+  rascunho.abasAbertas = Array.isArray(rascunho.abasAbertas) ? rascunho.abasAbertas : [];
+
+  rascunho.arquivos = Object.fromEntries(
+    Object.entries(rascunho.arquivos).filter(([caminho]) => caminhoWorkspaceValido(caminho))
+  );
+
+  rascunho.arquivosBase = Object.fromEntries(
+    Object.entries(rascunho.arquivosBase).filter(([caminho]) => caminhoWorkspaceValido(caminho))
+  );
+
+  rascunho.pastas = rascunho.pastas.filter(caminhoWorkspaceValido);
+  rascunho.abasAbertas = rascunho.abasAbertas.filter((caminho) => caminhoWorkspaceValido(caminho) && rascunho.arquivos[caminho] !== undefined);
+
+  if (!caminhoWorkspaceValido(rascunho.arquivoAtivo) || rascunho.arquivos[rascunho.arquivoAtivo] === undefined) {
+    rascunho.arquivoAtivo = rascunho.abasAbertas[0] || Object.keys(rascunho.arquivos)[0] || null;
+  }
+
+  if (rascunho.arquivoAtivo && !rascunho.abasAbertas.includes(rascunho.arquivoAtivo)) {
+    rascunho.abasAbertas.unshift(rascunho.arquivoAtivo);
+  }
+
+  return rascunho;
+}
+
+function obterIconeArquivoIde(caminho, opcoes = {}) {
+  if (opcoes.pasta) {
+    return opcoes.aberta ? "vscode-icons:default-folder-opened" : "vscode-icons:default-folder";
+  }
+  const nome = String(caminho || "").split("/").pop().toLowerCase();
+  const ext = nome.includes(".") ? nome.split(".").pop() : "";
+
+  const porNome = {
+    "readme.md": "vscode-icons:file-type-readme",
+    "appsettings.json": "vscode-icons:file-type-config",
+    "appsettings.development.json": "vscode-icons:file-type-config"
+  };
+
+  const porExtensao = {
+    html: "vscode-icons:file-type-html",
+    css: "vscode-icons:file-type-css",
+    js: "vscode-icons:file-type-js",
+    json: "vscode-icons:file-type-json",
+    md: "vscode-icons:file-type-markdown",
+    txt: "vscode-icons:default-file",
+    cs: "vscode-icons:file-type-csharp",
+    cshtml: "vscode-icons:file-type-razor"
+  };
+
+  return porNome[nome] || porExtensao[ext] || "vscode-icons:default-file";
+}
+
     let rascunhoAtual = {
         versaoWorkspace: 2,
         nome: 'Tela Soft UI',
@@ -841,13 +912,7 @@ console.log("Lista carregada");`
         return { valido: true, pathNorm: path, partesPasta: partes };
     }
 
-    function getIconForFile(path) {
-        if (path.endsWith('.html')) return '<svg viewBox="0 0 384 512" width="14" height="14" fill="#e34c26"><path d="M0 32l34.9 395.8L191.5 480l157.6-52.2L384 32H0zm308.2 127.9H124.4l4.1 49.4h175.6l-13.6 148.4-97.9 27v.3h-1.1l-98.7-27.3-6-75.8h47.7L138 320l53.5 14.5 53.7-14.5 6-62.2H84.3L71.5 112.2h241.1l-4.4 47.7z"/></svg>';
-        if (path.endsWith('.css')) return '<svg viewBox="0 0 384 512" width="14" height="14" fill="#264de4"><path d="M0 32l34.9 395.8L192 480l157.1-52.2L384 32H0zm308.2 127.9H124.4l4.1 49.4h175.6l-13.6 148.4-97.9 27v.3h-1.1l-98.7-27.3-6-75.8h47.7L138 320l53.5 14.5 53.7-14.5 6-62.2H84.3L71.5 112.2h241.1l-4.4 47.7z"/></svg>';
-        if (path.endsWith('.js')) return '<svg viewBox="0 0 448 512" width="14" height="14" fill="#f0db4f"><path d="M0 32v448h448V32H0zm243.8 349.4c0 43.6-25.6 63.5-62.9 63.5-33.7 0-53.2-17.4-63.2-38.5l34.3-20.7c6.6 11.7 12.6 21.6 27.1 21.6 13.8 0 22.6-5.4 22.6-26.5V237.7h42.1v143.7zm99.6 63.5c-39.1 0-64.4-18.6-76.7-43l34.3-19.8c9 14.7 20.8 25.6 41.5 25.6 17.4 0 28.6-8.7 28.6-20.8 0-14.4-11.4-19.5-30.7-28l-10.5-4.5c-30.4-12.9-50.5-29.2-50.5-63.5 0-31.6 24.1-55.6 61.6-55.6 26.8 0 46 9.3 59.8 33.7L368 290c-7.2-12.9-15-18-27.1-18-12.3 0-20.1 7.8-20.1 18 0 12.6 7.8 17.7 25.9 25.6l10.5 4.5c35.8 15.3 55.9 31 55.9 66.2 0 37.8-29.8 58.6-69.7 58.6z"/></svg>';
-        if (path.endsWith('.json')) return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#cb3837" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>';
-        return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>';
-    }
+    
 
     function renderizarArvoreArquivos() {
         const container = document.getElementById('ideFileList');
@@ -864,7 +929,7 @@ console.log("Lista carregada");`
             divPasta.style.color = 'var(--ide-text)';
             divPasta.style.opacity = '0.8';
             divPasta.style.display = 'flex';
-            divPasta.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg> ${pasta}/`;
+            divPasta.innerHTML = `<iconify-icon class="ide-file-icon" icon="${obterIconeArquivoIde(pasta, {pasta:true})}" aria-hidden="true" style="margin-right:6px; font-size:16px; transform:translateY(2px);"></iconify-icon> ${pasta}/`;
             container.appendChild(divPasta);
         });
 
@@ -893,7 +958,7 @@ console.log("Lista carregada");`
             btnName.style.overflow = 'hidden';
             btnName.style.textOverflow = 'ellipsis';
             btnName.style.whiteSpace = 'nowrap';
-            btnName.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg> <span style="overflow:hidden; text-overflow:ellipsis;">${path}</span>`;
+            btnName.innerHTML = `<iconify-icon class="ide-file-icon" icon="${obterIconeArquivoIde(path)}" aria-hidden="true" style="font-size:16px; margin-right:4px; transform:translateY(2px);"></iconify-icon> <span style="overflow:hidden; text-overflow:ellipsis;">${path}</span>`;
             btnName.onclick = () => abrirArquivo(path);
             
             const btnAcoes = document.createElement('div');
@@ -984,7 +1049,7 @@ console.log("Lista carregada");`
             btnName.style.display = 'flex';
             btnName.style.alignItems = 'center';
             btnName.style.gap = '6px';
-            btnName.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg> <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width: 150px;">${path}</span>`;
+            btnName.innerHTML = `<iconify-icon class="ide-file-icon" icon="${obterIconeArquivoIde(path)}" aria-hidden="true" style="font-size:16px; margin-right:4px; transform:translateY(2px);"></iconify-icon> <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width: 150px;">${path}</span>`;
             btnName.onclick = () => abrirArquivo(path);
             
             const btnClose = document.createElement('button');
@@ -1014,7 +1079,7 @@ console.log("Lista carregada");`
             if (novaAba) {
                 abrirArquivo(novaAba);
             } else {
-                rascunhoAtual.arquivoAtivo = '';
+                rascunhoAtual.arquivoAtivo = null;
                 setEditorValue('');
                 lblCurrentFile.textContent = 'Sem arquivo';
                 if (statusBarFile) statusBarFile.textContent = 'Sem arquivo';
