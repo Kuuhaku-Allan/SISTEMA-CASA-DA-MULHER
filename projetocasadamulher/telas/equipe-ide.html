@@ -9,6 +9,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/dracula.min.css">
     
+    <!-- Adicionais de Busca (Commit 4) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/dialog/dialog.min.css">
+    
     <!-- Estilos -->
     <link rel="stylesheet" href="style.css?v=ide3">
     <link rel="stylesheet" href="equipe-ide.css?v=3">
@@ -26,9 +29,15 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/javascript/javascript.min.js" defer></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/htmlmixed/htmlmixed.min.js" defer></script>
     
+    <!-- CodeMirror Search Addons (Commit 4) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/dialog/dialog.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/search/searchcursor.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/search/search.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/search/jump-to-line.min.js" defer></script>
+
     <!-- Lógica IDE -->
-    <script src="equipe-ide-validacoes.js?v=3" defer></script>
-    <script src="equipe-ide.js?v=3" defer></script>
+    <script src="equipe-ide-validacoes.js?v=4" defer></script>
+    <script src="equipe-ide.js?v=4" defer></script>
 </head>
 <body class="ide-page-body">
     <main id="equipeIdePage" class="ide-app-shell" style="display: none;">
@@ -91,7 +100,7 @@
                 <button class="ide-activity-icon" id="btnTabBackend" title="Status da API (Backend)" aria-label="Backend">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
                 </button>
-                <button class="ide-activity-icon" title="Buscar" aria-label="Buscar">
+                <button class="ide-activity-icon" id="btnIdeSearch" title="Buscar no Arquivo (Ctrl+F)" aria-label="Buscar">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                 </button>
                 <button class="ide-activity-icon" title="Controle de Versão (Em breve)" aria-label="Controle de Versão">

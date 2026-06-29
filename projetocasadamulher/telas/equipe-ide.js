@@ -1106,6 +1106,15 @@ console.log("Lista carregada");`
         });
     });
 
+    const btnIdeSearch = document.getElementById('btnIdeSearch');
+    if (btnIdeSearch) {
+        btnIdeSearch.addEventListener('click', () => {
+            if (editorInstance) {
+                editorInstance.execCommand("find");
+            }
+        });
+    }
+
     // Renderizar Tarefas Guiadas no Menu Lateral
     function renderizarTarefasGuiadas() {
         const list = document.getElementById("ideTasksList");
