@@ -720,6 +720,7 @@ console.log("Lista carregada");`
                     atualizarStatusTarefa();
                     marcarComoSalvo();
                     console.log(`Rascunho restaurado V2. Atualizado em: ${salvo.atualizadoEm}`);
+                    renderizarArvoreArquivos();
                 }
             } catch (e) {
                 console.error("Erro ao ler rascunho salvo.", e);
@@ -819,40 +820,174 @@ console.log("Lista carregada");`
         }, 800);
     }
 
+    // --- VFS: ARVORE DE ARQUIVOS ---
+    function validarCaminhoArquivo(path) {
+        if (!path) return { valido: false, erro: "O caminho não pode ser vazio." };
+        path = path.replace(/\\/g, '/');
+        if (path.includes('../') || path.startsWith('/') || path.match(/^[a-zA-Z]:\//) || path.includes('//')) {
+            return { valido: false, erro: "Caminho inválido. Evite barras duplas ou navegação para fora do diretório." };
+        }
+        
+        const partes = path.split('/');
+        const nomeArquivo = partes.pop();
+        if (nomeArquivo) {
+            const extPermitidas = ['.html', '.css', '.js', '.json', '.md', '.txt', '.cs', '.cshtml'];
+            const ext = nomeArquivo.substring(nomeArquivo.lastIndexOf('.')).toLowerCase();
+            if (!extPermitidas.includes(ext) || nomeArquivo.indexOf('.') === -1) {
+                return { valido: false, erro: `Extensão não permitida. Use: ${extPermitidas.join(', ')}` };
+            }
+        }
+        return { valido: true, pathNorm: path, partesPasta: partes };
+    }
+
+    function renderizarArvoreArquivos() {
+        const container = document.getElementById('ideFileList');
+        if (!container) return;
+        
+        container.innerHTML = '';
+        
+        const arquivos = Object.keys(rascunhoAtual.arquivos || {}).sort();
+        const pastas = (rascunhoAtual.pastas || []).sort();
+        
+        pastas.forEach(pasta => {
+            const divPasta = document.createElement('div');
+            divPasta.style.padding = '4px 8px';
+            divPasta.style.color = 'var(--ide-text)';
+            divPasta.style.opacity = '0.8';
+            divPasta.style.display = 'flex';
+            divPasta.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg> ${pasta}/`;
+            container.appendChild(divPasta);
+        });
+
+        arquivos.forEach(path => {
+            const btn = document.createElement('div');
+            btn.className = `ide-file-item ${rascunhoAtual.arquivoAtivo === path ? 'active' : ''}`;
+            btn.style.display = 'flex';
+            btn.style.justifyContent = 'space-between';
+            btn.style.alignItems = 'center';
+            btn.style.padding = '6px 8px';
+            
+            let color = '#ccc';
+            if (path.endsWith('.html')) color = '#e34c26';
+            else if (path.endsWith('.css')) color = '#264de4';
+            else if (path.endsWith('.js')) color = '#f0db4f';
+            else if (path.endsWith('.cs')) color = '#178600';
+            else if (path.endsWith('.json')) color = '#cb3837';
+            else if (path.endsWith('.md')) color = '#fff';
+            
+            const btnName = document.createElement('span');
+            btnName.style.display = 'flex';
+            btnName.style.alignItems = 'center';
+            btnName.style.gap = '6px';
+            btnName.style.cursor = 'pointer';
+            btnName.style.flex = '1';
+            btnName.style.overflow = 'hidden';
+            btnName.style.textOverflow = 'ellipsis';
+            btnName.style.whiteSpace = 'nowrap';
+            btnName.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path></svg> <span style="overflow:hidden; text-overflow:ellipsis;">${path}</span>`;
+            btnName.onclick = () => abrirArquivo(path);
+            
+            const btnAcoes = document.createElement('div');
+            btnAcoes.style.display = 'flex';
+            btnAcoes.style.gap = '4px';
+            
+            const btnRenomear = document.createElement('button');
+            btnRenomear.innerHTML = '✎';
+            btnRenomear.style = "background:none; border:none; color:var(--ide-text); cursor:pointer; opacity: 0.6; padding:0 4px;";
+            btnRenomear.onclick = (e) => { e.stopPropagation(); renomearArquivoVFS(path); };
+            
+            const btnExcluir = document.createElement('button');
+            btnExcluir.innerHTML = '🗑';
+            btnExcluir.style = "background:none; border:none; color:var(--ide-text); cursor:pointer; opacity: 0.6; padding:0 4px;";
+            btnExcluir.onclick = (e) => { e.stopPropagation(); excluirArquivoVFS(path); };
+            
+            btnAcoes.appendChild(btnRenomear);
+            btnAcoes.appendChild(btnExcluir);
+            
+            btn.appendChild(btnName);
+            btn.appendChild(btnAcoes);
+            container.appendChild(btn);
+        });
+    }
+
+    function renomearArquivoVFS(oldPath) {
+        const newPathRaw = prompt("Novo nome do arquivo (ex: pasta/arquivo.js):", oldPath);
+        if (!newPathRaw || newPathRaw === oldPath) return;
+        
+        const val = validarCaminhoArquivo(newPathRaw);
+        if (!val.valido) return alert(val.erro);
+        const newPath = val.pathNorm;
+        
+        if (rascunhoAtual.arquivos[newPath] !== undefined) return alert("Arquivo já existe com este nome.");
+        
+        if (rascunhoAtual.arquivoAtivo === oldPath) {
+            rascunhoAtual.arquivos[oldPath] = getEditorValue();
+        }
+        
+        rascunhoAtual.arquivos[newPath] = rascunhoAtual.arquivos[oldPath];
+        delete rascunhoAtual.arquivos[oldPath];
+        
+        const abaIndex = rascunhoAtual.abasAbertas.indexOf(oldPath);
+        if (abaIndex !== -1) rascunhoAtual.abasAbertas[abaIndex] = newPath;
+        
+        if (rascunhoAtual.arquivoAtivo === oldPath) {
+            abrirArquivo(newPath);
+        } else {
+            renderizarArvoreArquivos();
+            salvarRascunhoLocal();
+        }
+    }
+
+    function excluirArquivoVFS(path) {
+        if (!confirm(`Deseja excluir o arquivo '${path}'?`)) return;
+        
+        delete rascunhoAtual.arquivos[path];
+        
+        const abaIndex = rascunhoAtual.abasAbertas.indexOf(path);
+        if (abaIndex !== -1) rascunhoAtual.abasAbertas.splice(abaIndex, 1);
+        
+        if (rascunhoAtual.arquivoAtivo === path) {
+            abrirArquivo(rascunhoAtual.abasAbertas[0] || 'index.html');
+        } else {
+            renderizarArvoreArquivos();
+            salvarRascunhoLocal();
+        }
+    }
+
     // 9. Alternar abas de arquivo
     function abrirArquivo(filename) {
-        // Salva arquivo antigo
-        rascunhoAtual.arquivos[rascunhoAtual.arquivoAtivo] = getEditorValue();
+        if (rascunhoAtual.arquivoAtivo && rascunhoAtual.arquivos[rascunhoAtual.arquivoAtivo] !== undefined) {
+            rascunhoAtual.arquivos[rascunhoAtual.arquivoAtivo] = getEditorValue();
+        }
         
-        // Define novo arquivo
+        if (rascunhoAtual.arquivos[filename] === undefined) {
+            if (filename === 'index.html') rascunhoAtual.arquivos[filename] = '';
+            else return;
+        }
+        
         rascunhoAtual.arquivoAtivo = filename;
         lblCurrentFile.textContent = filename;
         if (statusBarFile) statusBarFile.textContent = filename;
         if (statusBarLang) {
             if (filename.endsWith('.js')) statusBarLang.textContent = 'JavaScript';
             else if (filename.endsWith('.css')) statusBarLang.textContent = 'CSS';
+            else if (filename.endsWith('.cs')) statusBarLang.textContent = 'C#';
+            else if (filename.endsWith('.json')) statusBarLang.textContent = 'JSON';
             else statusBarLang.textContent = 'HTML';
         }
         
-        // Carrega conteúdo
         setEditorValue(rascunhoAtual.arquivos[filename] || '');
         updateEditorMode(filename);
         
-        // Atualiza UI dos botões
-        fileButtons.forEach(btn => {
-            if (btn.getAttribute('data-file') === filename) {
-                btn.classList.add('active');
-            } else {
-                btn.classList.remove('active');
-            }
-        });
-        
-        // Refresh CM para recalcular altura após troca de layout ou aba
+        renderizarArvoreArquivos();
         setTimeout(() => { if (editorInstance) editorInstance.refresh(); }, 50);
+        salvarRascunhoLocal();
     }
 
     // 10. Ações da Toolbar/Sidebar
-    fileButtons.forEach(btn => {
+    // Substituído por renderizarArvoreArquivos (Exceto para as abas estáticas do Commit 2)
+    const tabButtons = document.querySelectorAll('.ide-tab');
+    tabButtons.forEach(btn => {
         btn.addEventListener('click', (e) => {
             const file = e.currentTarget.getAttribute('data-file');
             abrirArquivo(file);
@@ -885,10 +1020,7 @@ console.log("Lista carregada");`
                 setEditorValue(rascunhoAtual.arquivos['index.html']);
                 updateEditorMode('index.html');
                 
-                fileButtons.forEach(btn => {
-                    if (btn.getAttribute('data-file') === 'index.html') btn.classList.add('active');
-                    else btn.classList.remove('active');
-                });
+                renderizarArvoreArquivos();
                 
                 setTimeout(() => { if (editorInstance) editorInstance.refresh(); }, 50);
 
@@ -944,10 +1076,7 @@ console.log("Lista carregada");`
         setEditorValue(rascunhoAtual.arquivos['index.html']);
         updateEditorMode('index.html');
         
-        fileButtons.forEach(b => {
-            if (b.getAttribute('data-file') === 'index.html') b.classList.add('active');
-            else b.classList.remove('active');
-        });
+        renderizarArvoreArquivos();
         
         setTimeout(() => { if (editorInstance) editorInstance.refresh(); }, 50);
 
@@ -1189,6 +1318,46 @@ console.log("Lista carregada");`
     btnSave.addEventListener('click', () => {
         salvarRascunhoLocal();
     });
+    
+    const btnNewFile = document.getElementById('btnIdeNewFile');
+    if (btnNewFile) {
+        btnNewFile.addEventListener('click', () => {
+            const pathRaw = prompt("Caminho do novo arquivo (ex: js/app.js ou login.html):");
+            if (!pathRaw) return;
+            const val = validarCaminhoArquivo(pathRaw);
+            if (!val.valido) return alert(val.erro);
+            const path = val.pathNorm;
+            if (rascunhoAtual.arquivos[path] !== undefined) return alert("Arquivo já existe!");
+            
+            if (rascunhoAtual.arquivoAtivo) {
+                rascunhoAtual.arquivos[rascunhoAtual.arquivoAtivo] = getEditorValue();
+            }
+            
+            rascunhoAtual.arquivos[path] = '';
+            if (!rascunhoAtual.abasAbertas.includes(path)) {
+                rascunhoAtual.abasAbertas.push(path);
+            }
+            abrirArquivo(path);
+        });
+    }
+    
+    const btnNewFolder = document.getElementById('btnIdeNewFolder');
+    if (btnNewFolder) {
+        btnNewFolder.addEventListener('click', () => {
+            let pathRaw = prompt("Nome da nova pasta:");
+            if (!pathRaw) return;
+            pathRaw = pathRaw.replace(/\\/g, '/');
+            if (pathRaw.includes('../') || pathRaw.startsWith('/') || pathRaw.match(/^[a-zA-Z]:\//) || pathRaw.includes('//')) {
+                return alert("Caminho de pasta inválido.");
+            }
+            if (pathRaw.endsWith('/')) pathRaw = pathRaw.slice(0, -1);
+            if (rascunhoAtual.pastas.includes(pathRaw)) return alert("Pasta já existe!");
+            
+            rascunhoAtual.pastas.push(pathRaw);
+            renderizarArvoreArquivos();
+            salvarRascunhoLocal();
+        });
+    }
 
     document.getElementById('btnIdeUpdatePreview').addEventListener('click', () => {
         atualizarPreview();
@@ -1216,10 +1385,7 @@ console.log("Lista carregada");`
             setEditorValue('');
             updateEditorMode('index.html');
             
-            fileButtons.forEach(btn => {
-                if (btn.getAttribute('data-file') === 'index.html') btn.classList.add('active');
-                else btn.classList.remove('active');
-            });
+            renderizarArvoreArquivos();
             
             setTimeout(() => { if (editorInstance) editorInstance.refresh(); }, 50);
 
@@ -1251,10 +1417,7 @@ console.log("Lista carregada");`
             setEditorValue(rascunhoAtual.arquivos['index.html']);
             updateEditorMode('index.html');
             
-            fileButtons.forEach(btn => {
-                if (btn.getAttribute('data-file') === 'index.html') btn.classList.add('active');
-                else btn.classList.remove('active');
-            });
+            renderizarArvoreArquivos();
             
             setTimeout(() => { if (editorInstance) editorInstance.refresh(); }, 50);
 
