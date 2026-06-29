@@ -721,6 +721,7 @@ console.log("Lista carregada");`
                     marcarComoSalvo();
                     console.log(`Rascunho restaurado V2. Atualizado em: ${salvo.atualizadoEm}`);
                     renderizarArvoreArquivos();
+                renderizarAbas();
                 }
             } catch (e) {
                 console.error("Erro ao ler rascunho salvo.", e);
@@ -884,7 +885,7 @@ console.log("Lista carregada");`
             btnName.style.overflow = 'hidden';
             btnName.style.textOverflow = 'ellipsis';
             btnName.style.whiteSpace = 'nowrap';
-            btnName.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path></svg> <span style="overflow:hidden; text-overflow:ellipsis;">${path}</span>`;
+            btnName.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg> <span style="overflow:hidden; text-overflow:ellipsis;">${path}</span>`;
             btnName.onclick = () => abrirArquivo(path);
             
             const btnAcoes = document.createElement('div');
@@ -892,13 +893,13 @@ console.log("Lista carregada");`
             btnAcoes.style.gap = '4px';
             
             const btnRenomear = document.createElement('button');
-            btnRenomear.innerHTML = '✎';
-            btnRenomear.style = "background:none; border:none; color:var(--ide-text); cursor:pointer; opacity: 0.6; padding:0 4px;";
+            btnRenomear.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>';
+            btnRenomear.style = "background:none; border:none; color:var(--ide-text); cursor:pointer; opacity: 0.6; padding:0 4px; display:flex; align-items:center;";
             btnRenomear.onclick = (e) => { e.stopPropagation(); renomearArquivoVFS(path); };
             
             const btnExcluir = document.createElement('button');
-            btnExcluir.innerHTML = '🗑';
-            btnExcluir.style = "background:none; border:none; color:var(--ide-text); cursor:pointer; opacity: 0.6; padding:0 4px;";
+            btnExcluir.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>';
+            btnExcluir.style = "background:none; border:none; color:var(--ide-text); cursor:pointer; opacity: 0.6; padding:0 4px; display:flex; align-items:center;";
             btnExcluir.onclick = (e) => { e.stopPropagation(); excluirArquivoVFS(path); };
             
             btnAcoes.appendChild(btnRenomear);
@@ -934,6 +935,7 @@ console.log("Lista carregada");`
             abrirArquivo(newPath);
         } else {
             renderizarArvoreArquivos();
+                renderizarAbas();
             salvarRascunhoLocal();
         }
     }
@@ -943,13 +945,78 @@ console.log("Lista carregada");`
         
         delete rascunhoAtual.arquivos[path];
         
-        const abaIndex = rascunhoAtual.abasAbertas.indexOf(path);
-        if (abaIndex !== -1) rascunhoAtual.abasAbertas.splice(abaIndex, 1);
+        fecharAba(path, true); // true indica que estamos excluindo
+    }
+
+    function renderizarAbas() {
+        const container = document.getElementById('ideEditorTabs');
+        if (!container) return;
         
-        if (rascunhoAtual.arquivoAtivo === path) {
-            abrirArquivo(rascunhoAtual.abasAbertas[0] || 'index.html');
+        container.innerHTML = '';
+        if (!rascunhoAtual.abasAbertas) rascunhoAtual.abasAbertas = [];
+        
+        rascunhoAtual.abasAbertas.forEach(path => {
+            const btn = document.createElement('div');
+            btn.className = `ide-tab ${rascunhoAtual.arquivoAtivo === path ? 'active' : ''}`;
+            btn.style.display = 'flex';
+            btn.style.alignItems = 'center';
+            btn.style.gap = '6px';
+            btn.title = path;
+            
+            let color = '#ccc';
+            if (path.endsWith('.html')) color = '#e34c26';
+            else if (path.endsWith('.css')) color = '#264de4';
+            else if (path.endsWith('.js')) color = '#f0db4f';
+            else if (path.endsWith('.cs')) color = '#178600';
+            else if (path.endsWith('.json')) color = '#cb3837';
+            else if (path.endsWith('.md')) color = '#fff';
+            
+            const btnName = document.createElement('span');
+            btnName.style.cursor = 'pointer';
+            btnName.style.display = 'flex';
+            btnName.style.alignItems = 'center';
+            btnName.style.gap = '6px';
+            btnName.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg> <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width: 150px;">${path}</span>`;
+            btnName.onclick = () => abrirArquivo(path);
+            
+            const btnClose = document.createElement('button');
+            btnClose.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+            btnClose.style = "background:none; border:none; color:inherit; cursor:pointer; padding:2px; margin-left:4px; opacity: 0.6; display: flex; align-items: center; justify-content: center;";
+            btnClose.onclick = (e) => {
+                e.stopPropagation();
+                fecharAba(path, false);
+            };
+            
+            btn.appendChild(btnName);
+            btn.appendChild(btnClose);
+            container.appendChild(btn);
+        });
+    }
+
+    function fecharAba(path, isExcluindo = false) {
+        if (!rascunhoAtual.abasAbertas) rascunhoAtual.abasAbertas = [];
+        const abaIndex = rascunhoAtual.abasAbertas.indexOf(path);
+        
+        if (abaIndex !== -1) {
+            rascunhoAtual.abasAbertas.splice(abaIndex, 1);
+        }
+        
+        if (rascunhoAtual.arquivoAtivo === path || isExcluindo) {
+            const novaAba = rascunhoAtual.abasAbertas[Math.min(abaIndex, rascunhoAtual.abasAbertas.length - 1)];
+            if (novaAba) {
+                abrirArquivo(novaAba);
+            } else {
+                rascunhoAtual.arquivoAtivo = '';
+                setEditorValue('');
+                lblCurrentFile.textContent = 'Sem arquivo';
+                if (statusBarFile) statusBarFile.textContent = 'Sem arquivo';
+                if (statusBarLang) statusBarLang.textContent = '-';
+                renderizarArvoreArquivos();
+                renderizarAbas();
+                salvarRascunhoLocal();
+            }
         } else {
-            renderizarArvoreArquivos();
+            renderizarAbas();
             salvarRascunhoLocal();
         }
     }
@@ -963,6 +1030,11 @@ console.log("Lista carregada");`
         if (rascunhoAtual.arquivos[filename] === undefined) {
             if (filename === 'index.html') rascunhoAtual.arquivos[filename] = '';
             else return;
+        }
+        
+        if (!rascunhoAtual.abasAbertas) rascunhoAtual.abasAbertas = [];
+        if (!rascunhoAtual.abasAbertas.includes(filename)) {
+            rascunhoAtual.abasAbertas.push(filename);
         }
         
         rascunhoAtual.arquivoAtivo = filename;
@@ -980,19 +1052,13 @@ console.log("Lista carregada");`
         updateEditorMode(filename);
         
         renderizarArvoreArquivos();
+                renderizarAbas();
         setTimeout(() => { if (editorInstance) editorInstance.refresh(); }, 50);
         salvarRascunhoLocal();
     }
 
     // 10. Ações da Toolbar/Sidebar
-    // Substituído por renderizarArvoreArquivos (Exceto para as abas estáticas do Commit 2)
-    const tabButtons = document.querySelectorAll('.ide-tab');
-    tabButtons.forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const file = e.currentTarget.getAttribute('data-file');
-            abrirArquivo(file);
-        });
-    });
+    // Substituído por renderizarArvoreArquivos e renderizarAbas
 
     templateButtons.forEach(btn => {
         btn.addEventListener('click', (e) => {
@@ -1021,6 +1087,7 @@ console.log("Lista carregada");`
                 updateEditorMode('index.html');
                 
                 renderizarArvoreArquivos();
+                renderizarAbas();
                 
                 setTimeout(() => { if (editorInstance) editorInstance.refresh(); }, 50);
 
@@ -1077,6 +1144,7 @@ console.log("Lista carregada");`
         updateEditorMode('index.html');
         
         renderizarArvoreArquivos();
+                renderizarAbas();
         
         setTimeout(() => { if (editorInstance) editorInstance.refresh(); }, 50);
 
@@ -1355,6 +1423,7 @@ console.log("Lista carregada");`
             
             rascunhoAtual.pastas.push(pathRaw);
             renderizarArvoreArquivos();
+                renderizarAbas();
             salvarRascunhoLocal();
         });
     }
@@ -1386,6 +1455,7 @@ console.log("Lista carregada");`
             updateEditorMode('index.html');
             
             renderizarArvoreArquivos();
+                renderizarAbas();
             
             setTimeout(() => { if (editorInstance) editorInstance.refresh(); }, 50);
 
@@ -1418,6 +1488,7 @@ console.log("Lista carregada");`
             updateEditorMode('index.html');
             
             renderizarArvoreArquivos();
+                renderizarAbas();
             
             setTimeout(() => { if (editorInstance) editorInstance.refresh(); }, 50);
 
