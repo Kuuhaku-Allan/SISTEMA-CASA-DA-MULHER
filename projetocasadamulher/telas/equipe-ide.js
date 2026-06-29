@@ -570,9 +570,13 @@ console.log("Lista carregada");`
     };
 
     let rascunhoAtual = {
+        versaoWorkspace: 2,
         nome: 'Tela Soft UI',
         arquivos: { ...TEMPLATES['soft-ui'].arquivos },
+        arquivosBase: { ...TEMPLATES['soft-ui'].arquivos },
+        pastas: [],
         arquivoAtivo: 'index.html',
+        abasAbertas: ['index.html', 'style.css', 'script.js'],
         tarefa: TAREFA_PADRAO,
         areaProjeto: null
     };
@@ -663,28 +667,59 @@ console.log("Lista carregada");`
         if (salvoStr) {
             try {
                 let salvo = JSON.parse(salvoStr);
-                // Normaliza formato
-                if (!salvo.arquivos) salvo.arquivos = {};
-                salvo.arquivos['index.html'] = salvo.arquivos['index.html'] || salvo.arquivos['html'] || '';
-                salvo.arquivos['style.css'] = salvo.arquivos['style.css'] || salvo.arquivos['css'] || '';
-                salvo.arquivos['script.js'] = salvo.arquivos['script.js'] || salvo.arquivos['js'] || '';
+                // MIGRATION SCRIPT TO V2
+                if (salvo.versaoWorkspace !== 2) {
+                    console.log("Migrando rascunho antigo para Workspace V2...");
+                    const arquivosAntigos = salvo.arquivos || {};
+                    const html = arquivosAntigos['index.html'] || arquivosAntigos['html'] || '';
+                    const css = arquivosAntigos['style.css'] || arquivosAntigos['css'] || '';
+                    const js = arquivosAntigos['script.js'] || arquivosAntigos['js'] || '';
+                    
+                    const novosArquivos = {
+                        "index.html": html,
+                        "style.css": css,
+                        "script.js": js
+                    };
+                    
+                    salvo = {
+                        versaoWorkspace: 2,
+                        nome: salvo.nome || 'Rascunho Migrado',
+                        arquivos: novosArquivos,
+                        arquivosBase: JSON.parse(JSON.stringify(novosArquivos)), // Clone deep
+                        pastas: [],
+                        arquivoAtivo: salvo.arquivoAtivo || "index.html",
+                        abasAbertas: ["index.html", "style.css", "script.js"],
+                        tarefa: salvo.tarefa || TAREFA_PADRAO,
+                        areaProjeto: salvo.areaProjeto || null,
+                        atualizadoEm: salvo.atualizadoEm,
+                        githubModo: salvo.githubModo,
+                        githubToken: salvo.githubToken,
+                        githubOwner: salvo.githubOwner,
+                        githubRepo: salvo.githubRepo,
+                        githubBranch: salvo.githubBranch
+                    };
+                }
                 
-                // Prevenção contra rascunhos zumbis (onde index.html foi sobrescrito por css ou está vazio)
-                const isInvalid = !salvo.arquivos['index.html'].trim() || (!salvo.arquivos['index.html'].includes('<html') && salvo.arquivos['style.css'].trim());
+                // Prevenção contra rascunhos zumbis
+                const isInvalid = !salvo.arquivos || !salvo.arquivos['index.html'] || (!salvo.arquivos['index.html'].trim() && salvo.arquivos['style.css'].trim());
                 
                 if (isInvalid) {
                     console.warn("Rascunho antigo inválido ou corrompido, carregando vazio.");
                     localStorage.removeItem(DRAFT_KEY);
-                } else if (salvo && salvo.arquivos) {
+                } else {
                     rascunhoAtual = salvo;
+                    
+                    // Fallbacks extras
+                    if (!rascunhoAtual.arquivosBase) rascunhoAtual.arquivosBase = JSON.parse(JSON.stringify(rascunhoAtual.arquivos));
+                    if (!rascunhoAtual.pastas) rascunhoAtual.pastas = [];
+                    if (!rascunhoAtual.abasAbertas) rascunhoAtual.abasAbertas = ["index.html", "style.css", "script.js"];
                     if (!rascunhoAtual.arquivoAtivo) rascunhoAtual.arquivoAtivo = 'index.html';
                     if (!rascunhoAtual.tarefa) rascunhoAtual.tarefa = TAREFA_PADRAO;
-                    if (rascunhoAtual.areaProjeto === undefined) rascunhoAtual.areaProjeto = null;
                     
                     document.getElementById('ideCurrentFileName').textContent = rascunhoAtual.arquivoAtivo;
                     atualizarStatusTarefa();
                     marcarComoSalvo();
-                    console.log(`Rascunho restaurado. Atualizado em: ${salvo.atualizadoEm}`);
+                    console.log(`Rascunho restaurado V2. Atualizado em: ${salvo.atualizadoEm}`);
                 }
             } catch (e) {
                 console.error("Erro ao ler rascunho salvo.", e);
